@@ -5,7 +5,7 @@ import { TeamValidator } from "@pkmn/sim";
 declare const __BUILD_NUMBER__: string;
 type BattleType = "PvP" | "PvE";
 type BattleMode = "Auto" | "Manual";
-type Page = "Overview" | "Team Builder" | "Simulator" | "Matchup Analysis";
+type Page = "Overview" | "Team Builder" | "Legality analysis" | "Simulator" | "Matchup Analysis";
 const generations = Array.from({ length: 9 }, (_, i) => i + 1);
 const tiers = ["Anything Goes", "Ubers", "OU", "UU", "RU", "NU", "PU", "ZU", "Little Cup", "VGC", "Custom"];
 const pveFacilities: Record<number, string> = { 3: "Battle Tower", 4: "Battle Tower", 5: "Battle Subway", 6: "Battle Maison", 7: "Battle Tree", 8: "Battle Tower", 9: "Academy Ace Tournament" };
@@ -217,7 +217,7 @@ export default function App() {
       <aside className="sidebar">
         <div className="brand"><div className="brand-mark">P</div><div><strong>Pokémon Battle Lab</strong><span>TEAM TESTING SUITE</span></div></div>
         <nav aria-label="Main navigation">
-          {(["Overview", "Team Builder", "Simulator", "Matchup Analysis"] as Page[]).map(page => <button className={activePage === page ? "nav-item active" : "nav-item"} key={page} onClick={() => setActivePage(page)}><span className="nav-dot" />{page}</button>)}
+          {(["Overview", "Team Builder", "Legality analysis", "Simulator", "Matchup Analysis"] as Page[]).map(page => <button className={activePage === page ? "nav-item active" : "nav-item"} key={page} onClick={() => setActivePage(page)}><span className="nav-dot" />{page}</button>)}
         </nav>
         <div className="sidebar-note"><span className="status-dot" /><span>Local workspace</span></div>
       </aside>
@@ -232,11 +232,11 @@ export default function App() {
               <fieldset className="field battle-type-field"><legend>Battle type</legend><div className="segmented">{(["PvP","PvE"] as BattleType[]).map(type => <button type="button" key={type} className={settings.battleType === type ? "selected" : ""} aria-pressed={settings.battleType === type} onClick={() => updateSetting("battleType", type)}>{type}</button>)}</div></fieldset>
               {settings.battleType === "PvP" ? <label className="field conditional-field"><span>PvP tier</span><select value={settings.tier} onChange={e => updateSetting("tier", e.target.value)}>{tiers.map(t => <option key={t}>{t}</option>)}</select></label> : <div className="field conditional-field"><span>PvE facility</span><div className="derived-value">{pveFacilities[settings.generation] || "No facility configured"}</div></div>}
             </div>
-            <div className="config-summary"><span className="summary-label">ACTIVE RULESET</span><strong>Gen {settings.generation} · {settings.battleType === "PvP" ? settings.tier : pveFacilities[settings.generation]}</strong><span className="summary-copy">The selected ruleset will govern legality checks and battle mechanics once the engine is connected.</span></div>
+            <div className="config-summary"><span className="summary-label">ACTIVE RULESET</span><strong>Gen {settings.generation} · {settings.battleType === "PvP" ? settings.tier : pveFacilities[settings.generation]}</strong><span className="summary-copy">The selected ruleset is used by the team legality checker. Battle execution is a separate, upcoming feature.</span></div>
           </section>
           <section className="lower-grid">
             <section className="panel mode-panel"><div className="panel-heading"><div><span className="eyebrow">02 / CONTROL</span><h3>Battle control</h3></div></div><p className="panel-description">Choose how decisions are made during a simulation.</p><div className="mode-options">{(["Auto","Manual"] as BattleMode[]).map(mode => <button type="button" className={settings.mode === mode ? "mode-option chosen" : "mode-option"} key={mode} onClick={() => updateSetting("mode", mode)}><span className="mode-icon">{mode === "Auto" ? "↻" : "⌁"}</span><span><strong>{mode}</strong><small>{mode === "Auto" ? "AI controls decisions" : "You control decisions"}</small></span><span className="radio-mark">{settings.mode === mode ? "●" : "○"}</span></button>)}</div><p className="hint">Auto / Manual switching will be available during live battles without resetting battle state.</p></section>
-            <section className="panel roadmap-panel"><div className="panel-heading"><div><span className="eyebrow">03 / WORKSPACE</span><h3>Build status</h3></div><span className="build-version">0.2.0</span></div><div className="roadmap-list"><div className="roadmap-row done"><span>✓</span><div><strong>Responsive app foundation</strong><small>Desktop and mobile layout</small></div><em>Ready</em></div><div className="roadmap-row done"><span>✓</span><div><strong>Ruleset configuration</strong><small>Generation, PvP tier and automatic PvE facility</small></div><em>Ready</em></div><div className="roadmap-row done"><span>✓</span><div><strong>Local team builder</strong><small>Six slots, set variants and browser storage</small></div><em>Ready</em></div><div className="roadmap-row"><span>3</span><div><strong>Legality analysis</strong><small>Generation-aware Showdown validation</small></div><em>Planned</em></div><div className="roadmap-row"><span>4</span><div><strong>Battle simulation</strong><small>Auto, Manual and matchup testing</small></div><em>Planned</em></div></div></section>
+            <section className="panel roadmap-panel"><div className="panel-heading"><div><span className="eyebrow">03 / WORKSPACE</span><h3>Build status</h3></div><span className="build-version">0.2.0</span></div><div className="roadmap-list"><div className="roadmap-row done"><span>✓</span><div><strong>Responsive app foundation</strong><small>Desktop and mobile layout</small></div><em>Ready</em></div><div className="roadmap-row done"><span>✓</span><div><strong>Ruleset configuration</strong><small>Generation, PvP tier and automatic PvE facility</small></div><em>Ready</em></div><div className="roadmap-row done"><span>✓</span><div><strong>Local team builder</strong><small>Six slots, set variants and browser storage</small></div><em>Ready</em></div><button type="button" className="roadmap-row done" onClick={() => setActivePage("Legality analysis")}><span>✓</span><div><strong>Legality analysis</strong><small>Generation-aware Showdown validation</small></div><em>Ready · Open</em></button><div className="roadmap-row"><span>4</span><div><strong>Battle simulation</strong><small>Auto, Manual and matchup testing</small></div><em>Planned</em></div></div></section>
           </section>
         </>}
         {activePage === "Team Builder" && <>
@@ -277,6 +277,20 @@ export default function App() {
             </section>
           </div>
           <p className="hint team-storage-hint">Local-first storage: your teams remain on this device. Account sync and Google login will be connected separately.</p>
+        </>}
+        {activePage === "Legality analysis" && <>
+          <section className="intro"><div><div className="eyebrow">TEAM VALIDATION</div><h2>Legality analysis.</h2><p>Validate a complete six-Pokémon team against the selected generation and PvP tier using Pokémon Showdown's rules data.</p></div></section>
+          <section className="panel legality-analysis-panel">
+            <div className="panel-heading"><div><span className="eyebrow">ACTIVE RULESET</span><h3>{settings.battleType === "PvP" ? `Generation ${settings.generation} · ${settings.tier}` : `Generation ${settings.generation} · ${pveFacilities[settings.generation] || "PvE facility"}`}</h3></div><button type="button" className="secondary-button" onClick={() => setActivePage("Team Builder")}>Open Team Builder</button></div>
+            <label className="field"><span>Team to analyse</span><select value={activeTeam?.id || ""} onChange={e => setActiveTeamId(e.target.value)}><option value="" disabled>Select a team...</option>{teams.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>
+            {!activeTeam ? <div className="empty-state"><strong>No team available</strong><p>Create a team in Team Builder before running legality analysis.</p></div> : <>
+              <div className={`legality-report legality-${legality.status.toLowerCase().replace(/[^a-z]+/g,"-")}`}>
+                <div className="legality-report-heading"><span className="status-dot status-muted" /><strong>{legality.status}</strong><span>{activeTeam.slots.filter(slot => activeBuild(slot)?.name.trim()).length} / 6 Pokémon selected</span></div>
+                <ul>{legality.messages.map((message,index) => <li key={index}>{message}</li>)}</ul>
+              </div>
+              <div className="legality-team-list">{activeTeam.slots.map((slot,index) => { const build = activeBuild(slot); return <div className="legality-team-row" key={slot.id}><span>{index+1}</span><strong>{build?.nickname || build?.name || "Empty slot"}</strong><small>{build?.name ? [build.level ? `Lv. ${build.level}` : "",build.ability,build.item].filter(Boolean).join(" · ") : "Add a Pokémon in Team Builder"}</small></div>; })}</div>
+            </>}
+          </section>
         </>}
         {activePage === "Simulator" && <section className="intro"><div><div className="eyebrow">BATTLE ENGINE</div><h2>Simulation is not connected yet.</h2><p>The team builder can prepare and store teams. Battle execution will follow once the rules engine is integrated.</p></div></section>}
         {activePage === "Matchup Analysis" && <section className="intro"><div><div className="eyebrow">ANALYSIS WORKSPACE</div><h2>Matchup analysis is not connected yet.</h2><p>Saved teams will become available here for matchup matrices and repeated simulations.</p></div></section>}

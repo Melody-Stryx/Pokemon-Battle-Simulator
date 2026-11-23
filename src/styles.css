@@ -186,3 +186,16 @@ footer span { padding: 0 5px; color: var(--accent); }
 .legality-illegal strong { color:#ef8d8d; }
 .legality-unavailable strong,.legality-unsupported-format strong,.legality-incomplete strong { color:#e7c77b; }
 .legality-note > span:last-child { overflow-wrap:anywhere; }
+
+
+/* Searchable Pokédex species selector */
+.species-picker-field { position:relative; }
+.species-picker-field > label { color:#b8bdc8; font-size:11px; font-weight:600; }
+.species-picker-control { display:flex; position:relative; }
+.species-picker-control input { padding-right:38px; }
+.species-dropdown-toggle { position:absolute; right:0; top:0; width:36px; height:39px; border:0; color:var(--muted); background:transparent; }
+.species-dropdown { position:absolute; z-index:5; top:calc(100% + 4px); left:0; right:0; max-height:280px; overflow-y:auto; border:1px solid #454d5b; border-radius:7px; background:#20242d; box-shadow:0 10px 24px #0008; }
+.species-dropdown button { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; padding:9px 11px; border:0; border-bottom:1px solid #303641; color:#edf0f5; background:transparent; text-align:left; font-size:11px; }
+.species-dropdown button:hover,.species-dropdown button[aria-selected="true"] { background:#303b2b; }
+.species-dropdown button small { color:var(--muted); font-size:9px; }
+.species-no-results { padding:12px; color:var(--muted); font-size:10px; }

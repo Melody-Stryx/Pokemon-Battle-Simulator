@@ -1,4 +1,30 @@
-import { BattleStreams, RandomPlayerAI, Teams } from "@pkmn/sim";
+import { BattleStreams, RandomPlayerAI, TeamValidator, Teams } from "@pkmn/sim";
+
+const gen7Set = {
+  name: "Pikachu",
+  species: "Pikachu",
+  level: 50,
+  ability: "Static",
+  item: "Leftovers",
+  nature: "Hardy",
+  moves: ["Thunderbolt", "Quick Attack"],
+  evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+  ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+};
+const gen7Team = Array.from({ length: 6 }, (_, index) => ({
+  ...gen7Set,
+  name: `Pikachu ${index + 1}`,
+}));
+const gen7Validator = TeamValidator.get("gen7anythinggoes");
+if ((gen7Validator.validateTeam(gen7Team) || []).length) {
+  throw new Error("Generation 7 Anything Goes set validation failed for a legal Battle Tree test roster.");
+}
+const illegalGen7Team = gen7Team.map((pokemon, index) => index === 0
+  ? { ...pokemon, moves: ["Doom Desire"] }
+  : pokemon);
+if (!(gen7Validator.validateTeam(illegalGen7Team) || []).length) {
+  throw new Error("Generation 7 set validation failed to reject an illegal move.");
+}
 
 const set = {
   name: "Pikachu",

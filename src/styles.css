@@ -161,3 +161,23 @@ footer span { padding: 0 5px; color: var(--accent); }
 .team-storage-hint { margin:12px 2px 0; }
 @media(max-width:1050px) { .team-builder-layout { grid-template-columns:1fr; } .team-list { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:650px) { .team-slots { grid-template-columns:repeat(2,minmax(0,1fr)); } .pokemon-fields { grid-template-columns:repeat(2,minmax(0,1fr)); } .stat-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } .team-list { grid-template-columns:1fr; } .team-title-row { align-items:flex-start; flex-direction:column; } .editor-heading { align-items:flex-start; flex-direction:column; } }
+
+/* Pokédex summary */
+.species-summary { margin-top:16px; padding:14px; border:1px solid var(--border); border-radius:9px; background:#20252c; }
+.species-summary-top { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+.species-summary-top > strong { color:#f0f2f6; font:600 14px 'Space Grotesk'; }
+.species-summary-top > span:not(.type-tags) { color:var(--muted); font:9px 'DM Mono'; }
+.type-tags { display:flex; flex-wrap:wrap; gap:5px; }
+.type-tag { padding:4px 7px; border-radius:4px; color:#101319; background:#c5cbd4; font:700 9px 'DM Sans'; font-style:normal; text-transform:uppercase; }
+.type-fire { background:#e88b59; }.type-water { background:#70a9e8; }.type-grass { background:#83bd70; }.type-electric { background:#e6c95e; }.type-ice { background:#8bd2d2; }.type-fighting { background:#d47b70; }.type-poison { background:#b18acb; }.type-ground { background:#d5b17a; }.type-flying { background:#a6a5df; }.type-psychic { background:#e68aaf; }.type-bug { background:#a9b85e; }.type-rock { background:#b9a47b; }.type-ghost { background:#8b82ba; }.type-dragon { background:#8874d1; }.type-dark { background:#8d827c; }.type-steel { background:#a8b7c7; }.type-fairy { background:#e7a9cf; }
+.base-stat-row { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:6px; margin-top:14px; }
+.base-stat-row > div { display:grid; gap:4px; padding:8px 4px; border-radius:6px; background:#292f39; text-align:center; }
+.base-stat-row small,.species-abilities small { color:var(--muted); font-size:9px; }
+.base-stat-row strong { color:#edf0f5; font:600 12px 'DM Mono'; }
+.base-stat-row .bst-total { background:#303b2b; }
+.base-stat-row .bst-total strong { color:var(--accent); }
+.species-abilities { display:flex; align-items:center; flex-wrap:wrap; gap:7px; margin-top:11px; }
+.species-abilities small { margin-right:3px; }
+.species-abilities span { padding:4px 7px; border:1px solid #3a414d; border-radius:5px; color:#dce0e8; font-size:9px; }
+.species-unmatched { color:#d4b77a; font-size:10px; }
+@media(max-width:650px) { .base-stat-row { grid-template-columns:repeat(4,minmax(0,1fr)); } }

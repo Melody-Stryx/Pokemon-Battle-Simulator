@@ -86,7 +86,6 @@ export default function App() {
 
     const builds = activeTeam.slots.map(slot => activeBuild(slot));
     const namedBuilds = builds.filter(build => build.name.trim());
-    const missingSpecies = builds.length - namedBuilds.length;
     if (namedBuilds.length !== 6 || builds.length !== 6) {
       return {
         status: "Incomplete",
@@ -149,8 +148,8 @@ export default function App() {
       nature: build.nature,
       gender: build.gender || undefined,
       moves: build.moves.filter(Boolean),
-      evs: { hp: build.evs.HP, atk: build.evs.Atk, def: build.evs.Def, spa: build.evs.SpA, spd: build.evs.Spd, spe: build.evs.Spe },
-      ivs: { hp: build.ivs.HP, atk: build.ivs.Atk, def: build.ivs.Def, spa: build.ivs.Spa, spd: build.ivs.Spd, spe: build.ivs.Spe },
+      evs: { hp: build.evs.HP, atk: build.evs.Atk, def: build.evs.Def, spa: build.evs.SpA, spd: build.evs.SpD, spe: build.evs.Spe },
+      ivs: { hp: build.ivs.HP, atk: build.ivs.Atk, def: build.ivs.Def, spa: build.ivs.Spa, spd: build.ivs.SpD, spe: build.ivs.Spe },
     }));
 
     try {

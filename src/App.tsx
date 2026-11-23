@@ -24,6 +24,20 @@ const statNames = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"];
 const natures = ["Hardy","Lonely","Brave","Adamant","Naughty","Bold","Docile","Relaxed","Impish","Lax","Timid","Hasty","Serious","Jolly","Naive","Modest","Mild","Quiet","Bashful","Rash","Calm","Gentle","Sassy","Careful","Quirky"];
 const uid = () => crypto.randomUUID();
 const statLabels: Record<string, string> = { hp: "HP", atk: "Atk", def: "Def", spa: "SpA", spd: "SpD", spe: "Spe" };
+const natureChanges: Record<string, [string, string]> = {
+  Lonely: ["atk", "def"], Brave: ["atk", "spe"], Adamant: ["atk", "spa"], Naughty: ["atk", "spd"],
+  Bold: ["def", "atk"], Relaxed: ["def", "spe"], Impish: ["def", "spa"], Lax: ["def", "spd"],
+  Timid: ["spe", "atk"], Hasty: ["spe", "def"], Jolly: ["spe", "spa"], Naive: ["spe", "spd"],
+  Modest: ["spa", "atk"], Mild: ["spa", "def"], Quiet: ["spa", "spe"], Rash: ["spa", "spd"],
+  Calm: ["spd", "atk"], Gentle: ["spd", "def"], Sassy: ["spd", "spe"], Careful: ["spd", "spa"],
+};
+function calculateFinalStat(base: number, iv: number, ev: number, level: number, stat: string, nature: string) {
+  const value = Math.floor(((2 * base + iv + Math.floor(ev / 4)) * level) / 100);
+  if (stat === "hp") return base === 1 && stat === "hp" ? 1 : value + level + 10;
+  const [up, down] = natureChanges[nature] || ["", ""];
+  const natureModifier = stat === up ? 1.1 : stat === down ? 0.9 : 1;
+  return Math.floor((value + 5) * natureModifier);
+}
 function newBuild(name = ""): PokemonBuild {
   return { id: uid(), name, label: "", nickname: "", level: 100, gender: "", ability: "", nature: "Hardy", item: "", moves: ["","","",""], evs: { HP:0, Atk:0, Def:0, SpA:0, SpD:0, Spe:0 }, ivs: { HP:31, Atk:31, Def:31, SpA:31, SpD:31, Spe:31 } };
 }
@@ -165,7 +179,6 @@ export default function App() {
                   <div className={`legality-note legality-${legality.status.toLowerCase().replace(/[^a-z]+/g,"-")}`}><span className="status-dot status-muted" /> Team legality: <strong>{legality.status}</strong><span>{legality.messages.join(" · ")}</span></div>
                   {selectedSpecies ? <div className="species-summary">
                     <div className="species-summary-top"><strong>{selectedSpecies.name}</strong><span>National Dex #{selectedSpecies.num}</span><span className="type-tags">{selectedSpecies.types.map(type => <em key={type} className={"type-tag type-"+type.toLowerCase()}>{type}</em>)}</span></div>
-                    <div className="base-stat-row">{Object.entries(selectedSpecies.baseStats).map(([stat,value]) => <div key={stat}><small>{statLabels[stat] || stat}</small><strong>{value}</strong></div>)}<div className="bst-total"><small>BST</small><strong>{Object.values(selectedSpecies.baseStats).reduce((sum,value) => sum + value, 0)}</strong></div></div>
                     <div className="species-abilities"><small>Species abilities</small>{speciesAbilities.map(ability => <span key={ability}>{ability}</span>)}</div>
                   </div> : selectedBuild.name.trim() ? <div className="species-summary species-unmatched">No exact species match in Generation {settings.generation}. You can keep custom text for experimental sets.</div> : null}
                   <div className="pokemon-fields">
@@ -177,6 +190,7 @@ export default function App() {
                     <label className="field"><span>Nature</span><select value={selectedBuild.nature} onChange={e => patchBuild({nature:e.target.value})}>{natures.map(n => <option key={n}>{n}</option>)}</select></label>
                     <label className="field"><span>Held item</span><select value={selectedBuild.item} onChange={e => patchBuild({item:e.target.value})}><option value="">No item</option>{selectedBuild.item && !itemOptions.some(i => i.name === selectedBuild.item) && <option value={selectedBuild.item}>{selectedBuild.item} (custom)</option>}{itemOptions.map(i => <option value={i.name} key={i.name}>{i.name}</option>)}</select></label>
                   </div>
+                  {selectedSpecies && <div className="editor-section final-stats-section"><div className="editor-section-title">Final stats <small>Level {selectedBuild.level} · {selectedBuild.nature}</small></div><div className="base-stat-row">{statNames.map((label, index) => { const stat = ["hp","atk","def","spa","spd","spe"][index]; const value = calculateFinalStat(selectedSpecies.baseStats[stat], selectedBuild.ivs[label], selectedBuild.evs[label], selectedBuild.level, stat, selectedBuild.nature); return <div key={stat}><small>{label}</small><strong>{value}</strong></div>; })}<div className="bst-total"><small>Total</small><strong>{statNames.reduce((sum, label, index) => sum + calculateFinalStat(selectedSpecies.baseStats[["hp","atk","def","spa","spd","spe"][index]], selectedBuild.ivs[label], selectedBuild.evs[label], selectedBuild.level, ["hp","atk","def","spa","spd","spe"][index], selectedBuild.nature), 0)}</strong></div></div></div>}
                   <div className="editor-section"><div className="editor-section-title">Moves <small>{moveOptions.length} moves in Gen {settings.generation} data</small></div><div className="move-grid">{selectedBuild.moves.map((move,i) => <label className="field" key={i}><span>Move {i+1}</span><select value={move} onChange={e => patchBuild({moves:selectedBuild.moves.map((m,j) => j===i ? e.target.value : m)})}><option value="">Select move...</option>{move && !moveOptions.some(option => option.name === move) && <option value={move}>{move} (custom)</option>}{moveOptions.map(option => <option value={option.name} key={option.name}>{option.name}</option>)}</select></label>)}</div></div>
                   <div className="editor-section"><div className="editor-section-title">Effort values (EVs) <small>510 total maximum</small></div><div className="stat-grid">{statNames.map(stat => <label className="field" key={stat}><span>{stat}</span><input type="number" min="0" max="252" value={selectedBuild.evs[stat]} onChange={e => patchBuild({evs:{...selectedBuild.evs,[stat]:Math.max(0,Math.min(252,Number(e.target.value)||0))}})} /></label>)}</div><p className="stat-total">Total EVs: {Object.values(selectedBuild.evs).reduce((a,b)=>a+b,0)} / 510</p></div>
                   <div className="editor-section"><div className="editor-section-title">Individual values (IVs)</div><div className="stat-grid">{statNames.map(stat => <label className="field" key={stat}><span>{stat}</span><input type="number" min="0" max="31" value={selectedBuild.ivs[stat]} onChange={e => patchBuild({ivs:{...selectedBuild.ivs,[stat]:Math.max(0,Math.min(31,Number(e.target.value)||0))}})} /></label>)}</div></div>

@@ -94,12 +94,12 @@ export default function App() {
     }
 
     const incompleteSets = namedBuilds
-      .filter(build => !build.ability.trim() || !build.moves.some(move => move.trim()))
+      .filter(build => (settings.generation >= 3 && !build.ability.trim()) || !build.moves.some(move => move.trim()))
       .map(build => build.nickname.trim() || build.name);
     if (incompleteSets.length) {
       return {
         status: "Incomplete",
-        messages: [`Choose an ability and at least one move for: ${incompleteSets.join(", ")}.`],
+        messages: [`Choose an ability where the generation supports abilities, and at least one move for: ${incompleteSets.join(", ")}.`],
       };
     }
 

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Dex } from "@pkmn/dex";
+import { TeamValidator } from "@pkmn/sim";
 
 declare const __BUILD_NUMBER__: string;
 type BattleType = "PvP" | "PvE";
@@ -47,6 +48,30 @@ export default function App() {
   const abilityOptions = useMemo(() => generationDex.abilities.all().filter(a => a.exists && !a.isNonstandard).sort((a,b) => a.name.localeCompare(b.name)), [generationDex]);
   const itemOptions = useMemo(() => generationDex.items.all().filter(i => i.exists && !i.isNonstandard).sort((a,b) => a.name.localeCompare(b.name)), [generationDex]);
   const selectedSpecies = selectedBuild ? speciesOptions.find(p => p.name.toLowerCase() === selectedBuild.name.trim().toLowerCase()) : undefined;
+  const legality = useMemo(() => {
+    if (!activeTeam) return { status: "No team", messages: [] as string[] };
+    const sets = activeTeam.slots.map(slot => activeBuild(slot)).filter(build => build.name.trim()).map(build => ({
+      name: build.nickname || build.name,
+      species: build.name,
+      level: build.level,
+      ability: build.ability,
+      item: build.item,
+      nature: build.nature,
+      moves: build.moves.filter(Boolean),
+      evs: { hp: build.evs.HP, atk: build.evs.Atk, def: build.evs.Def, spa: build.evs.SpA, spd: build.evs.SpD, spe: build.evs.Spe },
+      ivs: { hp: build.ivs.HP, atk: build.ivs.Atk, def: build.ivs.Def, spa: build.ivs.SpA, spd: build.ivs.SpD, spe: build.ivs.Spe },
+    }));
+    if (!sets.length) return { status: "Incomplete", messages: ["Add at least one Pokémon to check the team."] };
+    const tierIds: Record<string, string> = { "Anything Goes": "ag", "Ubers": "ubers", "OU": "ou", "UU": "uu", "RU": "ru", "NU": "nu", "PU": "pu", "ZU": "zu", "Little Cup": "lc" };
+    const format = settings.battleType === "PvE" ? `gen${settings.generation}customgame` : settings.tier === "Custom" ? `gen${settings.generation}customgame` : settings.tier === "VGC" ? "" : `gen${settings.generation}${tierIds[settings.tier] || ""}`;
+    if (!format) return { status: "Unsupported format", messages: ["VGC format rules are not configured yet."] };
+    try {
+      const problems = TeamValidator.get(format).validateTeam(sets as any) || [];
+      return problems.length ? { status: "Illegal", messages: problems } : { status: "Legal", messages: ["No legality problems found for this format."] };
+    } catch {
+      return { status: "Unavailable", messages: [`The ${format} validator format is not included in the current ruleset data.`] };
+    }
+  }, [activeTeam, settings.generation, settings.battleType, settings.tier]);
   const speciesAbilities = selectedSpecies ? Object.values(selectedSpecies.abilities).filter(Boolean) : [];
   const patchTeam = (teamId: string, updater: (team: Team) => Team) => setTeams(all => all.map(t => t.id === teamId ? { ...updater(t), updatedAt: new Date().toISOString() } : t));
   const createTeam = () => {
@@ -136,7 +161,7 @@ export default function App() {
                 {activeTeam.slots.length < 6 && <button className="add-pokemon-button" onClick={addPokemon}>+ Add Pokémon</button>}
                 {selectedSlot && selectedBuild ? <div className="pokemon-editor">
                   <div className="editor-heading"><div><span className="eyebrow">POKÉMON SET</span><h3>{selectedBuild.name || "New Pokémon"}</h3></div><div className="team-actions"><select aria-label="Active build" value={selectedBuild.id} onChange={e => patchTeam(activeTeam.id, t => ({...t, slots:t.slots.map(s => s.id === selectedSlot.id ? {...s, activeBuildId:e.target.value} : s)}))}>{selectedSlot.builds.map((b,i) => <option value={b.id} key={b.id}>{b.label || "Build "+(i+1)}</option>)}</select><button className="secondary-button" onClick={createBuildVariant}>+ Variant</button><button className="danger-button" disabled={selectedSlot.builds.length < 2} onClick={deleteSelectedBuild}>Delete build</button></div></div>
-                  <div className="legality-note"><span className="status-dot status-muted" /> Legality: <strong>Unverified</strong><span>Saved freely; selection data is generation-aware, full set legality comes later.</span></div>
+                  <div className={`legality-note legality-${legality.status.toLowerCase().replace(/[^a-z]+/g,"-")}`}><span className="status-dot status-muted" /> Team legality: <strong>{legality.status}</strong><span>{legality.messages.join(" · ")}</span></div>
                   {selectedSpecies ? <div className="species-summary">
                     <div className="species-summary-top"><strong>{selectedSpecies.name}</strong><span>National Dex #{selectedSpecies.num}</span><span className="type-tags">{selectedSpecies.types.map(type => <em key={type} className={"type-tag type-"+type.toLowerCase()}>{type}</em>)}</span></div>
                     <div className="base-stat-row">{Object.entries(selectedSpecies.baseStats).map(([stat,value]) => <div key={stat}><small>{statLabels[stat] || stat}</small><strong>{value}</strong></div>)}<div className="bst-total"><small>BST</small><strong>{Object.values(selectedSpecies.baseStats).reduce((sum,value) => sum + value, 0)}</strong></div></div>
@@ -147,7 +172,7 @@ export default function App() {
                   <datalist id="pokemon-ability-options">{(speciesAbilities.length ? speciesAbilities : abilityOptions.map(x => x.name)).map(name => <option value={name} key={name} />)}</datalist>
                   <datalist id="pokemon-item-options">{itemOptions.map(i => <option value={i.name} key={i.name} />)}</datalist>
                   <div className="pokemon-fields">
-                    <label className="field"><span>Pokémon species</span><input value={selectedBuild.name} placeholder="e.g. Garchomp" onChange={e => patchBuild({name:e.target.value})} /></label>
+                    <label className="field"><span>Pokémon species</span><input list="pokemon-species-options" autoComplete="off" value={selectedBuild.name} placeholder="Search or select Pokémon..." onChange={e => patchBuild({name:e.target.value})} /></label>
                     <label className="field"><span>Nickname</span><input value={selectedBuild.nickname} placeholder="Optional" onChange={e => patchBuild({nickname:e.target.value})} /></label>
                     <label className="field"><span>Level</span><input type="number" min="1" max="100" value={selectedBuild.level} onChange={e => patchBuild({level:Math.max(1,Math.min(100,Number(e.target.value)||1))})} /></label>
                     <label className="field"><span>Ability</span><input list="pokemon-ability-options" autoComplete="off" value={selectedBuild.ability} placeholder="Search abilities..." onChange={e => patchBuild({ability:e.target.value})} /></label>

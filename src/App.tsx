@@ -10,16 +10,22 @@ const tiers = [
   "Anything Goes", "Ubers", "OU", "UU", "RU", "NU", "PU", "ZU",
   "Little Cup", "VGC", "Custom"
 ];
-const facilities = [
-  "Battle Tower", "Battle Maison", "Battle Subway",
-  "Battle Institute", "Battle Tree", "Custom"
-];
+
+// The PvE challenge is determined by generation; there is no facility selector.
+const pveFacilities: Record<number, string> = {
+  3: "Battle Tower",
+  4: "Battle Tower",
+  5: "Battle Subway",
+  6: "Battle Maison",
+  7: "Battle Tree",
+  8: "Battle Tower",
+  9: "Academy Ace Tournament"
+};
 
 type Settings = {
   generation: number;
   battleType: BattleType;
   tier: string;
-  facility: string;
   mode: BattleMode;
 };
 
@@ -27,14 +33,22 @@ const defaults: Settings = {
   generation: 9,
   battleType: "PvP",
   tier: "OU",
-  facility: "Battle Tower",
   mode: "Auto"
 };
+
+function normalizeSettings(settings: Settings): Settings {
+  if (settings.battleType === "PvE" && settings.generation < 3) {
+    return { ...settings, generation: 3 };
+  }
+  return settings;
+}
 
 function readSettings(): Settings {
   try {
     const saved = localStorage.getItem("battle-lab-settings");
-    return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
+    return saved
+      ? normalizeSettings({ ...defaults, ...JSON.parse(saved) })
+      : defaults;
   } catch {
     return defaults;
   }
@@ -49,7 +63,7 @@ export default function App() {
   }, [settings]);
 
   const update = <K extends keyof Settings>(key: K, value: Settings[K]) => {
-    setSettings(current => ({ ...current, [key]: value }));
+    setSettings(current => normalizeSettings({ ...current, [key]: value }));
   };
 
   return (
@@ -115,7 +129,13 @@ export default function App() {
                 onChange={event => update("generation", Number(event.target.value))}
               >
                 {generations.map(generation => (
-                  <option value={generation} key={generation}>Generation {generation}</option>
+                  <option
+                    value={generation}
+                    key={generation}
+                    disabled={settings.battleType === "PvE" && generation < 3}
+                  >
+                    Generation {generation}
+                  </option>
                 ))}
               </select>
             </label>
@@ -145,18 +165,16 @@ export default function App() {
                 </select>
               </label>
             ) : (
-              <label className="field conditional-field">
+              <div className="field conditional-field" aria-live="polite">
                 <span>PvE facility</span>
-                <select value={settings.facility} onChange={event => update("facility", event.target.value)}>
-                  {facilities.map(facility => <option key={facility}>{facility}</option>)}
-                </select>
-              </label>
+                <div className="derived-value">{pveFacilities[settings.generation] ?? "No facility configured"}</div>
+              </div>
             )}
           </div>
 
           <div className="config-summary">
             <span className="summary-label">ACTIVE RULESET</span>
-            <strong>Gen {settings.generation} · {settings.battleType === "PvP" ? settings.tier : settings.facility}</strong>
+            <strong>Gen {settings.generation} · {settings.battleType === "PvP" ? settings.tier : (pveFacilities[settings.generation] ?? "No facility configured")}</strong>
             <span className="summary-copy">The selected ruleset will govern legality checks and battle mechanics once the engine is connected.</span>
           </div>
         </section>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Dex } from "@pkmn/dex";
 import { BattleStreams, RandomPlayerAI, TeamValidator, Teams } from "@pkmn/sim";
 

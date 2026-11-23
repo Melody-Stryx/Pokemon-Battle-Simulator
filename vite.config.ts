@@ -19,6 +19,11 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
+      workbox: {
+        // The generation-aware Pokédex data includes a 3.2 MB learnset chunk.
+        // Keep it in the offline precache instead of failing the production build.
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024
+      },
       includeAssets: [],
       manifest: {
         name: "Pokémon Battle Lab",

@@ -28,11 +28,13 @@ const completed = (async () => {
   }
   throw new Error("Battle stream ended without a result.");
 })();
+let timeoutId;
 const timeout = new Promise((_, reject) => {
-  setTimeout(() => reject(new Error("Battle smoke test timed out.")), 30000);
+  timeoutId = setTimeout(() => reject(new Error("Battle smoke test timed out.")), 30000);
 });
 await streams.omniscient.write(`>start ${JSON.stringify({ formatid: "gen9customgame" })}\n>player p1 ${JSON.stringify({ name: "Smoke Test 1", team: packedTeam })}\n>player p2 ${JSON.stringify({ name: "Smoke Test 2", team: packedTeam })}`);
 const result = await Promise.race([completed, timeout]);
+clearTimeout(timeoutId);
 if (!String(result).includes("|win|") && !String(result).includes("|tie")) {
   throw new Error("Battle engine did not report a winner or tie.");
 }

@@ -8,7 +8,7 @@ An independent, responsive Pokémon team-building and battle-testing workspace b
 - PvP tiers and PvE facility selection.
 - Local-first team builder with six slots, multiple builds per Pokémon, export, and automatic browser storage.
 - Generation-aware Pokédex selectors, gender handling, EVs, IVs, natures, and calculated battle stats.
-- Legality analysis using Pokémon Showdown's team validator.
+- Legality analysis using Pokémon Showdown's team validator, including Generation 7 Battle Tree Super Singles roster restrictions.
 - Battle execution using `@pkmn/sim`.
 - Battles between two saved teams.
 - Auto mode with random legal-choice control and Manual mode with move/switch selection.
@@ -20,7 +20,7 @@ An independent, responsive Pokémon team-building and battle-testing workspace b
 
 The opponent currently uses Pokémon Showdown's `RandomPlayerAI`. Auto mode on the player's side uses a random legal move/switch choice, not a strategic search AI.
 
-Supported PvP singles tiers use their corresponding Showdown format when available. PvE facilities, VGC regulations, and Custom tiers currently run in the generation's Custom Game sandbox; their facility- or regulation-specific rules are not enforced.
+Supported PvP singles tiers use their corresponding Showdown format when available. The Generation 7 Battle Tree legality checker validates Super Singles rosters: six registered Pokémon, choose three per battle, level-down to 50, Species Clause, Item Clause, and the restricted Pokémon list. Other PvE facilities, VGC regulations, and Custom tiers currently run in the generation's Custom Game sandbox; their facility- or regulation-specific rules are not enforced. Battle execution itself still uses the Custom Game sandbox for PvE.
 
 Both sides must have a saved team with six selected Pokémon. Each Pokémon needs at least one move. The simulator applies the selected generation's battle mechanics and format rules.
 

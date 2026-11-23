@@ -199,3 +199,23 @@ footer span { padding: 0 5px; color: var(--accent); }
 .species-dropdown button:hover,.species-dropdown button[aria-selected="true"] { background:#303b2b; }
 .species-dropdown button small { color:var(--muted); font-size:9px; }
 .species-no-results { padding:12px; color:var(--muted); font-size:10px; }
+
+
+/* Dedicated legality analysis workspace */
+button.roadmap-row { width: 100%; border-right: 0; border-bottom: 0; border-left: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+button.roadmap-row:hover { background: rgba(255,255,255,.025); }
+.legality-analysis-panel { max-width: 900px; }
+.legality-analysis-panel > .field { max-width: 420px; margin: 18px 0; }
+.legality-report { margin: 18px 0; padding: 15px; border: 1px solid var(--border); border-radius: 8px; background: #20252c; }
+.legality-report-heading { display: flex; align-items: center; gap: 9px; }
+.legality-report-heading strong { color: #e7c77b; font-size: 14px; }
+.legality-report-heading > span:last-child { margin-left: auto; color: var(--muted); font: 10px 'DM Mono'; }
+.legality-legal .legality-report-heading strong { color: #a6e36f; }
+.legality-illegal .legality-report-heading strong { color: #ef8d8d; }
+.legality-report ul { margin: 12px 0 0; padding-left: 19px; color: var(--muted); font-size: 11px; line-height: 1.65; overflow-wrap: anywhere; }
+.legality-team-list { display: grid; gap: 1px; border-top: 1px solid var(--border); }
+.legality-team-row { display: grid; grid-template-columns: 25px minmax(100px, 1fr) minmax(120px, 1.2fr); align-items: center; gap: 10px; padding: 11px 4px; border-bottom: 1px solid var(--border); }
+.legality-team-row > span { color: var(--muted); font: 10px 'DM Mono'; }
+.legality-team-row strong { font-size: 11px; }
+.legality-team-row small { color: var(--muted); font-size: 10px; text-align: right; overflow-wrap: anywhere; }
+@media (max-width: 560px) { .legality-team-row { grid-template-columns: 20px 1fr; } .legality-team-row small { grid-column: 2; text-align: left; } }

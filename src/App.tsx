@@ -23,7 +23,6 @@ const statNames = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"];
 const natures = ["Hardy","Lonely","Brave","Adamant","Naughty","Bold","Docile","Relaxed","Impish","Lax","Timid","Hasty","Serious","Jolly","Naive","Modest","Mild","Quiet","Bashful","Rash","Calm","Gentle","Sassy","Careful","Quirky"];
 const uid = () => crypto.randomUUID();
 const statLabels: Record<string, string> = { hp: "HP", atk: "Atk", def: "Def", spa: "SpA", spd: "SpD", spe: "Spe" };
-function displayName(value: string) { return value.replace(/\b\w/g, c => c.toUpperCase()); }
 function newBuild(name = ""): PokemonBuild {
   return { id: uid(), name, label: "", nickname: "", level: 100, ability: "", nature: "Hardy", item: "", moves: ["","","",""], evs: { HP:0, Atk:0, Def:0, SpA:0, SpD:0, Spe:0 }, ivs: { HP:31, Atk:31, Def:31, SpA:31, SpD:31, Spe:31 } };
 }

@@ -83,7 +83,64 @@ export default function App() {
   const selectedSpecies = selectedBuild ? speciesOptions.find(p => p.name.toLowerCase() === selectedBuild.name.trim().toLowerCase()) : undefined;
   const legality = useMemo(() => {
     if (!activeTeam) return { status: "No team", messages: [] as string[] };
-    const sets = activeTeam.slots.map(slot => activeBuild(slot)).filter(build => build.name.trim()).map(build => ({
+
+    const builds = activeTeam.slots.map(slot => activeBuild(slot));
+    const namedBuilds = builds.filter(build => build.name.trim());
+    const missingSpecies = builds.length - namedBuilds.length;
+    if (namedBuilds.length !== 6 || builds.length !== 6) {
+      return {
+        status: "Incomplete",
+        messages: [`Select six Pokémon to validate this team (${namedBuilds.length}/6 selected).`],
+      };
+    }
+
+    const incompleteSets = namedBuilds
+      .filter(build => !build.ability.trim() || !build.moves.some(move => move.trim()))
+      .map(build => build.nickname.trim() || build.name);
+    if (incompleteSets.length) {
+      return {
+        status: "Incomplete",
+        messages: [`Choose an ability and at least one move for: ${incompleteSets.join(", ")}.`],
+      };
+    }
+
+    if (settings.battleType === "PvE") {
+      return {
+        status: "Unsupported format",
+        messages: [`${pveFacilities[settings.generation] || "This facility"} rules are not configured yet. A generic validator cannot certify facility legality.`],
+      };
+    }
+    if (settings.tier === "VGC") {
+      return {
+        status: "Unsupported format",
+        messages: ["VGC requires a specific regulation and battle format. Select a supported singles tier for now."],
+      };
+    }
+    if (settings.tier === "Custom") {
+      return {
+        status: "Unsupported format",
+        messages: ["Custom battles have no defined legality rules. The checker will not label an unrestricted set as legal."],
+      };
+    }
+
+    const tierIds: Record<string, string> = {
+      "Anything Goes": "anythinggoes",
+      "Ubers": "ubers",
+      "OU": "ou",
+      "UU": "uu",
+      "RU": "ru",
+      "NU": "nu",
+      "PU": "pu",
+      "ZU": "zu",
+      "Little Cup": "lc",
+    };
+    const tierId = tierIds[settings.tier];
+    if (!tierId) {
+      return { status: "Unsupported format", messages: [`No validator mapping exists for the ${settings.tier} tier.`] };
+    }
+
+    const format = `gen${settings.generation}${tierId}`;
+    const sets = namedBuilds.map(build => ({
       name: build.nickname || build.name,
       species: build.name,
       level: build.level,
@@ -92,18 +149,20 @@ export default function App() {
       nature: build.nature,
       gender: build.gender || undefined,
       moves: build.moves.filter(Boolean),
-      evs: { hp: build.evs.HP, atk: build.evs.Atk, def: build.evs.Def, spa: build.evs.SpA, spd: build.evs.SpD, spe: build.evs.Spe },
-      ivs: { hp: build.ivs.HP, atk: build.ivs.Atk, def: build.ivs.Def, spa: build.ivs.SpA, spd: build.ivs.SpD, spe: build.ivs.Spe },
+      evs: { hp: build.evs.HP, atk: build.evs.Atk, def: build.evs.Def, spa: build.evs.SpA, spd: build.evs.Spd, spe: build.evs.Spe },
+      ivs: { hp: build.ivs.HP, atk: build.ivs.Atk, def: build.ivs.Def, spa: build.ivs.Spa, spd: build.ivs.Spd, spe: build.ivs.Spe },
     }));
-    if (!sets.length) return { status: "Incomplete", messages: ["Add at least one Pokémon to check the team."] };
-    const tierIds: Record<string, string> = { "Anything Goes": "ag", "Ubers": "ubers", "OU": "ou", "UU": "uu", "RU": "ru", "NU": "nu", "PU": "pu", "ZU": "zu", "Little Cup": "lc" };
-    const format = settings.battleType === "PvE" ? `gen${settings.generation}customgame` : settings.tier === "Custom" ? `gen${settings.generation}customgame` : settings.tier === "VGC" ? "" : `gen${settings.generation}${tierIds[settings.tier] || ""}`;
-    if (!format) return { status: "Unsupported format", messages: ["VGC format rules are not configured yet."] };
+
     try {
       const problems = TeamValidator.get(format).validateTeam(sets as any) || [];
-      return problems.length ? { status: "Illegal", messages: problems } : { status: "Legal", messages: ["No legality problems found for this format."] };
+      return problems.length
+        ? { status: "Illegal", messages: problems }
+        : { status: "Legal", messages: [`All six sets pass the Generation ${settings.generation} ${settings.tier} validator.`] };
     } catch {
-      return { status: "Unavailable", messages: [`The ${format} validator format is not included in the current ruleset data.`] };
+      return {
+        status: "Unavailable",
+        messages: [`The ${format} rules are not available in the installed validator data. No legality result was produced.`],
+      };
     }
   }, [activeTeam, settings.generation, settings.battleType, settings.tier]);
   const speciesAbilities = selectedSpecies ? Object.values(selectedSpecies.abilities).filter(Boolean) : [];

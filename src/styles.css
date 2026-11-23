@@ -219,3 +219,28 @@ button.roadmap-row:hover { background: rgba(255,255,255,.025); }
 .legality-team-row strong { font-size: 11px; }
 .legality-team-row small { color: var(--muted); font-size: 10px; text-align: right; overflow-wrap: anywhere; }
 @media (max-width: 560px) { .legality-team-row { grid-template-columns: 20px 1fr; } .legality-team-row small { grid-column: 2; text-align: left; } }
+
+/* Battle engine workspace */
+.battle-setup-panel,.battle-live-panel { margin-bottom:16px; }
+.battle-setup-panel .field-grid { margin-top:20px; }
+.battle-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
+.battle-actions button:disabled,.battle-choice-grid button:disabled { opacity:.4; cursor:not-allowed; }
+.battle-warning,.battle-error { margin-top:14px; padding:10px 12px; border-radius:7px; font-size:11px; line-height:1.5; }
+.battle-warning { color:#e7c77b; background:#302b20; }
+.battle-error { color:#ef9a9a; background:#302126; overflow-wrap:anywhere; }
+.manual-controls { margin:18px 0; padding:14px; border:1px solid #526b40; border-radius:8px; background:#202a1e; }
+.manual-controls > strong { display:block; margin-bottom:10px; color:var(--accent); font:600 13px 'Space Grotesk'; }
+.team-preview-choice { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
+.team-preview-choice .hint { margin:0; }
+.battle-choice-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:10px; }
+.battle-choice-grid button { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:42px; text-align:left; }
+.battle-choice-grid button small { color:var(--muted); font:9px 'DM Mono'; white-space:nowrap; }
+.battle-log { display:flex; flex-direction:column; gap:1px; max-height:460px; overflow:auto; margin-top:16px; padding:10px; border:1px solid var(--border); border-radius:8px; background:#12151a; }
+.battle-log > div { padding:6px 7px; border-bottom:1px solid #242a33; color:#cbd0d9; font-size:11px; line-height:1.45; }
+.battle-log > div:last-child { border-bottom:0; }
+.battle-log > p { padding:8px; color:var(--muted); font-size:11px; }
+@media(max-width:650px) {
+  .battle-setup-panel .field-grid { grid-template-columns:1fr; }
+  .battle-choice-grid { grid-template-columns:1fr; }
+  .team-preview-choice { align-items:flex-start; flex-direction:column; }
+}

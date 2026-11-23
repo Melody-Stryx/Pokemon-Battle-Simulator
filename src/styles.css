@@ -181,3 +181,8 @@ footer span { padding: 0 5px; color: var(--accent); }
 .species-abilities span { padding:4px 7px; border:1px solid #3a414d; border-radius:5px; color:#dce0e8; font-size:9px; }
 .species-unmatched { color:#d4b77a; font-size:10px; }
 @media(max-width:650px) { .base-stat-row { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+
+.legality-legal strong { color:#a6e36f; }
+.legality-illegal strong { color:#ef8d8d; }
+.legality-unavailable strong,.legality-unsupported-format strong,.legality-incomplete strong { color:#e7c77b; }
+.legality-note > span:last-child { overflow-wrap:anywhere; }

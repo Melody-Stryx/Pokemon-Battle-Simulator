@@ -44,18 +44,15 @@ function calculateBattleStat(value: number, stat: string, ability: string, item:
   if (stat === "atk") {
     if (abilityName === "huge power" || abilityName === "pure power") result = Math.floor(result * 2);
     if (abilityName === "gorilla tactics") result = Math.floor(result * 1.5);
-    if (abilityName === "slow start" || abilityName === "defeatist") result = Math.floor(result * 0.5);
     if (itemName === "choice band") result = Math.floor(result * 1.5);
   }
   if (stat === "def") {
     if (abilityName === "fur coat") result = Math.floor(result * 2);
   }
   if (stat === "spa") {
-    if (abilityName === "defeatist") result = Math.floor(result * 0.5);
     if (itemName === "choice specs") result = Math.floor(result * 1.5);
   }
   if (stat === "spe") {
-    if (abilityName === "slow start") result = Math.floor(result * 0.5);
     if (itemName === "choice scarf") result = Math.floor(result * 1.5);
   }
   return result;

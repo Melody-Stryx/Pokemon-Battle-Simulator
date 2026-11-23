@@ -37,6 +37,29 @@ function calculateFinalStat(base: number, iv: number, ev: number, level: number,
   const natureModifier = stat === up ? 1.1 : stat === down ? 0.9 : 1;
   return Math.floor((value + 5) * natureModifier);
 }
+function calculateBattleStat(value: number, stat: string, ability: string, item: string) {
+  let result = value;
+  const abilityName = ability.toLowerCase();
+  const itemName = item.toLowerCase();
+  if (stat === "atk") {
+    if (abilityName === "huge power" || abilityName === "pure power") result = Math.floor(result * 2);
+    if (abilityName === "gorilla tactics") result = Math.floor(result * 1.5);
+    if (abilityName === "slow start" || abilityName === "defeatist") result = Math.floor(result * 0.5);
+    if (itemName === "choice band") result = Math.floor(result * 1.5);
+  }
+  if (stat === "def") {
+    if (abilityName === "fur coat") result = Math.floor(result * 2);
+  }
+  if (stat === "spa") {
+    if (abilityName === "defeatist") result = Math.floor(result * 0.5);
+    if (itemName === "choice specs") result = Math.floor(result * 1.5);
+  }
+  if (stat === "spe") {
+    if (abilityName === "slow start") result = Math.floor(result * 0.5);
+    if (itemName === "choice scarf") result = Math.floor(result * 1.5);
+  }
+  return result;
+}
 function newBuild(name = ""): PokemonBuild {
   return { id: uid(), name, label: "", nickname: "", level: 100, gender: "", ability: "", nature: "Hardy", item: "", moves: ["","","",""], evs: { HP:0, Atk:0, Def:0, SpA:0, SpD:0, Spe:0 }, ivs: { HP:31, Atk:31, Def:31, SpA:31, SpD:31, Spe:31 } };
 }
@@ -189,7 +212,7 @@ export default function App() {
                     <label className="field"><span>Nature</span><select value={selectedBuild.nature} onChange={e => patchBuild({nature:e.target.value})}>{natures.map(n => <option key={n}>{n}</option>)}</select></label>
                     <label className="field"><span>Held item</span><select value={selectedBuild.item} onChange={e => patchBuild({item:e.target.value})}><option value="">No item</option>{selectedBuild.item && !itemOptions.some(i => i.name === selectedBuild.item) && <option value={selectedBuild.item}>{selectedBuild.item} (custom)</option>}{itemOptions.map(i => <option value={i.name} key={i.name}>{i.name}</option>)}</select></label>
                   </div>
-                  {selectedSpecies && <div className="editor-section final-stats-section"><div className="editor-section-title">Final stats <small>Level {selectedBuild.level} · {selectedBuild.nature}</small></div><div className="base-stat-row">{statNames.map((label, index) => { const stat = (["hp","atk","def","spa","spd","spe"] as const)[index]; const value = calculateFinalStat(selectedSpecies.baseStats[stat], selectedBuild.ivs[label], selectedBuild.evs[label], selectedBuild.level, stat, selectedBuild.nature); return <div key={stat}><small>{label}</small><strong>{value}</strong></div>; })}<div className="bst-total"><small>Total</small><strong>{statNames.reduce((sum, label, index) => sum + calculateFinalStat(selectedSpecies.baseStats[(["hp","atk","def","spa","spd","spe"] as const)[index]], selectedBuild.ivs[label], selectedBuild.evs[label], selectedBuild.level, ["hp","atk","def","spa","spd","spe"][index], selectedBuild.nature), 0)}</strong></div></div></div>}
+                  {selectedSpecies && <div className="editor-section final-stats-section"><div className="editor-section-title">Final stats <small>Level {selectedBuild.level} · {selectedBuild.nature} · Ability and item modifiers included</small></div><div className="base-stat-row">{statNames.map((label, index) => { const stat = (["hp","atk","def","spa","spd","spe"] as const)[index]; const baseValue = calculateFinalStat(selectedSpecies.baseStats[stat], selectedBuild.ivs[label], selectedBuild.evs[label], selectedBuild.level, stat, selectedBuild.nature); const value = calculateBattleStat(baseValue, stat, selectedBuild.ability, selectedBuild.item); return <div key={stat}><small>{label}</small><strong>{value}</strong>{value !== baseValue && <small className="stat-modifier">Base {baseValue}</small>}</div>; })}<div className="bst-total"><small>Total</small><strong>{statNames.reduce((sum, label, index) => { const stat = (["hp","atk","def","spa","spd","spe"] as const)[index]; const baseValue = calculateFinalStat(selectedSpecies.baseStats[stat], selectedBuild.ivs[label], selectedBuild.evs[label], selectedBuild.level, stat, selectedBuild.nature); return sum + calculateBattleStat(baseValue, stat, selectedBuild.ability, selectedBuild.item); }, 0)}</strong></div></div>{selectedBuild.item.toLowerCase() === "wise glasses" && <p className="stat-total">Wise Glasses: special-move damage ×1.1. This affects damage, not the displayed SpA stat.</p>}</div>}
                   <div className="editor-section"><div className="editor-section-title">Moves <small>{moveOptions.length} moves in Gen {settings.generation} data</small></div><div className="move-grid">{selectedBuild.moves.map((move,i) => <label className="field" key={i}><span>Move {i+1}</span><select value={move} onChange={e => patchBuild({moves:selectedBuild.moves.map((m,j) => j===i ? e.target.value : m)})}><option value="">Select move...</option>{move && !moveOptions.some(option => option.name === move) && <option value={move}>{move} (custom)</option>}{moveOptions.map(option => <option value={option.name} key={option.name}>{option.name}</option>)}</select></label>)}</div></div>
                   <div className="editor-section"><div className="editor-section-title">Effort values (EVs) <small>510 total maximum</small></div><div className="stat-grid">{statNames.map(stat => <label className="field" key={stat}><span>{stat}</span><input type="number" min="0" max="252" value={selectedBuild.evs[stat]} onChange={e => patchBuild({evs:{...selectedBuild.evs,[stat]:Math.max(0,Math.min(252,Number(e.target.value)||0))}})} /></label>)}</div><p className="stat-total">Total EVs: {Object.values(selectedBuild.evs).reduce((a,b)=>a+b,0)} / 510</p></div>
                   <div className="editor-section"><div className="editor-section-title">Individual values (IVs)</div><div className="stat-grid">{statNames.map(stat => <label className="field" key={stat}><span>{stat}</span><input type="number" min="0" max="31" value={selectedBuild.ivs[stat]} onChange={e => patchBuild({ivs:{...selectedBuild.ivs,[stat]:Math.max(0,Math.min(31,Number(e.target.value)||0))}})} /></label>)}</div></div>

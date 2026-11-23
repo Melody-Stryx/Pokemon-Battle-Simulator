@@ -138,6 +138,19 @@ export default function App() {
       };
     }
 
+    const sets = namedBuilds.map(build => ({
+      name: build.nickname || build.name,
+      species: build.name,
+      level: build.level,
+      ability: build.ability,
+      item: build.item,
+      nature: build.nature,
+      gender: build.gender || undefined,
+      moves: build.moves.filter(Boolean),
+      evs: { hp: build.evs.HP, atk: build.evs.Atk, def: build.evs.Def, spa: build.evs.SpA, spd: build.evs.SpD, spe: build.evs.Spe },
+      ivs: { hp: build.ivs.HP, atk: build.ivs.Atk, def: build.ivs.Def, spa: build.ivs.Spa, spd: build.ivs.SpD, spe: build.ivs.Spe },
+    }));
+
     if (settings.battleType === "PvE") {
       if (settings.generation !== 7) {
         return {
@@ -237,18 +250,7 @@ export default function App() {
     }
 
     const format = `gen${settings.generation}${tierId}`;
-    const sets = namedBuilds.map(build => ({
-      name: build.nickname || build.name,
-      species: build.name,
-      level: build.level,
-      ability: build.ability,
-      item: build.item,
-      nature: build.nature,
-      gender: build.gender || undefined,
-      moves: build.moves.filter(Boolean),
-      evs: { hp: build.evs.HP, atk: build.evs.Atk, def: build.evs.Def, spa: build.evs.SpA, spd: build.evs.SpD, spe: build.evs.Spe },
-      ivs: { hp: build.ivs.HP, atk: build.ivs.Atk, def: build.ivs.Def, spa: build.ivs.Spa, spd: build.ivs.SpD, spe: build.ivs.Spe },
-    }));
+
 
     try {
       const problems = TeamValidator.get(format).validateTeam(sets as any) || [];

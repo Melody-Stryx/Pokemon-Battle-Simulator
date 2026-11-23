@@ -1,0 +1,39 @@
+import { BattleStreams, RandomPlayerAI, Teams } from "@pkmn/sim";
+
+const set = {
+  name: "Pikachu",
+  species: "Pikachu",
+  level: 50,
+  ability: "Static",
+  item: "Leftovers",
+  nature: "Hardy",
+  moves: ["Thunderbolt", "Quick Attack"],
+  evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+  ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+};
+const packedTeam = Teams.pack(Array.from({ length: 6 }, (_, index) => ({
+  ...set,
+  name: `Pikachu ${index + 1}`,
+})));
+const streams = BattleStreams.getPlayerStreams(new BattleStreams.BattleStream());
+const p1 = new RandomPlayerAI(streams.p1);
+const p2 = new RandomPlayerAI(streams.p2);
+void p1.start();
+void p2.start();
+
+const completed = (async () => {
+  for await (const chunk of streams.omniscient) {
+    const output = String(chunk);
+    if (output.includes("|win|") || output.includes("|tie")) return output;
+  }
+  throw new Error("Battle stream ended without a result.");
+})();
+const timeout = new Promise((_, reject) => {
+  setTimeout(() => reject(new Error("Battle smoke test timed out.")), 30000);
+});
+await streams.omniscient.write(`>start ${JSON.stringify({ formatid: "gen9customgame" })}\n>player p1 ${JSON.stringify({ name: "Smoke Test 1", team: packedTeam })}\n>player p2 ${JSON.stringify({ name: "Smoke Test 2", team: packedTeam })}`);
+const result = await Promise.race([completed, timeout]);
+if (!String(result).includes("|win|") && !String(result).includes("|tie")) {
+  throw new Error("Battle engine did not report a winner or tie.");
+}
+console.log("Battle engine smoke test passed.");

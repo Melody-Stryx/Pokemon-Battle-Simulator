@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Dex } from "@pkmn/dex";
 
 declare const __BUILD_NUMBER__: string;
 type BattleType = "PvP" | "PvE";
@@ -21,6 +22,8 @@ type Team = { id: string; name: string; slots: TeamSlot[]; updatedAt: string };
 const statNames = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"];
 const natures = ["Hardy","Lonely","Brave","Adamant","Naughty","Bold","Docile","Relaxed","Impish","Lax","Timid","Hasty","Serious","Jolly","Naive","Modest","Mild","Quiet","Bashful","Rash","Calm","Gentle","Sassy","Careful","Quirky"];
 const uid = () => crypto.randomUUID();
+const statLabels: Record<string, string> = { hp: "HP", atk: "Atk", def: "Def", spa: "SpA", spd: "SpD", spe: "Spe" };
+function displayName(value: string) { return value.replace(/\b\w/g, c => c.toUpperCase()); }
 function newBuild(name = ""): PokemonBuild {
   return { id: uid(), name, label: "", nickname: "", level: 100, ability: "", nature: "Hardy", item: "", moves: ["","","",""], evs: { HP:0, Atk:0, Def:0, SpA:0, SpD:0, Spe:0 }, ivs: { HP:31, Atk:31, Def:31, SpA:31, SpD:31, Spe:31 } };
 }
@@ -39,6 +42,13 @@ export default function App() {
   const activeTeam = teams.find(t => t.id === activeTeamId) || teams[0];
   const selectedSlot = activeTeam?.slots.find(s => s.id === selectedSlotId) || activeTeam?.slots[0];
   const selectedBuild = selectedSlot ? activeBuild(selectedSlot) : undefined;
+  const generationDex = useMemo(() => Dex.forGen(settings.generation), [settings.generation]);
+  const speciesOptions = useMemo(() => generationDex.species.all().filter(p => p.exists && !p.isNonstandard).sort((a,b) => a.name.localeCompare(b.name)), [generationDex]);
+  const moveOptions = useMemo(() => generationDex.moves.all().filter(m => m.exists && !m.isNonstandard).sort((a,b) => a.name.localeCompare(b.name)), [generationDex]);
+  const abilityOptions = useMemo(() => generationDex.abilities.all().filter(a => a.exists && !a.isNonstandard).sort((a,b) => a.name.localeCompare(b.name)), [generationDex]);
+  const itemOptions = useMemo(() => generationDex.items.all().filter(i => i.exists && !i.isNonstandard).sort((a,b) => a.name.localeCompare(b.name)), [generationDex]);
+  const selectedSpecies = selectedBuild ? speciesOptions.find(p => p.name.toLowerCase() === selectedBuild.name.trim().toLowerCase()) : undefined;
+  const speciesAbilities = selectedSpecies ? Object.values(selectedSpecies.abilities).filter(Boolean) : [];
   const patchTeam = (teamId: string, updater: (team: Team) => Team) => setTeams(all => all.map(t => t.id === teamId ? { ...updater(t), updatedAt: new Date().toISOString() } : t));
   const createTeam = () => {
     const team: Team = { id: uid(), name: "New Team", slots: [], updatedAt: new Date().toISOString() };
@@ -127,16 +137,25 @@ export default function App() {
                 {activeTeam.slots.length < 6 && <button className="add-pokemon-button" onClick={addPokemon}>+ Add Pokémon</button>}
                 {selectedSlot && selectedBuild ? <div className="pokemon-editor">
                   <div className="editor-heading"><div><span className="eyebrow">POKÉMON SET</span><h3>{selectedBuild.name || "New Pokémon"}</h3></div><div className="team-actions"><select aria-label="Active build" value={selectedBuild.id} onChange={e => patchTeam(activeTeam.id, t => ({...t, slots:t.slots.map(s => s.id === selectedSlot.id ? {...s, activeBuildId:e.target.value} : s)}))}>{selectedSlot.builds.map((b,i) => <option value={b.id} key={b.id}>{b.label || "Build "+(i+1)}</option>)}</select><button className="secondary-button" onClick={createBuildVariant}>+ Variant</button><button className="danger-button" disabled={selectedSlot.builds.length < 2} onClick={deleteSelectedBuild}>Delete build</button></div></div>
-                  <div className="legality-note"><span className="status-dot status-muted" /> Legality: <strong>Unverified</strong><span>Saved freely; generation-aware validation will be added separately.</span></div>
+                  <div className="legality-note"><span className="status-dot status-muted" /> Legality: <strong>Unverified</strong><span>Saved freely; selection data is generation-aware, full set legality comes later.</span></div>
+                  {selectedSpecies ? <div className="species-summary">
+                    <div className="species-summary-top"><strong>{selectedSpecies.name}</strong><span>National Dex #{selectedSpecies.num}</span><span className="type-tags">{selectedSpecies.types.map(type => <em key={type} className={"type-tag type-"+type.toLowerCase()}>{type}</em>)}</span></div>
+                    <div className="base-stat-row">{Object.entries(selectedSpecies.baseStats).map(([stat,value]) => <div key={stat}><small>{statLabels[stat] || stat}</small><strong>{value}</strong></div>)}<div className="bst-total"><small>BST</small><strong>{Object.values(selectedSpecies.baseStats).reduce((sum,value) => sum + value, 0)}</strong></div></div>
+                    <div className="species-abilities"><small>Species abilities</small>{speciesAbilities.map(ability => <span key={ability}>{ability}</span>)}</div>
+                  </div> : selectedBuild.name.trim() ? <div className="species-summary species-unmatched">No exact species match in Generation {settings.generation}. You can keep custom text for experimental sets.</div> : null}
+                  <datalist id="pokemon-species-options">{speciesOptions.map(p => <option value={p.name} key={p.name} />)}</datalist>
+                  <datalist id="pokemon-move-options">{moveOptions.map(m => <option value={m.name} key={m.name} />)}</datalist>
+                  <datalist id="pokemon-ability-options">{(speciesAbilities.length ? speciesAbilities : abilityOptions.map(x => x.name)).map(name => <option value={name} key={name} />)}</datalist>
+                  <datalist id="pokemon-item-options">{itemOptions.map(i => <option value={i.name} key={i.name} />)}</datalist>
                   <div className="pokemon-fields">
                     <label className="field"><span>Pokémon species</span><input value={selectedBuild.name} placeholder="e.g. Garchomp" onChange={e => patchBuild({name:e.target.value})} /></label>
                     <label className="field"><span>Nickname</span><input value={selectedBuild.nickname} placeholder="Optional" onChange={e => patchBuild({nickname:e.target.value})} /></label>
                     <label className="field"><span>Level</span><input type="number" min="1" max="100" value={selectedBuild.level} onChange={e => patchBuild({level:Math.max(1,Math.min(100,Number(e.target.value)||1))})} /></label>
-                    <label className="field"><span>Ability</span><input value={selectedBuild.ability} placeholder="Ability" onChange={e => patchBuild({ability:e.target.value})} /></label>
+                    <label className="field"><span>Ability</span><input list="pokemon-ability-options" autoComplete="off" value={selectedBuild.ability} placeholder="Search abilities..." onChange={e => patchBuild({ability:e.target.value})} /></label>
                     <label className="field"><span>Nature</span><select value={selectedBuild.nature} onChange={e => patchBuild({nature:e.target.value})}>{natures.map(n => <option key={n}>{n}</option>)}</select></label>
-                    <label className="field"><span>Held item</span><input value={selectedBuild.item} placeholder="Held item" onChange={e => patchBuild({item:e.target.value})} /></label>
+                    <label className="field"><span>Held item</span><input list="pokemon-item-options" autoComplete="off" value={selectedBuild.item} placeholder="Search items..." onChange={e => patchBuild({item:e.target.value})} /></label>
                   </div>
-                  <div className="editor-section"><div className="editor-section-title">Moves</div><div className="move-grid">{selectedBuild.moves.map((move,i) => <label className="field" key={i}><span>Move {i+1}</span><input value={move} placeholder="Move name" onChange={e => patchBuild({moves:selectedBuild.moves.map((m,j) => j===i ? e.target.value : m)})} /></label>)}</div></div>
+                  <div className="editor-section"><div className="editor-section-title">Moves <small>{moveOptions.length} moves in Gen {settings.generation} data</small></div><div className="move-grid">{selectedBuild.moves.map((move,i) => <label className="field" key={i}><span>Move {i+1}</span><input list="pokemon-move-options" autoComplete="off" value={move} placeholder="Search moves..." onChange={e => patchBuild({moves:selectedBuild.moves.map((m,j) => j===i ? e.target.value : m)})} /></label>)}</div></div>
                   <div className="editor-section"><div className="editor-section-title">Effort values (EVs) <small>510 total maximum</small></div><div className="stat-grid">{statNames.map(stat => <label className="field" key={stat}><span>{stat}</span><input type="number" min="0" max="252" value={selectedBuild.evs[stat]} onChange={e => patchBuild({evs:{...selectedBuild.evs,[stat]:Math.max(0,Math.min(252,Number(e.target.value)||0))}})} /></label>)}</div><p className="stat-total">Total EVs: {Object.values(selectedBuild.evs).reduce((a,b)=>a+b,0)} / 510</p></div>
                   <div className="editor-section"><div className="editor-section-title">Individual values (IVs)</div><div className="stat-grid">{statNames.map(stat => <label className="field" key={stat}><span>{stat}</span><input type="number" min="0" max="31" value={selectedBuild.ivs[stat]} onChange={e => patchBuild({ivs:{...selectedBuild.ivs,[stat]:Math.max(0,Math.min(31,Number(e.target.value)||0))}})} /></label>)}</div></div>
                   <label className="field build-label-field"><span>Build label</span><input value={selectedBuild.label} placeholder="e.g. Choice Scarf, Defensive, Setup" onChange={e => patchBuild({label:e.target.value})} /></label>

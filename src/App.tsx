@@ -139,10 +139,73 @@ export default function App() {
     }
 
     if (settings.battleType === "PvE") {
-      return {
-        status: "Unsupported format",
-        messages: [`${pveFacilities[settings.generation] || "This facility"} rules are not configured yet. A generic validator cannot certify facility legality.`],
-      };
+      if (settings.generation !== 7) {
+        return {
+          status: "Unsupported format",
+          messages: [`${pveFacilities[settings.generation] || "This facility"} rules are not configured yet. A generic validator cannot certify facility legality.`],
+        };
+      }
+
+      // Battle Tree Super Singles: six-Pokémon registration roster, choose three to battle.
+      // Pokémon above level 50 are scaled down; lower-level Pokémon are not raised.
+      const bannedSpecies = new Set([
+        "mewtwo", "mew", "lugia", "hooh", "celebi", "kyogre", "groudon", "rayquaza",
+        "jirachi", "deoxys", "dialga", "palkia", "giratina", "phione", "manaphy",
+        "darkrai", "shaymin", "arceus", "victini", "reshiram", "zekrom", "kyurem",
+        "keldeo", "meloetta", "genesect", "xerneas", "yveltal", "zygarde", "diancie",
+        "hoopa", "volcanion", "cosmog", "cosmoem", "solgaleo", "lunala", "necrozma",
+        "magearna", "marshadow", "zeraora",
+      ]);
+      const treeProblems: string[] = [];
+      const seenSpecies = new Map<number, string>();
+      const seenItems = new Map<string, string>();
+
+      for (const build of namedBuilds) {
+        const label = build.nickname.trim() || build.name;
+        const species = generationDex.species.get(build.name);
+        if (species.exists) {
+          const speciesId = (species.baseSpecies || species.name).toLowerCase().replace(/[^a-z0-9]/g, "");
+          if (bannedSpecies.has(speciesId)) {
+            treeProblems.push(`${label}: ${species.name} is restricted in Battle Tree Super Singles.`);
+          }
+          const previousSpecies = seenSpecies.get(species.num);
+          if (previousSpecies) {
+            treeProblems.push(`${label}: duplicates ${previousSpecies} by National Pokédex number (Species Clause).`);
+          } else {
+            seenSpecies.set(species.num, label);
+          }
+        }
+
+        const itemId = build.item.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (itemId) {
+          const previousItem = seenItems.get(itemId);
+          if (previousItem) {
+            treeProblems.push(`${label}: held item ${build.item} is also assigned to ${previousItem} (Item Clause).`);
+          } else {
+            seenItems.set(itemId, label);
+          }
+        }
+      }
+
+      try {
+        const setProblems = TeamValidator.get("gen7anythinggoes").validateTeam(sets as any) || [];
+        const allProblems = [...treeProblems, ...setProblems];
+        return allProblems.length
+          ? { status: "Illegal", messages: allProblems }
+          : {
+              status: "Legal",
+              messages: [
+                "All six sets pass Generation 7 Showdown set validation and Battle Tree Super Singles restrictions.",
+                "Register six Pokémon and choose three for each battle. Pokémon above level 50 are scaled down; Pokémon below level 50 remain at their level.",
+                "Species Clause, Item Clause and the restricted Pokémon list are clear.",
+              ],
+            };
+      } catch {
+        return {
+          status: "Unavailable",
+          messages: ["Generation 7 Showdown set validation is unavailable. No Battle Tree legality result was produced."],
+        };
+      }
     }
     if (settings.tier === "VGC") {
       return {
@@ -447,9 +510,9 @@ export default function App() {
           <p className="hint team-storage-hint">Local-first storage: your teams remain on this device. Account sync and Google login will be connected separately.</p>
         </>}
         {activePage === "Legality analysis" && <>
-          <section className="intro"><div><div className="eyebrow">TEAM VALIDATION</div><h2>Legality analysis.</h2><p>Validate a complete six-Pokémon team against the selected generation and PvP tier using Pokémon Showdown's rules data.</p></div></section>
+          <section className="intro"><div><div className="eyebrow">TEAM VALIDATION</div><h2>Legality analysis.</h2><p>Validate a six-Pokémon roster against the selected PvP tier or supported facility rules. Battle Tree uses Super Singles restrictions.</p></div></section>
           <section className="panel legality-analysis-panel">
-            <div className="panel-heading"><div><span className="eyebrow">ACTIVE RULESET</span><h3>{settings.battleType === "PvP" ? `Generation ${settings.generation} · ${settings.tier}` : `Generation ${settings.generation} · ${pveFacilities[settings.generation] || "PvE facility"}`}</h3></div><button type="button" className="secondary-button" onClick={() => setActivePage("Team Builder")}>Open Team Builder</button></div>
+            <div className="panel-heading"><div><span className="eyebrow">ACTIVE RULESET</span><h3>{settings.battleType === "PvP" ? `Generation ${settings.generation} · ${settings.tier}` : settings.generation === 7 ? "Generation 7 · Battle Tree Super Singles" : `Generation ${settings.generation} · ${pveFacilities[settings.generation] || "PvE facility"}`}</h3></div><button type="button" className="secondary-button" onClick={() => setActivePage("Team Builder")}>Open Team Builder</button></div>
             <label className="field"><span>Team to analyse</span><select value={activeTeam?.id || ""} onChange={e => setActiveTeamId(e.target.value)}><option value="" disabled>Select a team...</option>{teams.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>
             {!activeTeam ? <div className="empty-state"><strong>No team available</strong><p>Create a team in Team Builder before running legality analysis.</p></div> : <>
               <div className={`legality-report legality-${legality.status.toLowerCase().replace(/[^a-z]+/g,"-")}`}>

@@ -16,8 +16,9 @@ const gen7Team = Array.from({ length: 6 }, (_, index) => ({
   name: `Pikachu ${index + 1}`,
 }));
 const gen7Validator = TeamValidator.get("gen7anythinggoes");
-if ((gen7Validator.validateTeam(gen7Team) || []).length) {
-  throw new Error("Generation 7 Anything Goes set validation failed for a legal Battle Tree test roster.");
+const legalGen7Problems = gen7Validator.validateTeam(gen7Team) || [];
+if (legalGen7Problems.length) {
+  throw new Error(`Generation 7 test roster was rejected: ${legalGen7Problems.join(" | ")}`);
 }
 const illegalGen7Team = gen7Team.map((pokemon, index) => index === 0
   ? { ...pokemon, moves: ["Doom Desire"] }

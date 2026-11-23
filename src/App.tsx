@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Dex } from "@pkmn/dex";
-import { TeamValidator } from "@pkmn/sim";
+import { BattleStreams, RandomPlayerAI, TeamValidator, Teams } from "@pkmn/sim";
 
 declare const __BUILD_NUMBER__: string;
 type BattleType = "PvP" | "PvE";
@@ -20,6 +20,8 @@ type PokemonBuild = {
 };
 type TeamSlot = { id: string; builds: PokemonBuild[]; activeBuildId: string };
 type Team = { id: string; name: string; slots: TeamSlot[]; updatedAt: string };
+type BattleRequest = { active?: Array<{ moves: Array<{ move: string; id?: string; disabled?: boolean; pp?: number; maxpp?: number }> }>; side?: { pokemon: Array<{ ident: string; details: string; condition: string; active?: boolean }> }; forceSwitch?: boolean[]; teamPreview?: boolean; wait?: boolean };
+type BattleController = { streams: any; stopped: boolean };
 const statNames = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"];
 const natures = ["Hardy","Lonely","Brave","Adamant","Naughty","Bold","Docile","Relaxed","Impish","Lax","Timid","Hasty","Serious","Jolly","Naive","Modest","Mild","Quiet","Bashful","Rash","Calm","Gentle","Sassy","Careful","Quirky"];
 const uid = () => crypto.randomUUID();
@@ -62,6 +64,30 @@ function newBuild(name = ""): PokemonBuild {
 }
 function readTeams(): Team[] { try { return JSON.parse(localStorage.getItem("battle-lab-teams") || "[]"); } catch { return []; } }
 function activeBuild(slot: TeamSlot) { return slot.builds.find(b => b.id === slot.activeBuildId) || slot.builds[0]; }
+function formatBattleLine(line: string): string {
+  const parts = line.split("|");
+  const tag = parts[1];
+  const pokemonName = (value: string) => value?.split(": ").slice(1).join(": ") || value || "Pokémon";
+  if (tag === "turn") return `Turn ${parts[2]}`;
+  if (tag === "player") return `${parts[3]} joined the battle`;
+  if (tag === "switch" || tag === "drag") return `${pokemonName(parts[2])} entered the battle (${parts[4] || parts[3] || ""})`;
+  if (tag === "move") return `${pokemonName(parts[2])} used ${parts[3]}`;
+  if (tag === "-damage") return `${pokemonName(parts[2])} took damage (${parts[3]})`;
+  if (tag === "-heal") return `${pokemonName(parts[2])} recovered HP (${parts[3]})`;
+  if (tag === "faint") return `${pokemonName(parts[2])} fainted`;
+  if (tag === "win") return `${parts[2]} wins`;
+  if (tag === "tie") return "The battle ended in a tie";
+  if (tag === "-status") return `${pokemonName(parts[2])} was afflicted with ${parts[3]}`;
+  if (tag === "-curestatus") return `${pokemonName(parts[2])} recovered from ${parts[3]}`;
+  if (tag === "-boost" || tag === "-unboost") return `${pokemonName(parts[2])}'s ${parts[3]} was ${tag === "-boost" ? "raised" : "lowered"}`;
+  if (tag === "message") return parts.slice(2).join("|");
+  if (tag === "error") return parts.slice(2).join("|");
+  return "";
+}
+function submitBattleChoiceFromController(controller: BattleController, choice: string) {
+  if (!controller.stopped) void controller.streams.p1.write(`>p1 ${choice}`);
+}
+
 
 export default function App() {
   const [settings, setSettings] = useState<Settings>(readSettings);
@@ -69,7 +95,16 @@ export default function App() {
   const [teams, setTeams] = useState<Team[]>(readTeams);
   const [activeTeamId, setActiveTeamId] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState("");
+  const [battlePlayerTeamId, setBattlePlayerTeamId] = useState("");
+  const [battleOpponentTeamId, setBattleOpponentTeamId] = useState("");
+  const [battleActive, setBattleActive] = useState(false);
+  const [battleLog, setBattleLog] = useState<string[]>([]);
+  const [battleError, setBattleError] = useState("");
+  const [manualRequest, setManualRequest] = useState<BattleRequest | null>(null);
+  const battleController = useRef<BattleController | null>(null);
+  const battleModeRef = useRef(settings.mode);
   useEffect(() => { localStorage.setItem("battle-lab-settings", JSON.stringify(settings)); }, [settings]);
+  useEffect(() => { battleModeRef.current = settings.mode; }, [settings.mode]);
   useEffect(() => { localStorage.setItem("battle-lab-teams", JSON.stringify(teams)); }, [teams]);
   const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => setSettings(s => normalizeSettings({ ...s, [key]: value }));
   const activeTeam = teams.find(t => t.id === activeTeamId) || teams[0];
@@ -205,6 +240,132 @@ export default function App() {
     const remaining = teams.filter(t => t.id !== activeTeam.id);
     setTeams(remaining); setActiveTeamId(remaining[0]?.id || ""); setSelectedSlotId("");
   };
+  const makeBattleSets = (team: Team, generation: number) => team.slots.map(slot => {
+    const build = activeBuild(slot);
+    const set: Record<string, unknown> = {
+      name: build.nickname || build.name,
+      species: build.name,
+      level: build.level,
+      moves: build.moves.filter(Boolean),
+      evs: { hp: build.evs.HP, atk: build.evs.Atk, def: build.evs.Def, spa: build.evs.SpA, spd: build.evs.SpD, spe: build.evs.Spe },
+      ivs: { hp: build.ivs.HP, atk: build.ivs.Atk, def: build.ivs.Def, spa: build.ivs.SpA, spd: build.ivs.SpD, spe: build.ivs.Spe },
+    };
+    if (generation >= 2 && build.item) set.item = build.item;
+    if (generation >= 3) {
+      if (build.ability) set.ability = build.ability;
+      set.nature = build.nature;
+    }
+    if (generation >= 2 && build.gender) set.gender = build.gender;
+    return set;
+  });
+  const battleFormat = () => {
+    if (settings.battleType === "PvE" || settings.tier === "Custom" || settings.tier === "VGC") return `gen${settings.generation}customgame`;
+    const ids: Record<string, string> = { "Anything Goes": "anythinggoes", Ubers: "ubers", OU: "ou", UU: "uu", RU: "ru", NU: "nu", PU: "pu", ZU: "zu", "Little Cup": "lc" };
+    return `gen${settings.generation}${ids[settings.tier] || "customgame"}`;
+  };
+  const stopBattle = () => {
+    const controller = battleController.current;
+    if (controller && !controller.stopped) {
+      controller.stopped = true;
+      try { void controller.streams.omniscient.write(">forcetie"); } catch { /* battle already closed */ }
+    }
+    battleController.current = null;
+    setBattleActive(false);
+    setManualRequest(null);
+  };
+  const submitBattleChoice = (choice: string) => {
+    const controller = battleController.current;
+    if (!controller || controller.stopped) return;
+    setManualRequest(null);
+    void controller.streams.p1.write(`>p1 ${choice}`);
+  };
+  const chooseAutomatically = (request: BattleRequest) => {
+    if (request.teamPreview) return "team 123456";
+    if (request.forceSwitch?.some(Boolean)) {
+      const pokemon = request.side?.pokemon || [];
+      const available = pokemon.map((p, i) => ({ p, slot: i + 1 })).filter(({p}) => !p.active && !p.condition.endsWith(" fnt"));
+      if (available.length) return `switch ${available[Math.floor(Math.random() * available.length)].slot}`;
+      return "pass";
+    }
+    const moves = request.active?.[0]?.moves || [];
+    const availableMoves = moves.map((move, i) => ({move, slot: i + 1})).filter(entry => !entry.move.disabled);
+    const pokemon = request.side?.pokemon || [];
+    const switches = pokemon.map((p, i) => ({p, slot: i + 1})).filter(({p}) => !p.active && !p.condition.endsWith(" fnt"));
+    if (availableMoves.length && (Math.random() < 0.85 || !switches.length)) return `move ${availableMoves[Math.floor(Math.random() * availableMoves.length)].slot}`;
+    if (switches.length) return `switch ${switches[Math.floor(Math.random() * switches.length)].slot}`;
+    return availableMoves.length ? `move ${availableMoves[0].slot}` : "pass";
+  };
+  const startBattle = () => {
+    const playerId = battlePlayerTeamId || activeTeam?.id || "";
+    const opponentId = battleOpponentTeamId || teams.find(team => team.id !== playerId)?.id || "";
+    const playerTeam = teams.find(team => team.id === playerId);
+    const opponentTeam = teams.find(team => team.id === opponentId);
+    if (!playerTeam || !opponentTeam) { setBattleError("Create or select two different teams before starting a battle."); return; }
+    if (playerTeam.slots.length !== 6 || opponentTeam.slots.length !== 6) { setBattleError("Both teams need exactly six Pokémon."); return; }
+    const allComplete = [playerTeam, opponentTeam].every(team => team.slots.every(slot => {
+      const build = activeBuild(slot);
+      return Boolean(build.name.trim() && build.moves.some(move => move.trim()));
+    }));
+    if (!allComplete) { setBattleError("Every Pokémon needs a species and at least one move."); return; }
+    stopBattle();
+    setBattleError("");
+    setBattleLog([]);
+    setManualRequest(null);
+    try {
+      const streams = BattleStreams.getPlayerStreams(new BattleStreams.BattleStream());
+      const controller: BattleController = { streams, stopped: false };
+      battleController.current = controller;
+      const p2AI = new RandomPlayerAI(streams.p2);
+      void p2AI.start();
+      void (async () => {
+        try {
+          for await (const chunk of streams.omniscient) {
+            if (controller.stopped) break;
+            const lines = String(chunk).split("\n").filter(Boolean);
+            setBattleLog(old => [...old, ...lines.map(formatBattleLine).filter(Boolean)].slice(-400));
+            if (lines.some(line => line.startsWith("|win|") || line === "|tie")) {
+              setBattleActive(false);
+              setManualRequest(null);
+            }
+          }
+        } catch (error) {
+          if (!controller.stopped) setBattleError(error instanceof Error ? error.message : "Battle output failed.");
+        }
+      })();
+      void (async () => {
+        try {
+          for await (const chunk of streams.p1) {
+            if (controller.stopped) break;
+            const lines = String(chunk).split("\n");
+            for (const line of lines) {
+              const marker = line.indexOf("|request|");
+              if (marker < 0) continue;
+              const payload = line.slice(marker + 9).trim();
+              if (!payload || payload === "null") continue;
+              let request: BattleRequest;
+              try { request = JSON.parse(payload) as BattleRequest; } catch { continue; }
+              if (request.wait) continue;
+              if (battleModeRef.current === "Auto") {
+                submitBattleChoiceFromController(controller, chooseAutomatically(request));
+              } else {
+                setManualRequest(request);
+              }
+            }
+          }
+        } catch (error) {
+          if (!controller.stopped) setBattleError(error instanceof Error ? error.message : "Player input stream failed.");
+        }
+      })();
+      const formatid = battleFormat();
+      const p1spec = { name: playerTeam.name || "Player", team: Teams.pack(makeBattleSets(playerTeam, settings.generation) as any) };
+      const p2spec = { name: opponentTeam.name || "Opponent", team: Teams.pack(makeBattleSets(opponentTeam, settings.generation) as any) };
+      void streams.omniscient.write(`>start ${JSON.stringify({ formatid })}\n>player p1 ${JSON.stringify(p1spec)}\n>player p2 ${JSON.stringify(p2spec)}`);
+      setBattleActive(true);
+    } catch (error) {
+      setBattleError(error instanceof Error ? error.message : "Could not initialize the battle engine.");
+      setBattleActive(false);
+    }
+  };
   const exportTeam = () => {
     if (!activeTeam) return;
     const blob = new Blob([JSON.stringify(activeTeam, null, 2)], { type: "application/json" });
@@ -292,7 +453,31 @@ export default function App() {
             </>}
           </section>
         </>}
-        {activePage === "Simulator" && <section className="intro"><div><div className="eyebrow">BATTLE ENGINE</div><h2>Simulation is not connected yet.</h2><p>The team builder can prepare and store teams. Battle execution will follow once the rules engine is integrated.</p></div></section>}
+        {activePage === "Simulator" && <>
+          <section className="intro"><div><div className="eyebrow">BATTLE ENGINE</div><h2>Run a battle.</h2><p>Execute a Generation {settings.generation} battle using two saved teams and Pokémon Showdown's battle rules. The opponent uses a random legal-choice AI.</p></div></section>
+          <section className="panel battle-setup-panel">
+            <div className="panel-heading"><div><span className="eyebrow">BATTLE SETUP</span><h3>Choose teams</h3></div><span className="build-version">{settings.mode} mode</span></div>
+            <div className="field-grid">
+              <label className="field"><span>Your team</span><select value={battlePlayerTeamId || activeTeam?.id || ""} onChange={e => setBattlePlayerTeamId(e.target.value)}><option value="">Select team</option>{teams.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>
+              <label className="field"><span>Opponent team</span><select value={battleOpponentTeamId || teams.find(team => team.id !== (battlePlayerTeamId || activeTeam?.id))?.id || ""} onChange={e => setBattleOpponentTeamId(e.target.value)}><option value="">Select opponent</option>{teams.filter(team => team.id !== (battlePlayerTeamId || activeTeam?.id)).map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>
+              <div className="field"><span>Ruleset</span><div className="derived-value">Gen {settings.generation} · {settings.battleType === "PvP" ? settings.tier : pveFacilities[settings.generation]}</div></div>
+            </div>
+            {(settings.battleType === "PvE" || settings.tier === "VGC" || settings.tier === "Custom") && <p className="battle-warning">This selection runs in the generation's Custom Game sandbox. Facility-specific, VGC regulation and custom tier rules are not enforced.</p>}
+            {battleError && <p className="battle-error">{battleError}</p>}
+            <div className="battle-actions"><button type="button" className="primary-button" onClick={startBattle}>Start battle</button><button type="button" className="secondary-button" onClick={stopBattle} disabled={!battleActive}>End battle</button><button type="button" className="secondary-button" onClick={() => setSettings(s => ({...s, mode: s.mode === "Auto" ? "Manual" : "Auto"}))}>{settings.mode === "Auto" ? "Switch to Manual" : "Switch to Auto"}</button></div>
+          </section>
+          {(battleActive || battleLog.length > 0) && <section className="panel battle-live-panel">
+            <div className="panel-heading"><div><span className="eyebrow">LIVE BATTLE</span><h3>{battleActive ? "Battle in progress" : "Battle finished"}</h3></div><span className="saved-indicator"><span className="status-dot" /> {settings.mode} control</span></div>
+            {manualRequest && settings.mode === "Manual" && <div className="manual-controls">
+              <strong>Your decision</strong>
+              {manualRequest.teamPreview && <p className="hint">Team preview is active. The full team will be selected in its current order.</p>}
+              {manualRequest.active?.[0]?.moves && <div className="battle-choice-grid">{manualRequest.active[0].moves.map((move,index) => <button type="button" className="secondary-button" key={move.id || move.move} disabled={move.disabled} onClick={() => submitBattleChoice(`move ${index+1}`)}>{move.move} <small>{move.pp ?? "?"}/{move.maxpp ?? "?"} PP</small></button>)}</div>}
+              {manualRequest.forceSwitch?.some(Boolean) && <div className="battle-choice-grid">{(manualRequest.side?.pokemon || []).map((pokemon,index) => ({pokemon,index})).filter(({pokemon}) => !pokemon.active && !pokemon.condition.endsWith(" fnt")).map(({pokemon,index}) => <button type="button" className="secondary-button" key={pokemon.ident} onClick={() => submitBattleChoice(`switch ${index+1}`)}>{pokemon.ident.split(": ").slice(1).join(": ") || pokemon.details}</button>)}</div>}
+              {!manualRequest.active?.[0]?.moves?.length && !manualRequest.forceSwitch?.some(Boolean) && !manualRequest.teamPreview && <p className="hint">Waiting for the next decision.</p>}
+            </div>}
+            <div className="battle-log" aria-live="polite">{battleLog.length ? battleLog.map((line,index) => <div key={index}>{line}</div>) : <p>Waiting for the battle to begin…</p>}</div>
+          </section>}
+        </>}
         {activePage === "Matchup Analysis" && <section className="intro"><div><div className="eyebrow">ANALYSIS WORKSPACE</div><h2>Matchup analysis is not connected yet.</h2><p>Saved teams will become available here for matchup matrices and repeated simulations.</p></div></section>}
         <footer>Pokémon Battle Lab <span>·</span> An independent team analysis tool</footer>
       </section>

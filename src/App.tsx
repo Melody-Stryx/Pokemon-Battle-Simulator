@@ -33,8 +33,6 @@ export default function App() {
   const [teams, setTeams] = useState<Team[]>(readTeams);
   const [activeTeamId, setActiveTeamId] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState("");
-  const [teamNameDraft, setTeamNameDraft] = useState("");
-  const [notice, setNotice] = useState("");
   useEffect(() => { localStorage.setItem("battle-lab-settings", JSON.stringify(settings)); }, [settings]);
   useEffect(() => { localStorage.setItem("battle-lab-teams", JSON.stringify(teams)); }, [teams]);
   const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => setSettings(s => normalizeSettings({ ...s, [key]: value }));

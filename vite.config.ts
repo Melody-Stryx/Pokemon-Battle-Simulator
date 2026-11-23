@@ -2,7 +2,19 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
+const buildDate = new Date();
+const buildNumber = [
+  buildDate.getFullYear().toString(16),
+  (buildDate.getMonth() + 1).toString(16).padStart(2, "0"),
+  buildDate.getDate().toString(16).padStart(2, "0"),
+  buildDate.getHours().toString(16).padStart(2, "0"),
+  buildDate.getMinutes().toString(16).padStart(2, "0")
+].join("").toUpperCase();
+
 export default defineConfig({
+  define: {
+    __BUILD_NUMBER__: JSON.stringify(buildNumber)
+  },
   plugins: [
     react(),
     VitePWA({

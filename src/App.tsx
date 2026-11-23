@@ -42,7 +42,7 @@ export default function App() {
   const patchTeam = (teamId: string, updater: (team: Team) => Team) => setTeams(all => all.map(t => t.id === teamId ? { ...updater(t), updatedAt: new Date().toISOString() } : t));
   const createTeam = () => {
     const team: Team = { id: uid(), name: "New Team", slots: [], updatedAt: new Date().toISOString() };
-    setTeams(all => [...all, team]); setActiveTeamId(team.id); setSelectedSlotId(""); setTeamNameDraft("New Team");
+    setTeams(all => [...all, team]); setActiveTeamId(team.id); setSelectedSlotId("");
   };
   const addPokemon = () => {
     if (!activeTeam || activeTeam.slots.length >= 6) return;

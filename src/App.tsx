@@ -202,7 +202,12 @@ export default function App() {
 
       try {
         const setProblems = TeamValidator.get("gen7anythinggoes").validateTeam(sets as any) || [];
-        const allProblems = [...treeProblems, ...setProblems];
+        // AG's default level-100 and nonzero-EV reminders are not Battle Tree restrictions.
+        const relevantSetProblems = setProblems.filter(problem =>
+          !problem.includes("has exactly 0 EVs - did you forget to EV it?") &&
+          !/is level \d+, but this format allows level 100 Pokémon/.test(problem)
+        );
+        const allProblems = [...treeProblems, ...relevantSetProblems];
         return allProblems.length
           ? { status: "Illegal", messages: allProblems }
           : {

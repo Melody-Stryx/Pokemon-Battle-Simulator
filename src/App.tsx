@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+declare const __BUILD_NUMBER__: string;
+
 type BattleType = "PvP" | "PvE";
 type BattleMode = "Auto" | "Manual";
 
@@ -84,7 +86,7 @@ export default function App() {
             <div className="eyebrow">POKÉMON TEAM TESTING</div>
             <h1>{activePage}</h1>
           </div>
-          <div className="topbar-tag">FOUNDATION BUILD <span>0.1.0</span></div>
+          <div className="topbar-tag">BUILD <span>{__BUILD_NUMBER__}</span></div>
         </header>
 
         <section className="intro">

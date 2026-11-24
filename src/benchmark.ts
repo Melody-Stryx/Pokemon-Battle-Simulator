@@ -8,7 +8,7 @@ export type BenchmarkOpponent = {
   sets: Record<string, unknown>[];
 };
 
-export type MoveDamageSummary = { move: string; damage: number; hits: number };
+export type MoveDamageSummary = { move: string; damage: number; hits: number; uses: number };
 export type PokemonDamageSummary = {
   pokemon: string;
   damageDealt: number;
@@ -130,7 +130,7 @@ function addPokemonDamage(side: SideDamageSummary, pokemon: string, dealt: numbe
   if (faint) entry.faints++;
   if (move && dealt > 0) {
     let moveEntry = entry.moveDamage.find(item => item.move === move);
-    if (!moveEntry) { moveEntry = { move, damage: 0, hits: 0 }; entry.moveDamage.push(moveEntry); }
+    if (!moveEntry) { moveEntry = { move, damage: 0, hits: 0, uses: 0 }; entry.moveDamage.push(moveEntry); }
     moveEntry.damage += dealt;
     moveEntry.hits++;
   }
@@ -138,9 +138,23 @@ function addPokemonDamage(side: SideDamageSummary, pokemon: string, dealt: numbe
 function addMoveDamage(side: SideDamageSummary, move: string, damage: number) {
   if (!move || damage <= 0) return;
   let entry = side.moveDamage.find(item => item.move === move);
-  if (!entry) { entry = { move, damage: 0, hits: 0 }; side.moveDamage.push(entry); }
+  if (!entry) { entry = { move, damage: 0, hits: 0, uses: 0 }; side.moveDamage.push(entry); }
   entry.damage += damage;
   entry.hits++;
+}
+function addMoveUse(side: SideDamageSummary, pokemon: string, move: string) {
+  if (!move) return;
+  let sideEntry = side.moveDamage.find(item => item.move === move);
+  if (!sideEntry) { sideEntry = { move, damage: 0, hits: 0, uses: 0 }; side.moveDamage.push(sideEntry); }
+  sideEntry.uses++;
+  let pokemonEntry = side.pokemon.find(item => item.pokemon === pokemon);
+  if (!pokemonEntry) {
+    pokemonEntry = { pokemon, damageDealt: 0, damageTaken: 0, faints: 0, moveDamage: [] };
+    side.pokemon.push(pokemonEntry);
+  }
+  let pokemonMove = pokemonEntry.moveDamage.find(item => item.move === move);
+  if (!pokemonMove) { pokemonMove = { move, damage: 0, hits: 0, uses: 0 }; pokemonEntry.moveDamage.push(pokemonMove); }
+  pokemonMove.uses++;
 }
 function mergeSide(target: SideDamageSummary, source: SideDamageSummary) {
   for (const pokemon of source.pokemon) {
@@ -149,8 +163,8 @@ function mergeSide(target: SideDamageSummary, source: SideDamageSummary) {
     entry.faints += pokemon.faints;
     for (const move of pokemon.moveDamage) {
       let existing = entry.moveDamage.find(item => item.move === move.move);
-      if (!existing) { existing = { move: move.move, damage: 0, hits: 0 }; entry.moveDamage.push(existing); }
-      existing.damage += move.damage; existing.hits += move.hits;
+      if (!existing) { existing = { move: move.move, damage: 0, hits: 0, uses: 0 }; entry.moveDamage.push(existing); }
+      existing.damage += move.damage; existing.hits += move.hits; existing.uses += move.uses;
     }
   }
   for (const move of source.moveDamage) {
@@ -158,6 +172,7 @@ function mergeSide(target: SideDamageSummary, source: SideDamageSummary) {
     if (!existing) { existing = { move: move.move, damage: 0, hits: 0 }; target.moveDamage.push(existing); }
     existing.damage += move.damage;
     existing.hits += move.hits;
+    existing.uses += move.uses;
   }
 }
 function mergeAnalysis(target: BattleAnalysis, source: BattleAnalysis) {
@@ -225,6 +240,11 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
         if (tag === "move") {
           const actor = parts[2];
           const target = parts[4];
+          const actorSide = actor?.slice(0, 2);
+          if (actorSide === "p1" || actorSide === "p2") {
+            const actorName = namesByIdent.get(actor) || identName(actor);
+            addMoveUse(actorSide === "p1" ? analysis.player : analysis.opponent, actorName, parts[3] || "Unknown move");
+          }
           if (target?.startsWith("p1") || target?.startsWith("p2")) {
             latestMoveByTarget.set(target, { ident: actor, name: parts[3] || "Unknown move" });
           }

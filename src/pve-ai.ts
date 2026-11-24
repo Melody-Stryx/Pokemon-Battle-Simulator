@@ -87,12 +87,11 @@ function bestAttack(pokemon: PokemonView, foe: Foe) {
   const name = speciesName(pokemon);
   return Math.max(0, ...(pokemon.moves || []).map(nameOfMove => moveScore(nameOfMove, name, foe, pokemon.stats, hpRatio(pokemon))));
 }
-const nameOfMove = (value: string) => value;
 function scoreSwitch(pokemon: PokemonView, foe: Foe) {
   const name = speciesName(pokemon);
   const data = species(name);
   if (!data?.exists) return -Infinity;
-  const incoming = foeTypes(foe).length ? Math.max(...foeTypes(foe).map(type => effectiveness(type, data.types || []))) : 1;
+  const incoming = foeTypes(foe).length ? Math.max(...foeTypes(foe).map((type: string) => effectiveness(type, data.types || []))) : 1;
   const speed = pokemon.stats?.spe || data.baseStats?.spe || 70;
   const foeSpeed = foe ? species(foe.species)?.baseStats?.spe || 70 : 70;
   return bestAttack(pokemon, foe) * 0.78 + (2 - incoming) * 28 + hpRatio(pokemon) * 18 + (speed > foeSpeed ? 7 : 0);

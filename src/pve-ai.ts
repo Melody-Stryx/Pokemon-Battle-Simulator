@@ -151,7 +151,7 @@ export function chooseTacticalChoice(request: RequestView, log: string[], side: 
     if (switches.length && foe) {
       const currentSpecies = species(ownName);
       const incoming = foeTypes(foe).length
-        ? Math.max(...foeTypes(foe).map(type => effectiveness(type, currentSpecies?.types || []))) : 1;
+        ? Math.max(...foeTypes(foe).map((type: string) => effectiveness(type, currentSpecies?.types || []))) : 1;
       const bestSwitch = switches[0];
       if ((incoming >= 2 && hpRatio(own) < 0.72) || bestSwitch.score > bestMove.score * 1.18 + 28) {
         choices.push(`switch ${bestSwitch.slot}`);

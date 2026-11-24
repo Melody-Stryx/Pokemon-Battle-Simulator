@@ -52,7 +52,13 @@ GitHub Actions runs both the production build and battle-engine smoke test on pu
 - 100 battles are run per published team. Both sides currently use random legal-choice AI; meaningful competitive win-rate estimates require the planned strategic, information-limited AI.
 
 
-### All-team simulation and Matchup Analysis
+### Tactical battle AI
+
+Automatic battles and exhaustive benchmarks use a rules-based tactical AI instead of random move selection. It evaluates move power, accuracy, STAB, type effectiveness, approximate offensive stats, useful status and setup effects, recovery, and matchup-aware switching. It also ranks the team preview order. The AI only uses its own team data and information visible in its battle log.
+
+This is a human-style baseline, not an expert competitive player or an exact damage calculator. It does not yet model every battle mechanic, predict opponent choices, or optimise long-term strategy. Matchup win rates should be interpreted as results against this specific AI, not as guaranteed human-versus-human outcomes.
+
+## All-team simulation and Matchup Analysis
 - The Simulator's all-team run executes 100 battles per opponent.
 - PvP Auto Teams benchmarks all distinct valid complete teams in the published sample archive for the selected format.
 - Saved teams benchmarks every other complete team in the browser's local team library. PvE uses Saved teams until version-specific facility trainer pools are connected.

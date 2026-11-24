@@ -22,6 +22,7 @@ try {
   ({ runExhaustiveBenchmark } = await import(benchmarkModuleUrl.href));
 } finally {
   await unlink(benchmarkModuleUrl);
+  await unlink(aiModuleUrl);
 }
 
 const makeTeam = (species, move, ability) => Array.from({ length: 6 }, (_, index) => ({

@@ -772,7 +772,7 @@ export default function App() {
             </section>
             {matchupRun.analysis && <section className="panel">
               <div className="panel-heading"><div><span className="eyebrow">COMBAT TELEMETRY</span><h3>Damage performance</h3></div><span className="build-version">{matchupRun.completed.toLocaleString()} battles</span></div>
-              <p className="hint">Actual HP lost, aggregated across completed battles. Damage ratio = damage dealt ÷ damage taken. Move rankings include only damage explicitly attributed to a move by the battle log; residual and unattributed damage is excluded from those rankings.</p>
+              <p className="hint">Actual HP lost, aggregated across completed battles. Damage ratio = source-attributed damage dealt ÷ total damage taken. Damage is credited to a Pokémon only when the battle log identifies its source; residual and unattributed damage is reported separately. Move rankings include only damage explicitly attributed to a move.</p>
               <div className="damage-overview-grid">
                 <div><small>Your team damage dealt</small><strong>{matchupRun.analysis.player.pokemon.reduce((sum, p) => sum + p.damageDealt, 0).toLocaleString()}</strong></div>
                 <div><small>Your team damage taken</small><strong>{matchupRun.analysis.player.pokemon.reduce((sum, p) => sum + p.damageTaken, 0).toLocaleString()}</strong></div>

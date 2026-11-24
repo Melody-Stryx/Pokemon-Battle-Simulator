@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dex } from "@pkmn/dex";
 import { BattleStreams, RandomPlayerAI, TeamValidator, Teams } from "@pkmn/sim";
-import { loadCompleteOpponentPool, runExhaustiveBenchmark, type BenchmarkProgress } from "./benchmark";
+import { loadCompleteOpponentPool, runExhaustiveBenchmark, type BenchmarkProgress, type BenchmarkOpponent } from "./benchmark";
 
 declare const __BUILD_NUMBER__: string;
 type BattleType = "PvP" | "PvE";
@@ -51,6 +51,26 @@ type Team = { id: string; name: string; slots: TeamSlot[]; updatedAt: string };
 type BattleRequest = { active?: Array<{ moves: Array<{ move: string; id?: string; disabled?: boolean; pp?: number; maxpp?: number }> }>; side?: { pokemon: Array<{ ident: string; details: string; condition: string; active?: boolean }> }; forceSwitch?: boolean[]; teamPreview?: boolean; wait?: boolean };
 type BattleController = { streams: any; stopped: boolean };
 type OnlineOpponent = { name: string; author?: string; format: string; source: string; sets: Record<string, unknown>[] };
+type MatchupAnalysisRun = BenchmarkProgress & {
+  id: string;
+  createdAt: string;
+  playerTeamId: string;
+  playerTeamName: string;
+  generation: number;
+  gameVersion: string;
+  battleType: BattleType;
+  tier: string;
+  facility: string;
+  opponentSource: string;
+  sourceCount: number;
+  validCount: number;
+  rejected: number;
+  sourceUrl: string;
+};
+function readMatchupRun(): MatchupAnalysisRun | null {
+  try { const value = localStorage.getItem("battle-lab-matchup-results"); return value ? JSON.parse(value) as MatchupAnalysisRun : null; }
+  catch { return null; }
+}
 const statNames = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"];
 const natures = ["Hardy","Lonely","Brave","Adamant","Naughty","Bold","Docile","Relaxed","Impish","Lax","Timid","Hasty","Serious","Jolly","Naive","Modest","Mild","Quiet","Bashful","Rash","Calm","Gentle","Sassy","Careful","Quirky"];
 const uid = () => crypto.randomUUID();
@@ -135,6 +155,7 @@ export default function App() {
   const [benchmarkProgress, setBenchmarkProgress] = useState<BenchmarkProgress | null>(null);
   const [benchmarkError, setBenchmarkError] = useState("");
   const [benchmarkCoverage, setBenchmarkCoverage] = useState<{sourceCount:number;validCount:number;rejected:number;sourceUrl:string} | null>(null);
+  const [matchupRun, setMatchupRun] = useState<MatchupAnalysisRun | null>(readMatchupRun);
   const benchmarkCancel = useRef(false);
   const [battleActive, setBattleActive] = useState(false);
   const [battleLog, setBattleLog] = useState<string[]>([]);
@@ -145,6 +166,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem("battle-lab-settings", JSON.stringify(settings)); }, [settings]);
   useEffect(() => { battleModeRef.current = settings.mode; }, [settings.mode]);
   useEffect(() => { localStorage.setItem("battle-lab-teams", JSON.stringify(teams)); }, [teams]);
+  useEffect(() => { if (matchupRun) localStorage.setItem("battle-lab-matchup-results", JSON.stringify(matchupRun)); }, [matchupRun]);
   const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => setSettings(s => normalizeSettings({ ...s, [key]: value }));
   const activeTeam = teams.find(t => t.id === activeTeamId) || teams[0];
   const selectedSlot = activeTeam?.slots.find(s => s.id === selectedSlotId) || activeTeam?.slots[0];
@@ -410,38 +432,69 @@ export default function App() {
     const playerTeam = teams.find(team => team.id === playerId);
     if (!playerTeam || playerTeam.slots.length !== 6 || !playerTeam.slots.every(slot => {
       const build = activeBuild(slot);
-      return Boolean(build.name.trim() && build.moves.some(move => move.trim()));
+      return Boolean(build?.name.trim() && build.moves.some(move => move.trim()));
     })) {
       setBenchmarkError("Select a complete six-Pokémon team with at least one move per Pokémon.");
       return;
     }
-    const format = battleFormat();
     setBenchmarkBusy(true);
     setBenchmarkError("");
     setBenchmarkProgress(null);
+    setBenchmarkCoverage(null);
     benchmarkCancel.current = false;
     try {
-      const dataset = await loadCompleteOpponentPool(format);
-      if (!dataset.opponents.length) throw new Error("The archive contained no complete, valid teams for this format.");
+      const format = battleFormat();
       const playerSets = makeBattleSets(playerTeam, settings.generation);
+      let opponents: BenchmarkOpponent[] = [];
+      let sourceCount = 0, rejected = 0, sourceUrl = "Saved teams stored in this browser";
+      if (opponentSource === "Auto Teams" && settings.battleType === "PvP") {
+        const dataset = await loadCompleteOpponentPool(format);
+        opponents = dataset.opponents;
+        sourceCount = dataset.sourceCount;
+        rejected = dataset.rejected;
+        sourceUrl = dataset.sourceUrl;
+      } else {
+        const otherTeams = teams.filter(team => team.id !== playerTeam.id);
+        sourceCount = otherTeams.length;
+        for (const team of otherTeams) {
+          if (team.slots.length !== 6 || !team.slots.every(slot => {
+            const build = activeBuild(slot);
+            return Boolean(build?.name.trim() && build.moves.some(move => move.trim()));
+          })) { rejected++; continue; }
+          const sets = makeBattleSets(team, settings.generation);
+          if (settings.battleType === "PvP") {
+            try {
+              if ((TeamValidator.get(format).validateTeam(sets as any) || []).length) { rejected++; continue; }
+            } catch { rejected++; continue; }
+          }
+          opponents.push({ id: team.id, name: team.name, sets });
+        }
+      }
+      if (!opponents.length) throw new Error("No other complete, usable teams were found. Add another six-Pokémon team or load the online Auto Teams pool.");
+      const coverage = { sourceCount, validCount: opponents.length, rejected, sourceUrl };
+      setBenchmarkCoverage(coverage);
+      const meta = {
+        id: uid(), createdAt: new Date().toISOString(), playerTeamId: playerTeam.id, playerTeamName: playerTeam.name,
+        generation: settings.generation, gameVersion: settings.gameVersion, battleType: settings.battleType,
+        tier: settings.tier, facility: settings.facility, opponentSource: opponentSource === "Auto Teams" && settings.battleType === "PvP" ? "Published sample teams" : "Saved teams",
+        ...coverage,
+      };
       const result = await runExhaustiveBenchmark({
-        format,
-        playerSets,
-        opponents: dataset.opponents,
-        repetitions: 3,
+        format, playerSets, opponents, repetitions: 100,
         shouldCancel: () => benchmarkCancel.current,
-        onProgress: setBenchmarkProgress,
+        onProgress: progress => {
+          setBenchmarkProgress(progress);
+          setMatchupRun({ ...meta, ...progress });
+        },
       });
       setBenchmarkProgress(result);
-      if (benchmarkCancel.current) setBenchmarkError("Benchmark cancelled. Results include completed battles only.");
+      setMatchupRun({ ...meta, ...result });
+      if (benchmarkCancel.current) setBenchmarkError("Run cancelled. Matchup Analysis contains completed battles only.");
       else setBenchmarkError("");
       setOpponentSourceError("");
-      setBenchmarkCoverage({ sourceCount: dataset.sourceCount, validCount: dataset.opponents.length, rejected: dataset.rejected, sourceUrl: dataset.sourceUrl });
     } catch (error) {
-      setBenchmarkError(error instanceof Error ? error.message : "The exhaustive benchmark failed.");
-    } finally {
-      setBenchmarkBusy(false);
-    }
+      setBenchmarkError(error instanceof Error ? error.message : "The all-team simulation failed.");
+    } finally { setBenchmarkBusy(false); }
   };
   const stopBattle = () => {
     const controller = battleController.current;
@@ -675,22 +728,23 @@ export default function App() {
             
             {opponentSourceError && <p className="battle-error">{opponentSourceError}</p>}
             {(settings.battleType === "PvE" || settings.tier === "VGC" || settings.tier === "Custom") && <p className="battle-warning">This selection runs in the generation's Custom Game sandbox. Facility-specific, VGC regulation and custom tier rules are not enforced.</p>}
-            {settings.battleType === "PvP" && opponentSource === "Auto Teams" && <section className="benchmark-panel">
-              <div className="editor-section-title">Exhaustive published-team benchmark <small>Every distinct complete team in the selected format archive</small></div>
-              <p className="hint">Runs three battles against every validated archived team. Both sides currently use random legal-choice AI, so results are a baseline, not a competitive-skill rating.</p>
+            <section className="benchmark-panel">
+              <div className="editor-section-title">All-team simulation <small>100 battles against every available opposing team</small></div>
+              <p className="hint">Runs 100 battles per opponent and records every matchup in Matchup Analysis. PvP Auto Teams uses the published sample archive. Saved teams tests every other complete team in your local team library. PvE uses Saved teams until facility trainer data is connected.</p>
               <div className="battle-actions">
-                <button type="button" className="primary-button" onClick={runFullBenchmark} disabled={benchmarkBusy}>{benchmarkBusy ? "Benchmark running…" : "Test against all archived teams"}</button>
-                {benchmarkBusy && <button type="button" className="secondary-button" onClick={() => { benchmarkCancel.current = true; }}>Cancel benchmark</button>}
+                <button type="button" className="primary-button" onClick={runFullBenchmark} disabled={benchmarkBusy || battleActive}>{benchmarkBusy ? "Simulation running…" : "Run simulator · 100 per team"}</button>
+                {benchmarkBusy && <button type="button" className="secondary-button" onClick={() => { benchmarkCancel.current = true; }}>Cancel simulation</button>}
+                <button type="button" className="secondary-button" onClick={() => setActivePage("Matchup Analysis")}>View Matchup Analysis</button>
               </div>
               {benchmarkProgress && <div className="benchmark-results">
                 <strong>{benchmarkProgress.completed.toLocaleString()} / {benchmarkProgress.total.toLocaleString()} battles completed</strong>
                 <div className="benchmark-summary"><span>Wins: {benchmarkProgress.wins}</span><span>Losses: {benchmarkProgress.losses}</span><span>Ties: {benchmarkProgress.ties}</span><span>Win rate: {benchmarkProgress.completed ? ((benchmarkProgress.wins / benchmarkProgress.completed) * 100).toFixed(1) : "0.0"}%</span></div>
                 {benchmarkBusy && <p className="hint">Current opponent: {benchmarkProgress.currentOpponent}</p>}
-                {benchmarkCoverage && <p className="hint">Archive records: {benchmarkCoverage.sourceCount} · distinct valid teams: {benchmarkCoverage.validCount} · rejected: {benchmarkCoverage.rejected}. <a href={benchmarkCoverage.sourceUrl} target="_blank" rel="noreferrer">Dataset source</a></p>}
+                {benchmarkCoverage && <p className="hint">Source teams: {benchmarkCoverage.sourceCount} · tested teams: {benchmarkCoverage.validCount} · skipped: {benchmarkCoverage.rejected}. {benchmarkCoverage.sourceUrl.startsWith("http") ? <a href={benchmarkCoverage.sourceUrl} target="_blank" rel="noreferrer">Dataset source</a> : benchmarkCoverage.sourceUrl}</p>}
                 <div className="benchmark-matchups">{[...benchmarkProgress.results].sort((a,b) => (b.wins / Math.max(1,b.games)) - (a.wins / Math.max(1,a.games))).map(result => <div key={result.opponentId}><strong>{result.opponentName}</strong><span>{result.wins}W / {result.losses}L / {result.ties}T</span></div>)}</div>
               </div>}
               {benchmarkError && <p className="battle-error">{benchmarkError}</p>}
-            </section>}
+            </section>
             {battleError && <p className="battle-error">{battleError}</p>}
             <div className="battle-actions"><button type="button" className="primary-button" onClick={startBattle}>Start battle</button><button type="button" className="secondary-button" onClick={stopBattle} disabled={!battleActive}>End battle</button><button type="button" className="secondary-button" onClick={() => setSettings(s => ({...s, mode: s.mode === "Auto" ? "Manual" : "Auto"}))}>{settings.mode === "Auto" ? "Switch to Manual" : "Switch to Auto"}</button></div>
           </section>
@@ -706,7 +760,22 @@ export default function App() {
             <div className="battle-log" aria-live="polite">{battleLog.length ? battleLog.map((line,index) => <div key={index}>{line}</div>) : <p>Waiting for the battle to begin…</p>}</div>
           </section>}
         </>}
-        {activePage === "Matchup Analysis" && <section className="intro"><div><div className="eyebrow">ANALYSIS WORKSPACE</div><h2>Matchup analysis is not connected yet.</h2><p>Saved teams will become available here for matchup matrices and repeated simulations.</p></div></section>}
+        {activePage === "Matchup Analysis" && <>
+          <section className="intro"><div><div className="eyebrow">ANALYSIS WORKSPACE</div><h2>Matchup Analysis</h2><p>Results from the latest all-team simulation, with 100 battles per opponent.</p></div></section>
+          {!matchupRun ? <section className="panel empty-state"><strong>No simulation results yet</strong><p>Run the Simulator to test your team against every available opposing team. Results will be saved here automatically.</p><button type="button" className="primary-button" onClick={() => setActivePage("Simulator")}>Open Simulator</button></section> : <>
+            <section className="panel">
+              <div className="panel-heading"><div><span className="eyebrow">LATEST RUN</span><h3>{matchupRun.playerTeamName}</h3></div><span className="build-version">{new Date(matchupRun.createdAt).toLocaleString()}</span></div>
+              <p className="hint">Gen {matchupRun.generation} · {matchupRun.gameVersion} · {matchupRun.battleType === "PvP" ? matchupRun.tier : matchupRun.facility} · {matchupRun.opponentSource}</p>
+              <div className="benchmark-summary"><span>Teams tested: {matchupRun.validCount}</span><span>Battles: {matchupRun.completed.toLocaleString()} / {matchupRun.total.toLocaleString()}</span><span>Wins: {matchupRun.wins}</span><span>Losses: {matchupRun.losses}</span><span>Ties: {matchupRun.ties}</span><span>Win rate: {matchupRun.completed ? (matchupRun.wins / matchupRun.completed * 100).toFixed(1) : "0.0"}%</span></div>
+              <p className="hint">Source entries: {matchupRun.sourceCount} · skipped: {matchupRun.rejected} · Saved locally in this browser.</p>
+              {matchupRun.sourceUrl.startsWith("http") && <p className="hint"><a href={matchupRun.sourceUrl} target="_blank" rel="noreferrer">Open opponent dataset</a></p>}
+            </section>
+            <section className="panel">
+              <div className="panel-heading"><div><span className="eyebrow">PER-TEAM RESULTS</span><h3>Opponent matchups</h3></div><span className="build-version">{matchupRun.results.length} teams</span></div>
+              <div className="benchmark-matchups matchup-analysis-list">{[...matchupRun.results].sort((a,b) => (b.wins / Math.max(1,b.games)) - (a.wins / Math.max(1,a.games))).map(result => <div key={result.opponentId}><strong>{result.opponentName}</strong><span>{result.wins}W / {result.losses}L / {result.ties}T · {result.games ? (result.wins / result.games * 100).toFixed(1) : "0.0"}% win rate</span></div>)}</div>
+            </section>
+          </>}
+        </>}
         <footer>Pokémon Battle Lab <span>·</span> An independent team analysis tool</footer>
       </section>
     </main>

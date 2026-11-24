@@ -128,7 +128,7 @@ export function chooseTacticalChoice(request: RequestView, log: string[], side: 
       const choices = team.map((pokemon, i) => ({ pokemon, slot: i + 1 }))
         .filter(x => !x.pokemon.active && !used.includes(x.slot) && hpRatio(x.pokemon) > 0);
       if (!choices.length) return "pass";
-      const best = choices.sort((a, b) => scoreSwitch(b.pokemon, foe) - scoreSwitch(a.pokemon, foe))[0];
+      const best = choices.sort((a, b) => scoreSwitch(b.pokemon, foe, generation) - scoreSwitch(a.pokemon, foe, generation))[0];
       used.push(best.slot);
       return `switch ${best.slot}`;
     }).join(", ");

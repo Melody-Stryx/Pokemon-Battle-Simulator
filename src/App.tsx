@@ -516,7 +516,7 @@ export default function App() {
     setManualRequest(null);
     void controller.streams.p1.write(`>p1 ${choice}`);
   };
-  const chooseAutomatically = (request: BattleRequest) => chooseTacticalChoice(request, battleDecisionLog.current, "p1");
+  const chooseAutomatically = (request: BattleRequest) => chooseTacticalChoice(request, battleDecisionLog.current, "p1", settings.generation);
   useEffect(() => {
     if (settings.mode === "Auto" && manualRequest) {
       const request = manualRequest;
@@ -559,7 +559,7 @@ export default function App() {
       const controller: BattleController = { streams, stopped: false };
       battleController.current = controller;
       battleDecisionLog.current = [];
-      const p2AI = new TacticalPlayerAI(streams.p2, "p2");
+      const p2AI = new TacticalPlayerAI(streams.p2, "p2", settings.generation);
       void p2AI.start();
       void (async () => {
         try {

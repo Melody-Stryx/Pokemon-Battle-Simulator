@@ -50,3 +50,12 @@ GitHub Actions runs both the production build and battle-engine smoke test on pu
 - Replay logs and usage statistics are not silently converted into complete teams: they may omit unrevealed Pokémon or set details. Such partial evidence is not counted as a tested team.
 - PvE facility team pools are game-version-specific and are not yet connected to the exhaustive benchmark. Auto Teams for PvE must not claim exhaustive coverage until verified trainer and set pools for that exact game version are integrated.
 - Three battles are run per published team. Both sides currently use random legal-choice AI; meaningful competitive win-rate estimates require the planned strategic, information-limited AI.
+
+
+### All-team simulation and Matchup Analysis
+- The Simulator's all-team run executes 100 battles per opponent.
+- PvP Auto Teams benchmarks all distinct valid complete teams in the published sample archive for the selected format.
+- Saved teams benchmarks every other complete team in the browser's local team library. PvE uses Saved teams until version-specific facility trainer pools are connected.
+- Per-opponent and aggregate wins, losses, ties, completion counts, selected game/ruleset, and source coverage are persisted locally and displayed in Matchup Analysis.
+- Results use random-choice AI on both sides at present; win rates are baseline simulator outcomes, not competitive-strength estimates.
+- A run can be cancelled; completed battles remain recorded.

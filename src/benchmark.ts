@@ -219,7 +219,7 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
         }
         if (tag === "-damage") {
           const target = parts[2];
-          const condition = parseCondition(parts[3] || "");
+          const condition = parseCondition(parts[3] || "") || (String(parts[3] || "").endsWith(" fnt") ? { hp: 0, maxHp: 0 } : null);
           if (!condition) continue;
           const previous = hpByIdent.get(target);
           hpByIdent.set(target, condition.hp);

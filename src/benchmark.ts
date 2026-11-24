@@ -217,6 +217,7 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
           const damage = Math.max(0, Math.round(previous - condition.hp));
           if (!damage) continue;
           const targetSide = target.slice(0, 2);
+          const sourceSide = targetSide === "p1" ? "p2" : "p1";
           const sourceMarker = parts.slice(4).find(part => part.startsWith("[from]"));
           const sourceIdentMarker = parts.slice(4).find(part => part.startsWith("[of]"));
           let source: { ident: string; name: string } | undefined;
@@ -226,17 +227,14 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
           if (sourceMarker?.startsWith("[from] move:")) {
             moveName = sourceMarker.slice("[from] move:".length).trim();
             source = sourceIdent ? { ident: sourceIdent, name: moveName } : latestMoveBySide.get(sourceSide);
-          } else if (!sourceMarker) {
-            const recent = latestMoveBySide.get(sourceSide);
-            if (recent) { source = recent; moveName = recent.name; }
           }
           const targetName = namesByIdent.get(target) || identName(target);
           const targetSummary = targetSide === "p1" ? analysis.player : analysis.opponent;
           addPokemonDamage(targetSummary, targetName, 0, damage);
-          if (source && source.ident.slice(0, 2) !== targetSide && moveName) {
+          if (source && source.ident.slice(0, 2) !== targetSide) {
             const sourceName = namesByIdent.get(source.ident) || identName(source.ident);
             const sourceSummary = source.ident.slice(0, 2) === "p1" ? analysis.player : analysis.opponent;
-            addPokemonDamage(sourceSummary, sourceName, damage, 0, moveName);
+            addPokemonDamage(sourceSummary, sourceName, damage, 0, moveName || undefined);
             if (moveName) addMoveDamage(sourceSummary, moveName, damage);
           } else {
             analysis.unattributedDamage += damage;

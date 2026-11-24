@@ -168,7 +168,14 @@ export default function App() {
   useEffect(() => { localStorage.setItem("battle-lab-settings", JSON.stringify(settings)); }, [settings]);
   useEffect(() => { battleModeRef.current = settings.mode; }, [settings.mode]);
   useEffect(() => { localStorage.setItem("battle-lab-teams", JSON.stringify(teams)); }, [teams]);
-  useEffect(() => { if (matchupRun) localStorage.setItem("battle-lab-matchup-results", JSON.stringify(matchupRun)); }, [matchupRun]);
+  useEffect(() => {
+    if (!matchupRun) return;
+    try {
+      localStorage.setItem("battle-lab-matchup-results", JSON.stringify(matchupRun));
+    } catch {
+      setBenchmarkError("The browser storage limit was reached. This run can continue, but the latest checkpoint could not be saved locally.");
+    }
+  }, [matchupRun]);
   const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => setSettings(s => normalizeSettings({ ...s, [key]: value }));
   const activeTeam = teams.find(t => t.id === activeTeamId) || teams[0];
   const selectedSlot = activeTeam?.slots.find(s => s.id === selectedSlotId) || activeTeam?.slots[0];

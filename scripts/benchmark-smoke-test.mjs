@@ -121,6 +121,9 @@ try {
   if (!telemetry.analysis.player.moveDamage.length) {
     throw new Error("Expected direct move damage to appear in the move rankings.");
   }
+  if (!telemetry.analysis.player.moveDamage.some(move => move.uses > 0)) {
+    throw new Error("Expected move-use counts to be recorded independently of damage hits.");
+  }
   console.log("Damage telemetry test passed: direct move damage is attributed to the attacking Pokémon and move.");
 
   const solo = await runExhaustiveBenchmark({

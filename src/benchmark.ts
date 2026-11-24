@@ -7,6 +7,17 @@ export type BenchmarkOpponent = {
   sets: Record<string, unknown>[];
 };
 
+export type MoveDamageSummary = { move: string; damage: number; hits: number };
+export type PokemonDamageSummary = {
+  pokemon: string;
+  damageDealt: number;
+  damageTaken: number;
+  faints: number;
+  moveDamage: MoveDamageSummary[];
+};
+export type SideDamageSummary = { pokemon: PokemonDamageSummary[]; moveDamage: MoveDamageSummary[] };
+export type BattleAnalysis = { player: SideDamageSummary; opponent: SideDamageSummary; unattributedDamage: number };
+
 export type BenchmarkResult = {
   opponentId: string;
   opponentName: string;
@@ -14,6 +25,7 @@ export type BenchmarkResult = {
   losses: number;
   ties: number;
   games: number;
+  analysis: BattleAnalysis;
 };
 
 export type BenchmarkProgress = {
@@ -24,10 +36,13 @@ export type BenchmarkProgress = {
   ties: number;
   currentOpponent: string;
   results: BenchmarkResult[];
+  analysis: BattleAnalysis;
 };
 
 type SampleTeam = { name?: string; author?: string; data?: Record<string, unknown>[] };
 
+function emptySide(): SideDamageSummary { return { pokemon: [], moveDamage: [] }; }
+function emptyAnalysis(): BattleAnalysis { return { player: emptySide(), opponent: emptySide(), unattributedDamage: 0 }; }
 function canonicalSet(set: Record<string, unknown>[]) {
   const normalize = (value: unknown): unknown => {
     if (Array.isArray(value)) return value.map(normalize);
@@ -78,18 +93,135 @@ export async function loadCompleteOpponentPool(format: string): Promise<{
   return { opponents, sourceCount: samples.length, rejected, sourceUrl: `${base}/${format}.json` };
 }
 
-async function playOneBattle(format: string, playerSets: Record<string, unknown>[], opponentSets: Record<string, unknown>[]): Promise<"win" | "loss" | "tie"> {
+function addPokemonDamage(side: SideDamageSummary, pokemon: string, dealt: number, taken: number, move?: string, faint = false) {
+  let entry = side.pokemon.find(item => item.pokemon === pokemon);
+  if (!entry) {
+    entry = { pokemon, damageDealt: 0, damageTaken: 0, faints: 0, moveDamage: [] };
+    side.pokemon.push(entry);
+  }
+  entry.damageDealt += dealt;
+  entry.damageTaken += taken;
+  if (faint) entry.faints++;
+  if (move && dealt > 0) {
+    let moveEntry = entry.moveDamage.find(item => item.move === move);
+    if (!moveEntry) { moveEntry = { move, damage: 0, hits: 0 }; entry.moveDamage.push(moveEntry); }
+    moveEntry.damage += dealt;
+    moveEntry.hits++;
+  }
+}
+function addMoveDamage(side: SideDamageSummary, move: string, damage: number) {
+  if (!move || damage <= 0) return;
+  let entry = side.moveDamage.find(item => item.move === move);
+  if (!entry) { entry = { move, damage: 0, hits: 0 }; side.moveDamage.push(entry); }
+  entry.damage += damage;
+  entry.hits++;
+}
+function mergeSide(target: SideDamageSummary, source: SideDamageSummary) {
+  for (const pokemon of source.pokemon) {
+    addPokemonDamage(target, pokemon.pokemon, pokemon.damageDealt, pokemon.damageTaken);
+    const entry = target.pokemon.find(item => item.pokemon === pokemon.pokemon)!;
+    entry.faints += pokemon.faints;
+    for (const move of pokemon.moveDamage) {
+      let existing = entry.moveDamage.find(item => item.move === move.move);
+      if (!existing) { existing = { move: move.move, damage: 0, hits: 0 }; entry.moveDamage.push(existing); }
+      existing.damage += move.damage; existing.hits += move.hits;
+    }
+  }
+  for (const move of source.moveDamage) addMoveDamage(target, move.move, move.damage), target.moveDamage[target.moveDamage.length - 1].hits += move.hits - 1;
+}
+function mergeAnalysis(target: BattleAnalysis, source: BattleAnalysis) {
+  mergeSide(target.player, source.player);
+  mergeSide(target.opponent, source.opponent);
+  target.unattributedDamage += source.unattributedDamage;
+}
+function parseCondition(value: string): { hp: number; maxHp: number } | null {
+  const match = value.match(/^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)/);
+  return match ? { hp: Number(match[1]), maxHp: Number(match[2]) } : null;
+}
+function identName(ident: string, details?: string) {
+  const nickname = ident.split(": ").slice(1).join(": ").trim();
+  const species = details?.split(",")[0]?.trim();
+  return nickname && species && nickname.toLowerCase() !== species.toLowerCase() ? `${nickname} (${species})` : (species || nickname || ident);
+}
+
+async function playOneBattle(format: string, playerSets: Record<string, unknown>[], opponentSets: Record<string, unknown>[]): Promise<{ outcome: "win" | "loss" | "tie"; analysis: BattleAnalysis }> {
   const streams = BattleStreams.getPlayerStreams(new BattleStreams.BattleStream());
   const p1 = new RandomPlayerAI(streams.p1);
   const p2 = new RandomPlayerAI(streams.p2);
   void p1.start();
   void p2.start();
+  const analysis = emptyAnalysis();
+  const hpByIdent = new Map<string, number>();
+  const namesByIdent = new Map<string, string>();
+  const latestMoveBySide = new Map<string, { ident: string; name: string }>();
+  let outcome: "win" | "loss" | "tie" | null = null;
   const finished = (async () => {
     for await (const chunk of streams.omniscient) {
-      const output = String(chunk);
-      const win = output.match(/\|win\|([^\n]+)/);
-      if (win) return win[1].trim() === "Benchmark Player" ? "win" as const : "loss" as const;
-      if (output.includes("|tie")) return "tie" as const;
+      for (const line of String(chunk).split("\n")) {
+        if (!line.startsWith("|")) continue;
+        const parts = line.split("|");
+        const tag = parts[1];
+        if (tag === "win") {
+          outcome = parts[2]?.trim() === "Benchmark Player" ? "win" : "loss";
+          continue;
+        }
+        if (tag === "tie") { outcome = "tie"; continue; }
+        if (tag === "switch" || tag === "drag" || tag === "replace") {
+          const ident = parts[2];
+          const hp = parseCondition(parts[4] || "");
+          namesByIdent.set(ident, identName(ident, parts[3]));
+          if (hp) hpByIdent.set(ident, hp.hp);
+          continue;
+        }
+        if (tag === "move") {
+          const actor = parts[2];
+          const side = actor.slice(0, 2);
+          latestMoveBySide.set(side, { ident: actor, name: parts[3] || "Unknown move" });
+          continue;
+        }
+        if (tag === "-damage") {
+          const target = parts[2];
+          const condition = parseCondition(parts[3] || "");
+          if (!condition) continue;
+          const previous = hpByIdent.get(target);
+          hpByIdent.set(target, condition.hp);
+          if (previous === undefined) continue;
+          const damage = Math.max(0, Math.round(previous - condition.hp));
+          if (!damage) continue;
+          const targetSide = target.slice(0, 2);
+          const sourceSide = targetSide === "p1" ? "p2" : "p1";
+          const sourceMarker = parts.slice(4).find(part => part.startsWith("[from]"));
+          const sourceIdentMarker = parts.slice(4).find(part => part.startsWith("[of]"));
+          let source: { ident: string; name: string } | undefined;
+          let moveName = "";
+          if (sourceMarker?.startsWith("[from] move:")) {
+            moveName = sourceMarker.slice("[from] move:".length).trim();
+            const sourceIdent = sourceIdentMarker?.slice("[of]".length).trim();
+            source = sourceIdent ? { ident: sourceIdent, name: moveName } : latestMoveBySide.get(sourceSide);
+          } else if (!sourceMarker) {
+            const recent = latestMoveBySide.get(sourceSide);
+            if (recent) { source = recent; moveName = recent.name; }
+          }
+          const targetName = namesByIdent.get(target) || identName(target);
+          const targetSummary = targetSide === "p1" ? analysis.player : analysis.opponent;
+          addPokemonDamage(targetSummary, targetName, 0, damage);
+          if (source && source.ident.slice(0, 2) !== targetSide && moveName) {
+            const sourceName = namesByIdent.get(source.ident) || identName(source.ident);
+            const sourceSummary = source.ident.slice(0, 2) === "p1" ? analysis.player : analysis.opponent;
+            addPokemonDamage(sourceSummary, sourceName, damage, 0, moveName);
+            addMoveDamage(sourceSummary, moveName, damage);
+          } else {
+            analysis.unattributedDamage += damage;
+          }
+          continue;
+        }
+        if (tag === "faint") {
+          const ident = parts[2];
+          const side = ident.slice(0, 2) === "p1" ? analysis.player : analysis.opponent;
+          addPokemonDamage(side, namesByIdent.get(ident) || identName(ident), 0, 0, undefined, true);
+        }
+      }
+      if (outcome) return { outcome, analysis };
     }
     throw new Error("Battle stream ended without a result.");
   })();
@@ -103,7 +235,8 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
       `>player p1 ${JSON.stringify({ name: "Benchmark Player", team: Teams.pack(playerSets as any) })}\n` +
       `>player p2 ${JSON.stringify({ name: "Benchmark Opponent", team: Teams.pack(opponentSets as any) })}`
     );
-    return await Promise.race([finished, timeout]);
+    const result = await Promise.race([finished, timeout]);
+    return result;
   } finally {
     if (timeoutId) clearTimeout(timeoutId);
   }
@@ -118,22 +251,26 @@ export async function runExhaustiveBenchmark(args: {
   shouldCancel: () => boolean;
 }): Promise<BenchmarkProgress> {
   const results: BenchmarkResult[] = [];
+  const analysis = emptyAnalysis();
   let wins = 0, losses = 0, ties = 0, completed = 0;
   const total = args.opponents.length * args.repetitions;
   for (const opponent of args.opponents) {
-    const result: BenchmarkResult = { opponentId: opponent.id, opponentName: opponent.name, wins: 0, losses: 0, ties: 0, games: 0 };
+    const result: BenchmarkResult = { opponentId: opponent.id, opponentName: opponent.name, wins: 0, losses: 0, ties: 0, games: 0, analysis: emptyAnalysis() };
     for (let repetition = 0; repetition < args.repetitions; repetition++) {
-      if (args.shouldCancel()) return { completed, total, wins, losses, ties, currentOpponent: opponent.name, results };
-      const outcome = await playOneBattle(args.format, args.playerSets, opponent.sets);
+      if (args.shouldCancel()) return { completed, total, wins, losses, ties, currentOpponent: opponent.name, results, analysis };
+      const battle = await playOneBattle(args.format, args.playerSets, opponent.sets);
+      const outcome = battle.outcome;
       result[outcome === "win" ? "wins" : outcome === "loss" ? "losses" : "ties"]++;
       result.games++;
       if (outcome === "win") wins++;
       else if (outcome === "loss") losses++;
       else ties++;
+      mergeAnalysis(result.analysis, battle.analysis);
+      mergeAnalysis(analysis, battle.analysis);
       completed++;
-      args.onProgress({ completed, total, wins, losses, ties, currentOpponent: opponent.name, results: [...results, { ...result }] });
+      args.onProgress({ completed, total, wins, losses, ties, currentOpponent: opponent.name, results: [...results, { ...result }], analysis: JSON.parse(JSON.stringify(analysis)) as BattleAnalysis });
     }
     results.push(result);
   }
-  return { completed, total, wins, losses, ties, currentOpponent: "", results };
+  return { completed, total, wins, losses, ties, currentOpponent: "", results, analysis };
 }

@@ -49,7 +49,7 @@ GitHub Actions runs both the production build and battle-engine smoke test on pu
 - The archive is a curated sample-team collection, not an exhaustive record of all ladder teams. The UI reports source record count, accepted distinct teams and rejected records.
 - Replay logs and usage statistics are not silently converted into complete teams: they may omit unrevealed Pokémon or set details. Such partial evidence is not counted as a tested team.
 - PvE facility team pools are game-version-specific and are not yet connected to the exhaustive benchmark. Auto Teams for PvE must not claim exhaustive coverage until verified trainer and set pools for that exact game version are integrated.
-- Three battles are run per published team. Both sides currently use random legal-choice AI; meaningful competitive win-rate estimates require the planned strategic, information-limited AI.
+- 100 battles are run per published team. Both sides currently use random legal-choice AI; meaningful competitive win-rate estimates require the planned strategic, information-limited AI.
 
 
 ### All-team simulation and Matchup Analysis

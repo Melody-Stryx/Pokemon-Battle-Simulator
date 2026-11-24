@@ -173,6 +173,7 @@ export class TacticalPlayerAI extends RandomPlayerAI {
     this.side = side;
   }
   override receiveRequest(request: any) {
+    if (request.wait) return;
     this.choose(chooseTacticalChoice(request as RequestView, this.log, this.side));
   }
 }

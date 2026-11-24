@@ -770,6 +770,36 @@ export default function App() {
               <p className="hint">Source entries: {matchupRun.sourceCount} · skipped: {matchupRun.rejected} · Saved locally in this browser.</p>
               {matchupRun.sourceUrl.startsWith("http") && <p className="hint"><a href={matchupRun.sourceUrl} target="_blank" rel="noreferrer">Open opponent dataset</a></p>}
             </section>
+            {matchupRun.analysis && <section className="panel">
+              <div className="panel-heading"><div><span className="eyebrow">COMBAT TELEMETRY</span><h3>Damage performance</h3></div><span className="build-version">{matchupRun.completed.toLocaleString()} battles</span></div>
+              <p className="hint">Actual HP lost, aggregated across completed battles. Damage ratio = damage dealt ÷ damage taken. Move rankings include only damage explicitly attributed to a move by the battle log; residual and unattributed damage is excluded from those rankings.</p>
+              <div className="damage-overview-grid">
+                <div><small>Your team damage dealt</small><strong>{matchupRun.analysis.player.pokemon.reduce((sum, p) => sum + p.damageDealt, 0).toLocaleString()}</strong></div>
+                <div><small>Your team damage taken</small><strong>{matchupRun.analysis.player.pokemon.reduce((sum, p) => sum + p.damageTaken, 0).toLocaleString()}</strong></div>
+                <div><small>Opponent damage dealt</small><strong>{matchupRun.analysis.opponent.pokemon.reduce((sum, p) => sum + p.damageDealt, 0).toLocaleString()}</strong></div>
+                <div><small>Unattributed damage</small><strong>{matchupRun.analysis.unattributedDamage.toLocaleString()}</strong></div>
+              </div>
+              <div className="damage-analysis-grid">
+                <div>
+                  <h4>Your Pokémon</h4>
+                  <div className="damage-table">
+                    <div className="damage-table-head"><span>Pokémon</span><span>Dealt</span><span>Taken</span><span>Ratio</span><span>Faints</span></div>
+                    {[...matchupRun.analysis.player.pokemon].sort((a,b) => b.damageDealt-a.damageDealt).map(p => <div className="damage-table-row" key={p.pokemon}><strong>{p.pokemon}</strong><span>{p.damageDealt.toLocaleString()}</span><span>{p.damageTaken.toLocaleString()}</span><span>{p.damageTaken ? (p.damageDealt/p.damageTaken).toFixed(2) : p.damageDealt ? "∞" : "0.00"}</span><span>{p.faints}</span></div>)}
+                  </div>
+                </div>
+                <div>
+                  <h4>Opponent Pokémon</h4>
+                  <div className="damage-table">
+                    <div className="damage-table-head"><span>Pokémon</span><span>Dealt</span><span>Taken</span><span>Ratio</span><span>Faints</span></div>
+                    {[...matchupRun.analysis.opponent.pokemon].sort((a,b) => b.damageDealt-a.damageDealt).map(p => <div className="damage-table-row" key={p.pokemon}><strong>{p.pokemon}</strong><span>{p.damageDealt.toLocaleString()}</span><span>{p.damageTaken.toLocaleString()}</span><span>{p.damageTaken ? (p.damageDealt/p.damageTaken).toFixed(2) : p.damageDealt ? "∞" : "0.00"}</span><span>{p.faints}</span></div>)}
+                  </div>
+                </div>
+              </div>
+              <div className="damage-analysis-grid damage-moves-grid">
+                <div><h4>Your highest-damage moves</h4><div className="damage-move-list">{[...matchupRun.analysis.player.moveDamage].sort((a,b) => b.damage-a.damage).slice(0,10).map(move => <div key={move.move}><strong>{move.move}</strong><span>{move.damage.toLocaleString()} damage · {move.hits.toLocaleString()} hits</span></div>)}{!matchupRun.analysis.player.moveDamage.length && <p className="hint">No move-attributed damage was recorded.</p>}</div></div>
+                <div><h4>Highest-damage moves against you</h4><div className="damage-move-list">{[...matchupRun.analysis.opponent.moveDamage].sort((a,b) => b.damage-a.damage).slice(0,10).map(move => <div key={move.move}><strong>{move.move}</strong><span>{move.damage.toLocaleString()} damage · {move.hits.toLocaleString()} hits</span></div>)}{!matchupRun.analysis.opponent.moveDamage.length && <p className="hint">No move-attributed damage was recorded.</p>}</div></div>
+              </div>
+            </section>}
             <section className="panel">
               <div className="panel-heading"><div><span className="eyebrow">PER-TEAM RESULTS</span><h3>Opponent matchups</h3></div><span className="build-version">{matchupRun.results.length} teams</span></div>
               <div className="benchmark-matchups matchup-analysis-list">{[...matchupRun.results].sort((a,b) => (b.wins / Math.max(1,b.games)) - (a.wins / Math.max(1,a.games))).map(result => <div key={result.opponentId}><strong>{result.opponentName}</strong><span>{result.wins}W / {result.losses}L / {result.ties}T · {result.games ? (result.wins / result.games * 100).toFixed(1) : "0.0"}% win rate</span></div>)}</div>

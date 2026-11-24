@@ -254,3 +254,8 @@ button.roadmap-row:hover { background: rgba(255,255,255,.025); }
 .benchmark-matchups > div { display:flex; justify-content:space-between; gap:12px; padding:8px 2px; border-bottom:1px solid var(--border); font-size:10px; }
 .benchmark-matchups > div span { color:var(--muted); font-family:'DM Mono'; white-space:nowrap; }
 .benchmark-panel a { color:var(--accent); }
+
+
+/* Simulator ruleset controls */
+.simulator-rules-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 650px) { .simulator-rules-grid { grid-template-columns: 1fr; } }

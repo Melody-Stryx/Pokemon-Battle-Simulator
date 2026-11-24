@@ -1,4 +1,5 @@
 import { BattleStreams, RandomPlayerAI, Teams } from "@pkmn/sim";
+import { runExhaustiveBenchmark } from "../src/benchmark.ts";
 
 const makeTeam = (species, move, ability) => Array.from({ length: 6 }, (_, index) => ({
   name: `${species} ${index + 1}`,
@@ -44,6 +45,26 @@ try {
   const result = await Promise.race([completed, timeout]);
   if (result !== "win") throw new Error(`Expected a decisive player win, received ${result} after turn ${turns}.`);
   console.log("Benchmark integration test passed: player win correctly detected.");
+
+  const playerSets = makeTeam("Arceus", "Extreme Speed", "Multitype");
+  const opponentSets = makeTeam("Magikarp", "Splash", "Swift Swim");
+  const telemetry = await runExhaustiveBenchmark({
+    format: "gen9customgame",
+    playerSets,
+    opponents: [{ id: "magikarp", name: "Magikarp test team", sets: opponentSets }],
+    repetitions: 1,
+    shouldCancel: () => false,
+    onProgress: () => {},
+  });
+  const playerDamage = telemetry.analysis.player.pokemon.reduce((sum, pokemon) => sum + pokemon.damageDealt, 0);
+  const opponentTaken = telemetry.analysis.opponent.pokemon.reduce((sum, pokemon) => sum + pokemon.damageTaken, 0);
+  if (playerDamage <= 0 || opponentTaken <= 0) {
+    throw new Error(`Expected direct move damage attribution; player dealt ${playerDamage}, opponent took ${opponentTaken}.`);
+  }
+  if (!telemetry.analysis.player.moveDamage.length) {
+    throw new Error("Expected direct move damage to appear in the move rankings.");
+  }
+  console.log("Damage telemetry test passed: direct move damage is attributed to the attacking Pokémon and move.");
 } finally {
   clearTimeout(timeoutId);
 }

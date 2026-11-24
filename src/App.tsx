@@ -737,7 +737,7 @@ export default function App() {
                 <strong>{benchmarkProgress.completed.toLocaleString()} / {benchmarkProgress.total.toLocaleString()} battles completed</strong>
                 <div className="benchmark-summary"><span>Wins: {benchmarkProgress.wins}</span><span>Losses: {benchmarkProgress.losses}</span><span>Ties: {benchmarkProgress.ties}</span><span>Win rate: {benchmarkProgress.completed ? ((benchmarkProgress.wins / benchmarkProgress.completed) * 100).toFixed(1) : "0.0"}%</span></div>
                 {benchmarkBusy && <p className="hint">Current opponent: {benchmarkProgress.currentOpponent}</p>}
-                {benchmarkCoverage && <p className="hint">Source teams: {benchmarkCoverage.sourceCount} · tested teams: {benchmarkCoverage.validCount} · skipped: {benchmarkCoverage.rejected}. {benchmarkCoverage.sourceUrl.startsWith("http") ? <a href={benchmarkCoverage.sourceUrl} target="_blank" rel="noreferrer">Dataset source</a> : benchmarkCoverage.sourceUrl}</p>}
+                {benchmarkCoverage && <p className="hint">{benchmarkMode === "Single Pokémon" ? "Source Pokémon sets" : "Source teams"}: {benchmarkCoverage.sourceCount} · tested {benchmarkMode === "Single Pokémon" ? "sets" : "teams"}: {benchmarkCoverage.validCount} · skipped: {benchmarkCoverage.rejected}. {benchmarkCoverage.sourceUrl.startsWith("http") ? <a href={benchmarkCoverage.sourceUrl} target="_blank" rel="noreferrer">Dataset source</a> : benchmarkCoverage.sourceUrl}</p>}
                 <div className="benchmark-matchups">{[...benchmarkProgress.results].sort((a,b) => (b.wins / Math.max(1,b.games)) - (a.wins / Math.max(1,a.games))).map(result => <div key={result.opponentId}><strong>{result.opponentName}</strong><span>{result.wins}W / {result.losses}L / {result.ties}T</span></div>)}</div>
               </div>}
               {benchmarkError && <p className="battle-error">{benchmarkError}</p>}
@@ -771,14 +771,14 @@ export default function App() {
               <div className="panel-heading"><div><span className="eyebrow">COMBAT TELEMETRY</span><h3>Damage performance</h3></div><span className="build-version">{matchupRun.completed.toLocaleString()} battles</span></div>
               <p className="hint">Actual HP lost, aggregated across completed battles. Damage ratio = source-attributed damage dealt ÷ total damage taken. Damage is credited to a Pokémon only when the battle log identifies its source; residual and unattributed damage is reported separately. Move rankings include only damage explicitly attributed to a move.</p>
               <div className="damage-overview-grid">
-                <div><small>Your team damage dealt</small><strong>{matchupRun.analysis.player.pokemon.reduce((sum, p) => sum + p.damageDealt, 0).toLocaleString()}</strong></div>
-                <div><small>Your team damage taken</small><strong>{matchupRun.analysis.player.pokemon.reduce((sum, p) => sum + p.damageTaken, 0).toLocaleString()}</strong></div>
+                <div><small>{matchupRun.benchmarkMode === "Single Pokémon" ? "Your Pokémon damage dealt" : "Your team damage dealt"}</small><strong>{matchupRun.analysis.player.pokemon.reduce((sum, p) => sum + p.damageDealt, 0).toLocaleString()}</strong></div>
+                <div><small>{matchupRun.benchmarkMode === "Single Pokémon" ? "Your Pokémon damage taken" : "Your team damage taken"}</small><strong>{matchupRun.analysis.player.pokemon.reduce((sum, p) => sum + p.damageTaken, 0).toLocaleString()}</strong></div>
                 <div><small>Opponent damage dealt</small><strong>{matchupRun.analysis.opponent.pokemon.reduce((sum, p) => sum + p.damageDealt, 0).toLocaleString()}</strong></div>
                 <div><small>Unattributed damage</small><strong>{matchupRun.analysis.unattributedDamage.toLocaleString()}</strong></div>
               </div>
               <div className="damage-analysis-grid">
                 <div>
-                  <h4>Your Pokémon</h4>
+                  <h4>{matchupRun.benchmarkMode === "Single Pokémon" ? "Selected Pokémon" : "Your Pokémon"}</h4>
                   <div className="damage-table">
                     <div className="damage-table-head"><span>Pokémon</span><span>Dealt</span><span>Taken</span><span>Ratio</span><span>Faints</span></div>
                     {[...matchupRun.analysis.player.pokemon].sort((a,b) => b.damageDealt-a.damageDealt).map(p => <div className="damage-table-row" key={p.pokemon}><strong>{p.pokemon}</strong><span>{p.damageDealt.toLocaleString()}</span><span>{p.damageTaken.toLocaleString()}</span><span>{p.damageTaken ? (p.damageDealt/p.damageTaken).toFixed(2) : p.damageDealt ? "∞" : "0.00"}</span><span>{p.faints}</span></div>)}

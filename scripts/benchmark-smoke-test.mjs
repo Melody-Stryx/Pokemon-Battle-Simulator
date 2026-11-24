@@ -1,5 +1,19 @@
 import { BattleStreams, RandomPlayerAI, Teams } from "@pkmn/sim";
-import { runExhaustiveBenchmark } from "../src/benchmark.ts";
+import { readFile, writeFile, unlink } from "node:fs/promises";
+import ts from "typescript";
+
+const benchmarkSource = await readFile(new URL("../src/benchmark.ts", import.meta.url), "utf8");
+const compiledBenchmark = ts.transpileModule(benchmarkSource, {
+  compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 },
+}).outputText;
+const benchmarkModuleUrl = new URL("../src/.benchmark-smoke-runtime.mjs", import.meta.url);
+await writeFile(benchmarkModuleUrl, compiledBenchmark);
+let runExhaustiveBenchmark;
+try {
+  ({ runExhaustiveBenchmark } = await import(benchmarkModuleUrl.href));
+} finally {
+  await unlink(benchmarkModuleUrl);
+}
 
 const makeTeam = (species, move, ability) => Array.from({ length: 6 }, (_, index) => ({
   name: `${species} ${index + 1}`,

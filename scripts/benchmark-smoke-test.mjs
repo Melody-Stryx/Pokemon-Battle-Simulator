@@ -39,7 +39,7 @@ const tacticalMoveRequest = {
   side: { pokemon: [{ details: "Pikachu, L100", condition: "100/100", active: true, stats: { atk: 100, spa: 100, spe: 100 }, moves: ["Thunderbolt", "Ice Beam"] }] },
   active: [{ moves: [{ move: "Thunderbolt", disabled: false }, { move: "Ice Beam", disabled: false }] }],
 };
-const tacticalMove = chooseTacticalChoice(tacticalMoveRequest, ["|switch|p2a: Garchomp|Garchomp, L100|100/100"], "p1");
+const tacticalMove = chooseTacticalChoice(tacticalMoveRequest, ["|switch|p2a: Garchomp|Garchomp, L100|100/100"], "p1", 9);
 if (tacticalMove !== "move 2") throw new Error(`Tactical AI failed to select the super-effective move: ${tacticalMove}`);
 const tacticalSwitchRequest = {
   side: { pokemon: [

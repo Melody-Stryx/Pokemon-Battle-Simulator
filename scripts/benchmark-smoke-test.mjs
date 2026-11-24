@@ -20,7 +20,7 @@ let outcome = null;
 let turns = 0;
 const completed = (async () => {
   for await (const chunk of streams.omniscient) {
-    for (const line of String(chunk).split("\\n")) {
+    for (const line of String(chunk).split("\n")) {
       if (!line.startsWith("|")) continue;
       const parts = line.split("|");
       if (parts[1] === "turn") turns = Number(parts[2]) || turns;
@@ -36,8 +36,8 @@ const timeout = new Promise((_, reject) => {
   timeoutId = setTimeout(() => reject(new Error("Benchmark integration battle timed out.")), 30000);
 });
 void streams.omniscient.write(
-  `>start ${JSON.stringify({ formatid: "gen9customgame" })}\\n` +
-  `>player p1 ${JSON.stringify({ name: "Benchmark Player", team: Teams.pack(makeTeam("Arceus", "Extreme Speed", "Multitype")) })}\\n` +
+  `>start ${JSON.stringify({ formatid: "gen9customgame" })}\n` +
+  `>player p1 ${JSON.stringify({ name: "Benchmark Player", team: Teams.pack(makeTeam("Arceus", "Extreme Speed", "Multitype")) })}\n` +
   `>player p2 ${JSON.stringify({ name: "Benchmark Opponent", team: Teams.pack(makeTeam("Magikarp", "Splash", "Swift Swim")) })}`
 );
 try {

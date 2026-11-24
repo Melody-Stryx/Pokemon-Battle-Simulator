@@ -194,6 +194,19 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
           latestMoveBySide.set(side, { ident: actor, name: parts[3] || "Unknown move" });
           continue;
         }
+        if (tag === "-heal" || tag === "-sethp") {
+          const healed = parseCondition(parts[3] || "");
+          if (healed) hpByIdent.set(parts[2], healed.hp);
+          if (tag === "-sethp") {
+            for (let index = 4; index < parts.length; index++) {
+              if (parts[index].startsWith("p1") || parts[index].startsWith("p2")) {
+                const condition = parseCondition(parts[index + 1] || "");
+                if (condition) hpByIdent.set(parts[index], condition.hp);
+              }
+            }
+          }
+          continue;
+        }
         if (tag === "-damage") {
           const target = parts[2];
           const condition = parseCondition(parts[3] || "");

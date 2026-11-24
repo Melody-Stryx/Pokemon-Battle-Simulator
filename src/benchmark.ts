@@ -87,7 +87,7 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
   const finished = (async () => {
     for await (const chunk of streams.omniscient) {
       const output = String(chunk);
-      const win = output.match(/\\|win\\|([^\\n]+)/);
+      const win = output.match(/\|win\|([^\n]+)/);
       if (win) return win[1].trim() === "Benchmark Player" ? "win" as const : "loss" as const;
       if (output.includes("|tie")) return "tie" as const;
     }

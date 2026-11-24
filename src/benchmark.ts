@@ -94,6 +94,31 @@ export async function loadCompleteOpponentPool(format: string): Promise<{
   return { opponents, sourceCount: samples.length, rejected, sourceUrl: `${base}/${format}.json` };
 }
 
+export async function loadMetaPokemonPool(format: string): Promise<{
+  opponents: BenchmarkOpponent[];
+  sourceCount: number;
+  rejected: number;
+  sourceUrl: string;
+}> {
+  const teams = await loadCompleteOpponentPool(format);
+  const seen = new Set<string>();
+  const opponents: BenchmarkOpponent[] = [];
+  let sourceCount = 0;
+  for (const team of teams.opponents) {
+    for (const set of team.sets) {
+      sourceCount++;
+      const id = canonicalSet([set]);
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const species = String(set.species || set.name || "Unknown Pokémon");
+      const item = String(set.item || "No item");
+      const moves = Array.isArray(set.moves) ? set.moves.map(String).join(" / ") : "";
+      opponents.push({ id, name: [species, item, moves].filter(Boolean).join(" · "), author: team.author, sets: [set] });
+    }
+  }
+  return { opponents, sourceCount, rejected: teams.rejected, sourceUrl: teams.sourceUrl };
+}
+
 function addPokemonDamage(side: SideDamageSummary, pokemon: string, dealt: number, taken: number, move?: string, faint = false) {
   let entry = side.pokemon.find(item => item.pokemon === pokemon);
   if (!entry) {

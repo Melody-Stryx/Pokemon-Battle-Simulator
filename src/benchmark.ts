@@ -210,6 +210,13 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
   seedRoster(analysis.opponent, opponentSets);
   const hpByIdent = new Map<string, number>();
   const namesByIdent = new Map<string, string>();
+  const faintedIdents = new Set<string>();
+  const isolatedOneVsOne = playerSets.length === 1 && opponentSets.length === 1;
+  const rosterLabel = (set: Record<string, unknown>) => {
+    const species = String(set.species || set.name || "Pokémon");
+    const nickname = String(set.name || species);
+    return nickname.toLowerCase() !== species.toLowerCase() ? `${nickname} (${species})` : species;
+  };
   const latestMoveByTarget = new Map<string, { ident: string; name: string }>();
   let outcome: "win" | "loss" | "tie" | null = null;
   let turnCount = 0;
@@ -305,6 +312,11 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
         }
         if (tag === "faint") {
           const ident = parts[2];
+          // In isolated 1v1 benchmarks, derive the defeated Pokémon from the
+          // completed battle result below. This avoids duplicate/alias faint
+          // log entries drifting away from the actual matchup W/L totals.
+          if (isolatedOneVsOne || faintedIdents.has(ident)) continue;
+          faintedIdents.add(ident);
           const side = ident.slice(0, 2) === "p1" ? analysis.player : analysis.opponent;
           addPokemonDamage(side, namesByIdent.get(ident) || identName(ident), 0, 0, undefined, true);
         }
@@ -327,6 +339,11 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
       `>player p2 ${JSON.stringify({ name: "Benchmark Opponent", team: Teams.pack(opponentSets as any) })}`
     );
     const result = await Promise.race([finished, timeout]);
+    if (isolatedOneVsOne && result.outcome !== "tie") {
+      const defeatedSide = result.outcome === "win" ? analysis.opponent : analysis.player;
+      const defeatedSet = result.outcome === "win" ? opponentSets[0] : playerSets[0];
+      addPokemonDamage(defeatedSide, rosterLabel(defeatedSet), 0, 0, undefined, true);
+    }
     return result;
   } finally {
     if (timeoutId) clearTimeout(timeoutId);

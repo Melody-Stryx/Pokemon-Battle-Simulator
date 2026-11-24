@@ -168,7 +168,7 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
   seedRoster(analysis.opponent, opponentSets);
   const hpByIdent = new Map<string, number>();
   const namesByIdent = new Map<string, string>();
-  const latestMoveBySide = new Map<string, { ident: string; name: string }>();
+  const latestMoveByTarget = new Map<string, { ident: string; name: string }>();
   let outcome: "win" | "loss" | "tie" | null = null;
   let turnCount = 0;
   let moveCount = 0;
@@ -197,8 +197,10 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
         }
         if (tag === "move") {
           const actor = parts[2];
-          const side = actor.slice(0, 2);
-          latestMoveBySide.set(side, { ident: actor, name: parts[3] || "Unknown move" });
+          const target = parts[4];
+          if (target?.startsWith("p1") || target?.startsWith("p2")) {
+            latestMoveByTarget.set(target, { ident: actor, name: parts[3] || "Unknown move" });
+          }
           continue;
         }
         if (tag === "-heal" || tag === "-sethp") {
@@ -227,13 +229,19 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
           const sourceSide = targetSide === "p1" ? "p2" : "p1";
           const sourceMarker = parts.slice(4).find(part => part.startsWith("[from]"));
           const sourceIdentMarker = parts.slice(4).find(part => part.startsWith("[of]"));
+          const loggedMove = latestMoveByTarget.get(target);
           let source: { ident: string; name: string } | undefined;
           let moveName = "";
           const sourceIdent = sourceIdentMarker?.slice("[of]".length).trim();
           if (sourceIdent) source = { ident: sourceIdent, name: "" };
           if (sourceMarker?.startsWith("[from] move:")) {
             moveName = sourceMarker.slice("[from] move:".length).trim();
-            source = sourceIdent ? { ident: sourceIdent, name: moveName } : latestMoveBySide.get(sourceSide);
+            if (!source && loggedMove && loggedMove.ident.slice(0, 2) === sourceSide) source = loggedMove;
+          } else if (!sourceMarker && loggedMove && loggedMove.ident.slice(0, 2) === sourceSide) {
+            // Ordinary direct attacks usually have no [from] annotation. Match the damage
+            // to the move line's explicit target rather than guessing from the last actor.
+            source = loggedMove;
+            moveName = loggedMove.name;
           }
           const targetName = namesByIdent.get(target) || identName(target);
           const targetSummary = targetSide === "p1" ? analysis.player : analysis.opponent;

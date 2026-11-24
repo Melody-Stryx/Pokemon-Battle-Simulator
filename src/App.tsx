@@ -2,11 +2,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Dex } from "@pkmn/dex";
 import { BattleStreams, TeamValidator, Teams } from "@pkmn/sim";
 import { TacticalPlayerAI, chooseTacticalChoice } from "./pve-ai";
-import { loadCompleteOpponentPool, runExhaustiveBenchmark, type BenchmarkProgress, type BenchmarkOpponent } from "./benchmark";
+import { loadCompleteOpponentPool, loadMetaPokemonPool, runExhaustiveBenchmark, type BenchmarkProgress, type BenchmarkOpponent } from "./benchmark";
 
 declare const __BUILD_NUMBER__: string;
 type BattleType = "PvP" | "PvE";
 type BattleMode = "Auto" | "Manual";
+type BenchmarkMode = "Teams" | "Single Pokémon";
 type Page = "Overview" | "Team Builder" | "Legality analysis" | "Simulator" | "Matchup Analysis";
 const generations = Array.from({ length: 9 }, (_, i) => i + 1);
 const tiers = ["Anything Goes", "Ubers", "OU", "UU", "RU", "NU", "PU", "ZU", "Little Cup", "VGC", "Custom"];
@@ -67,6 +68,7 @@ type MatchupAnalysisRun = BenchmarkProgress & {
   validCount: number;
   rejected: number;
   sourceUrl: string;
+  benchmarkMode?: BenchmarkMode;
 };
 function readMatchupRun(): MatchupAnalysisRun | null {
   try { const value = localStorage.getItem("battle-lab-matchup-results"); return value ? JSON.parse(value) as MatchupAnalysisRun : null; }
@@ -153,6 +155,8 @@ export default function App() {
   const [fetchingOpponent, setFetchingOpponent] = useState(false);
   const [opponentSourceError, setOpponentSourceError] = useState("");
   const [benchmarkBusy, setBenchmarkBusy] = useState(false);
+  const [benchmarkMode, setBenchmarkMode] = useState<BenchmarkMode>("Teams");
+  const [selectedSinglePokemonKey, setSelectedSinglePokemonKey] = useState("");
   const [benchmarkProgress, setBenchmarkProgress] = useState<BenchmarkProgress | null>(null);
   const [benchmarkError, setBenchmarkError] = useState("");
   const [benchmarkCoverage, setBenchmarkCoverage] = useState<{sourceCount:number;validCount:number;rejected:number;sourceUrl:string} | null>(null);
@@ -180,6 +184,8 @@ export default function App() {
   const activeTeam = teams.find(t => t.id === activeTeamId) || teams[0];
   const selectedSlot = activeTeam?.slots.find(s => s.id === selectedSlotId) || activeTeam?.slots[0];
   const selectedBuild = selectedSlot ? activeBuild(selectedSlot) : undefined;
+  const singlePokemonOptions = teams.flatMap(team => team.slots.map(slot => ({ key: team.id + ":" + slot.id, team, slot, build: activeBuild(slot) }))).filter(option => option.build?.name.trim() && option.build.moves.some(move => move.trim()));
+  const selectedSinglePokemon = singlePokemonOptions.find(option => option.key === selectedSinglePokemonKey) || singlePokemonOptions[0];
   const generationDex = useMemo(() => Dex.forGen(settings.generation), [settings.generation]);
   const speciesOptions = useMemo(() => generationDex.species.all().filter(p => p.exists && !p.isNonstandard).sort((a,b) => a.name.localeCompare(b.name)), [generationDex]);
   const moveOptions = useMemo(() => generationDex.moves.all().filter(m => m.exists && !m.isNonstandard).sort((a,b) => a.name.localeCompare(b.name)), [generationDex]);
@@ -380,24 +386,18 @@ export default function App() {
     const remaining = teams.filter(t => t.id !== activeTeam.id);
     setTeams(remaining); setActiveTeamId(remaining[0]?.id || ""); setSelectedSlotId("");
   };
-  const makeBattleSets = (team: Team, generation: number) => team.slots.map(slot => {
-    const build = activeBuild(slot);
+  const makeBattleSet = (build: PokemonBuild, generation: number) => {
     const set: Record<string, unknown> = {
-      name: build.nickname || build.name,
-      species: build.name,
-      level: build.level,
-      moves: build.moves.filter(Boolean),
+      name: build.nickname || build.name, species: build.name, level: build.level, moves: build.moves.filter(Boolean),
       evs: { hp: build.evs.HP, atk: build.evs.Atk, def: build.evs.Def, spa: build.evs.SpA, spd: build.evs.SpD, spe: build.evs.Spe },
       ivs: { hp: build.ivs.HP, atk: build.ivs.Atk, def: build.ivs.Def, spa: build.ivs.SpA, spd: build.ivs.SpD, spe: build.ivs.Spe },
     };
     if (generation >= 2 && build.item) set.item = build.item;
-    if (generation >= 3) {
-      if (build.ability) set.ability = build.ability;
-      set.nature = build.nature;
-    }
+    if (generation >= 3) { if (build.ability) set.ability = build.ability; set.nature = build.nature; }
     if (generation >= 2 && build.gender) set.gender = build.gender;
     return set;
-  });
+  };
+  const makeBattleSets = (team: Team, generation: number) => team.slots.map(slot => makeBattleSet(activeBuild(slot), generation));
   const battleFormat = () => {
     if (settings.battleType === "PvE" || settings.tier === "Custom" || settings.tier === "VGC") return `gen${settings.generation}customgame`;
     const ids: Record<string, string> = { "Anything Goes": "anythinggoes", Ubers: "ubers", OU: "ou", UU: "uu", RU: "ru", NU: "nu", PU: "pu", ZU: "zu", "Little Cup": "lc" };
@@ -437,79 +437,68 @@ export default function App() {
     }
   }, [activePage, settings.generation, settings.battleType, settings.tier]);
   const runFullBenchmark = async () => {
-    const playerId = battlePlayerTeamId || activeTeam?.id || "";
-    const playerTeam = teams.find(team => team.id === playerId);
-    if (!playerTeam || playerTeam.slots.length !== 6 || !playerTeam.slots.every(slot => {
-      const build = activeBuild(slot);
-      return Boolean(build?.name.trim() && build.moves.some(move => move.trim()));
-    })) {
-      setBenchmarkError("Select a complete six-Pokémon team with at least one move per Pokémon.");
-      return;
-    }
-    setBenchmarkBusy(true);
-    setBenchmarkError("");
-    setBenchmarkProgress(null);
-    setBenchmarkCoverage(null);
-    benchmarkCancel.current = false;
+    const singleMode = benchmarkMode === "Single Pokémon";
+    const selected = singleMode ? selectedSinglePokemon : undefined;
+    const playerTeam = singleMode ? selected?.team : teams.find(team => team.id === (battlePlayerTeamId || activeTeam?.id || ""));
+    if (singleMode) {
+      if (settings.battleType !== "PvP") { setBenchmarkError("1 vs Meta currently requires PvP and a published tier dataset."); return; }
+      if (!selected?.build?.name.trim() || !selected.build.moves.some(move => move.trim())) { setBenchmarkError("Select a saved Pokémon build with at least one move."); return; }
+    } else if (!playerTeam || playerTeam.slots.length !== 6 || !playerTeam.slots.every(slot => {
+      const build = activeBuild(slot); return Boolean(build?.name.trim() && build.moves.some(move => move.trim()));
+    })) { setBenchmarkError("Select a complete six-Pokémon team with at least one move per Pokémon."); return; }
+    setBenchmarkBusy(true); setBenchmarkError(""); setBenchmarkProgress(null); setBenchmarkCoverage(null); benchmarkCancel.current = false;
     try {
-      const format = battleFormat();
-      const playerSets = makeBattleSets(playerTeam, settings.generation);
-      if (settings.battleType === "PvP") {
-        const playerProblems = TeamValidator.get(format).validateTeam(playerSets as any) || [];
-        if (playerProblems.length) {
-          throw new Error(`Your selected team is not legal for ${format.toUpperCase()}: ${playerProblems.slice(0, 6).join(" | ")}`);
-        }
+      const tierFormat = battleFormat();
+      const format = singleMode ? `gen${settings.generation}customgame` : tierFormat;
+      const playerSets = singleMode ? [makeBattleSet(selected!.build, settings.generation)] : makeBattleSets(playerTeam!, settings.generation);
+      if (!singleMode && settings.battleType === "PvP") {
+        const problems = TeamValidator.get(format).validateTeam(playerSets as any) || [];
+        if (problems.length) throw new Error(`Your selected team is not legal for ${format.toUpperCase()}: ${problems.slice(0, 6).join(" | ")}`);
       }
       let opponents: BenchmarkOpponent[] = [];
       let sourceCount = 0, rejected = 0, sourceUrl = "Saved teams stored in this browser";
-      if (opponentSource === "Auto Teams" && settings.battleType === "PvP") {
+      if (singleMode) {
+        const dataset = await loadMetaPokemonPool(tierFormat);
+        opponents = dataset.opponents; sourceCount = dataset.sourceCount; rejected = dataset.rejected; sourceUrl = dataset.sourceUrl;
+      } else if (opponentSource === "Auto Teams" && settings.battleType === "PvP") {
         const dataset = await loadCompleteOpponentPool(format);
-        opponents = dataset.opponents;
-        sourceCount = dataset.sourceCount;
-        rejected = dataset.rejected;
-        sourceUrl = dataset.sourceUrl;
+        opponents = dataset.opponents; sourceCount = dataset.sourceCount; rejected = dataset.rejected; sourceUrl = dataset.sourceUrl;
       } else {
-        const otherTeams = teams.filter(team => team.id !== playerTeam.id);
+        const otherTeams = teams.filter(team => team.id !== playerTeam!.id);
         sourceCount = otherTeams.length;
         for (const team of otherTeams) {
-          if (team.slots.length !== 6 || !team.slots.every(slot => {
-            const build = activeBuild(slot);
-            return Boolean(build?.name.trim() && build.moves.some(move => move.trim()));
-          })) { rejected++; continue; }
+          if (team.slots.length !== 6 || !team.slots.every(slot => { const build = activeBuild(slot); return Boolean(build?.name.trim() && build.moves.some(move => move.trim())); })) { rejected++; continue; }
           const sets = makeBattleSets(team, settings.generation);
           if (settings.battleType === "PvP") {
-            try {
-              if ((TeamValidator.get(format).validateTeam(sets as any) || []).length) { rejected++; continue; }
-            } catch { rejected++; continue; }
+            try { if ((TeamValidator.get(format).validateTeam(sets as any) || []).length) { rejected++; continue; } }
+            catch { rejected++; continue; }
           }
           opponents.push({ id: team.id, name: team.name, sets });
         }
       }
-      if (!opponents.length) throw new Error("No other complete, usable teams were found. Add another six-Pokémon team or load the online Auto Teams pool.");
+      if (!opponents.length) throw new Error(singleMode
+        ? `No individual Pokémon sets were found in the published ${settings.tier} archive for Generation ${settings.generation}.`
+        : "No other complete, usable teams were found. Add another six-Pokémon team or load the online Auto Teams pool.");
       const coverage = { sourceCount, validCount: opponents.length, rejected, sourceUrl };
       setBenchmarkCoverage(coverage);
       const meta = {
-        id: uid(), createdAt: new Date().toISOString(), playerTeamId: playerTeam.id, playerTeamName: playerTeam.name,
+        id: uid(), createdAt: new Date().toISOString(), playerTeamId: playerTeam!.id,
+        playerTeamName: singleMode ? `${selected!.build.nickname || selected!.build.name} · 1 vs Meta` : playerTeam!.name,
         generation: settings.generation, gameVersion: settings.gameVersion, battleType: settings.battleType,
-        tier: settings.tier, facility: settings.facility, opponentSource: opponentSource === "Auto Teams" && settings.battleType === "PvP" ? "Published sample teams" : "Saved teams",
-        ...coverage,
+        tier: settings.tier, facility: settings.facility,
+        opponentSource: singleMode ? "Published meta Pokémon sets" : opponentSource === "Auto Teams" && settings.battleType === "PvP" ? "Published sample teams" : "Saved teams",
+        benchmarkMode, ...coverage,
       };
       const result = await runExhaustiveBenchmark({
-        format, playerSets, opponents, repetitions: 100,
-        shouldCancel: () => benchmarkCancel.current,
-        onProgress: progress => {
-          setBenchmarkProgress(progress);
-          setMatchupRun({ ...meta, ...progress });
-        },
+        format, playerSets, opponents, repetitions: 100, shouldCancel: () => benchmarkCancel.current,
+        onProgress: progress => { setBenchmarkProgress(progress); setMatchupRun({ ...meta, ...progress }); },
       });
-      setBenchmarkProgress(result);
-      setMatchupRun({ ...meta, ...result });
+      setBenchmarkProgress(result); setMatchupRun({ ...meta, ...result });
       if (benchmarkCancel.current) setBenchmarkError("Run cancelled. Matchup Analysis contains completed battles only.");
       else setBenchmarkError("");
       setOpponentSourceError("");
-    } catch (error) {
-      setBenchmarkError(error instanceof Error ? error.message : "The all-team simulation failed.");
-    } finally { setBenchmarkBusy(false); }
+    } catch (error) { setBenchmarkError(error instanceof Error ? error.message : "The simulation failed."); }
+    finally { setBenchmarkBusy(false); }
   };
   const stopBattle = () => {
     const controller = battleController.current;
@@ -722,8 +711,8 @@ export default function App() {
               <label className="field"><span>Generation</span><select value={settings.generation} onChange={e => updateSetting("generation", Number(e.target.value))}>{generations.map(generation => <option key={generation} value={generation} disabled={settings.battleType === "PvE" && generation < 3}>Generation {generation}</option>)}</select></label>
               <label className="field"><span>Game version</span><select value={settings.gameVersion} onChange={e => updateSetting("gameVersion", e.target.value)}>{(gameVersions[settings.generation] || []).map(version => <option key={version} value={version}>{version}</option>)}</select></label>
               {settings.battleType === "PvP" ? <label className="field"><span>Format / tier</span><select value={settings.tier} onChange={e => updateSetting("tier", e.target.value)}>{tiers.map(tier => <option key={tier}>{tier}</option>)}</select></label> : <label className="field"><span>Battle facility</span><select value={settings.facility} onChange={e => updateSetting("facility", e.target.value)}>{facilitiesFor(settings.generation, settings.gameVersion).map(facility => <option key={facility}>{facility}</option>)}</select></label>}
-              <label className="field"><span>Your team</span><select value={battlePlayerTeamId || activeTeam?.id || ""} onChange={e => setBattlePlayerTeamId(e.target.value)}><option value="">Select team</option>{teams.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>
-              {settings.battleType === "PvP" ? <label className="field"><span>Opponent source</span><select value={opponentSource} onChange={e => { setOpponentSource(e.target.value as "Saved teams" | "Auto Teams"); setBattleError(""); }}><option>Saved teams</option><option>Auto Teams</option></select></label> : <div className="field"><span>Opponent source</span><div className="derived-value">Saved teams</div></div>}
+              {benchmarkMode === "Teams" && <label className="field"><span>Your team</span><select value={battlePlayerTeamId || activeTeam?.id || ""} onChange={e => setBattlePlayerTeamId(e.target.value)}><option value="">Select team</option>{teams.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>}
+              {benchmarkMode === "Teams" && (settings.battleType === "PvP" ? <label className="field"><span>Opponent source</span><select value={opponentSource} onChange={e => { setOpponentSource(e.target.value as "Saved teams" | "Auto Teams"); setBattleError(""); }}><option>Saved teams</option><option>Auto Teams</option></select></label> : <div className="field"><span>Opponent source</span><div className="derived-value">Saved teams</div></div>)}
               {opponentSource === "Saved teams" ? <label className="field"><span>Single-battle opponent</span><select value={battleOpponentTeamId || teams.find(team => team.id !== (battlePlayerTeamId || activeTeam?.id))?.id || ""} onChange={e => setBattleOpponentTeamId(e.target.value)}><option value="">Select opponent</option>{teams.filter(team => team.id !== (battlePlayerTeamId || activeTeam?.id)).map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label> : <div className="field"><span>Auto Teams pool</span><div className="derived-value">{settings.battleType === "PvP" ? onlineOpponentPool.filter(team => team.format === battleFormat()).length + " verified " + settings.tier + " teams loaded" : "No verified facility pool connected yet"}</div></div>}
               <div className="field"><span>Ruleset</span><div className="derived-value">Gen {settings.generation} · {settings.battleType === "PvP" ? settings.tier : `${settings.gameVersion} · ${settings.facility}`}</div></div>
             </div>
@@ -732,10 +721,15 @@ export default function App() {
             {opponentSourceError && <p className="battle-error">{opponentSourceError}</p>}
             {(settings.battleType === "PvE" || settings.tier === "VGC" || settings.tier === "Custom") && <p className="battle-warning">This selection runs in the generation's Custom Game sandbox. Facility-specific, VGC regulation and custom tier rules are not enforced.</p>}
             <section className="benchmark-panel">
-              <div className="editor-section-title">All-team simulation <small>100 battles against every available opposing team</small></div>
-              <p className="hint">Runs 100 battles per opponent and records every matchup in Matchup Analysis. PvP Auto Teams uses the published sample archive. Saved teams tests every other complete team in your local team library. PvE uses Saved teams until facility trainer data is connected.</p>
+              <div className="editor-section-title">Simulation analysis <small>100 battles per matchup</small></div>
+              <label className="field"><span>Benchmark type</span><select value={benchmarkMode} onChange={e => { const next = e.target.value as BenchmarkMode; setBenchmarkMode(next); if (next === "Single Pokémon") setOpponentSource("Auto Teams"); setBenchmarkError(""); }}><option value="Teams">Full team vs full team</option><option value="Single Pokémon">Single Pokémon vs all meta Pokémon</option></select></label>
+              {benchmarkMode === "Single Pokémon" ? <>
+                <label className="field"><span>Pokémon build</span><select value={selectedSinglePokemon?.key || ""} onChange={e => setSelectedSinglePokemonKey(e.target.value)}>{singlePokemonOptions.map(option => <option key={option.key} value={option.key}>{option.team.name} · {option.build.nickname || option.build.name} ({option.build.name})</option>)}</select></label>
+                <p className="hint">Runs one saved Pokémon against every distinct individual set found in valid published {settings.tier} sample teams for Generation {settings.generation}. Each matchup is a separate 1v1 with no teammates or switching. 100 battles per opposing set.</p>
+                {settings.battleType !== "PvP" && <p className="battle-warning">Switch to PvP to use the published meta Pokémon dataset.</p>}
+              </> : <p className="hint">Runs 100 battles per opponent and records every matchup in Matchup Analysis. PvP Auto Teams uses the published sample archive. Saved teams tests every other complete team in your local team library. PvE uses Saved teams until facility trainer data is connected.</p>}
               <div className="battle-actions">
-                <button type="button" className="primary-button" onClick={runFullBenchmark} disabled={benchmarkBusy || battleActive}>{benchmarkBusy ? "Simulation running…" : "Run simulator · 100 per team"}</button>
+                <button type="button" className="primary-button" onClick={runFullBenchmark} disabled={benchmarkBusy || battleActive || (benchmarkMode === "Single Pokémon" && settings.battleType !== "PvP")}>{benchmarkBusy ? "Simulation running…" : benchmarkMode === "Single Pokémon" ? "Run 1 vs Meta · 100 per matchup" : "Run simulator · 100 per team"}</button>
                 {benchmarkBusy && <button type="button" className="secondary-button" onClick={() => { benchmarkCancel.current = true; }}>Cancel simulation</button>}
                 <button type="button" className="secondary-button" onClick={() => setActivePage("Matchup Analysis")}>View Matchup Analysis</button>
               </div>
@@ -764,12 +758,12 @@ export default function App() {
           </section>}
         </>}
         {activePage === "Matchup Analysis" && <>
-          <section className="intro"><div><div className="eyebrow">ANALYSIS WORKSPACE</div><h2>Matchup Analysis</h2><p>Results from the latest all-team simulation, with 100 battles per opponent.</p></div></section>
-          {!matchupRun ? <section className="panel empty-state"><strong>No simulation results yet</strong><p>Run the Simulator to test your team against every available opposing team. Results will be saved here automatically.</p><button type="button" className="primary-button" onClick={() => setActivePage("Simulator")}>Open Simulator</button></section> : <>
+          <section className="intro"><div><div className="eyebrow">ANALYSIS WORKSPACE</div><h2>Matchup Analysis</h2><p>Results from the latest benchmark, with 100 battles per matchup.</p></div></section>
+          {!matchupRun ? <section className="panel empty-state"><strong>No simulation results yet</strong><p>Run the Simulator to test a full team or an individual Pokémon against the available opponents. Results will be saved here automatically.</p><button type="button" className="primary-button" onClick={() => setActivePage("Simulator")}>Open Simulator</button></section> : <>
             <section className="panel">
               <div className="panel-heading"><div><span className="eyebrow">LATEST RUN</span><h3>{matchupRun.playerTeamName}</h3></div><span className="build-version">{new Date(matchupRun.createdAt).toLocaleString()}</span></div>
               <p className="hint">Gen {matchupRun.generation} · {matchupRun.gameVersion} · {matchupRun.battleType === "PvP" ? matchupRun.tier : matchupRun.facility} · {matchupRun.opponentSource}</p>
-              <div className="benchmark-summary"><span>Teams tested: {matchupRun.validCount}</span><span>Battles: {matchupRun.completed.toLocaleString()} / {matchupRun.total.toLocaleString()}</span><span>Wins: {matchupRun.wins}</span><span>Losses: {matchupRun.losses}</span><span>Ties: {matchupRun.ties}</span><span>Win rate: {matchupRun.completed ? (matchupRun.wins / matchupRun.completed * 100).toFixed(1) : "0.0"}%</span></div>
+              <div className="benchmark-summary"><span>{matchupRun.benchmarkMode === "Single Pokémon" ? "Meta Pokémon sets tested" : "Teams tested"}: {matchupRun.validCount}</span><span>Battles: {matchupRun.completed.toLocaleString()} / {matchupRun.total.toLocaleString()}</span><span>Wins: {matchupRun.wins}</span><span>Losses: {matchupRun.losses}</span><span>Ties: {matchupRun.ties}</span><span>Win rate: {matchupRun.completed ? (matchupRun.wins / matchupRun.completed * 100).toFixed(1) : "0.0"}%</span></div>
               <p className="hint">Source entries: {matchupRun.sourceCount} · skipped: {matchupRun.rejected} · Saved locally in this browser.</p>
               {matchupRun.sourceUrl.startsWith("http") && <p className="hint"><a href={matchupRun.sourceUrl} target="_blank" rel="noreferrer">Open opponent dataset</a></p>}
             </section>
@@ -804,7 +798,7 @@ export default function App() {
               </div>
             </section>}
             <section className="panel">
-              <div className="panel-heading"><div><span className="eyebrow">PER-TEAM RESULTS</span><h3>Opponent matchups</h3></div><span className="build-version">{matchupRun.results.length} teams</span></div>
+              <div className="panel-heading"><div><span className="eyebrow">{matchupRun.benchmarkMode === "Single Pokémon" ? "PER-POKÉMON RESULTS" : "PER-TEAM RESULTS"}</span><h3>Opponent matchups</h3></div><span className="build-version">{matchupRun.results.length} {matchupRun.benchmarkMode === "Single Pokémon" ? "sets" : "teams"}</span></div>
               <div className="benchmark-matchups matchup-analysis-list">{[...matchupRun.results].sort((a,b) => (b.wins / Math.max(1,b.games)) - (a.wins / Math.max(1,a.games))).map(result => <div key={result.opponentId}><strong>{result.opponentName}</strong><span>{result.wins}W / {result.losses}L / {result.ties}T · {result.games ? (result.wins / result.games * 100).toFixed(1) : "0.0"}% win rate</span></div>)}</div>
             </section>
           </>}

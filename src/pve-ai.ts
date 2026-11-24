@@ -28,7 +28,7 @@ function effectiveness(attackType: string, defendingTypes: string[], generation:
   return result;
 }
 type Foe = { species: string; teraType?: string; hp: number } | null;
-function getFoe(log: string[], ownSide: SideID, generation: number): Foe {
+function getFoe(log: string[], ownSide: SideID): Foe {
   const foeSide = ownSide === "p1" ? "p2" : "p1";
   let foe: Foe = null;
   for (const line of log) {
@@ -120,7 +120,7 @@ export function chooseTacticalChoice(request: RequestView, log: string[], side: 
   const team = request.side?.pokemon || [];
   if (request.wait) return "pass";
   if (request.teamPreview) return `team ${previewOrder(team, log, side, generation)}`;
-  const foe = getFoe(log, side, generation);
+  const foe = getFoe(log, side);
   if (request.forceSwitch?.length) {
     const used: number[] = [];
     return request.forceSwitch.map(mustSwitch => {

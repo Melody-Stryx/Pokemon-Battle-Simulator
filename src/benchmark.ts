@@ -313,7 +313,17 @@ export async function runExhaustiveBenchmark(args: {
       mergeAnalysis(result.analysis, battle.analysis);
       mergeAnalysis(analysis, battle.analysis);
       completed++;
-      args.onProgress({ completed, total, wins, losses, ties, currentOpponent: opponent.name, results: [...results, { ...result }], analysis: JSON.parse(JSON.stringify(analysis)) as BattleAnalysis });
+      // Avoid cloning the full analytics tree and triggering a React/localStorage write
+      // after every battle. Checkpoint every 10 battles and at each opponent boundary.
+      if (completed % 10 === 0 || repetition === args.repetitions - 1 || completed === total) {
+        args.onProgress({
+          completed, total, wins, losses, ties, currentOpponent: opponent.name,
+          results: [...results, { ...result, analysis: JSON.parse(JSON.stringify(result.analysis)) as BattleAnalysis }],
+          analysis: JSON.parse(JSON.stringify(analysis)) as BattleAnalysis,
+        });
+      }
+      // Give the browser a chance to paint, process input and handle cancellation.
+      await new Promise<void>(resolve => setTimeout(resolve, 0));
     }
     results.push(result);
   }

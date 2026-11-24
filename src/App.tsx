@@ -113,6 +113,8 @@ export default function App() {
   const [battlePlayerTeamId, setBattlePlayerTeamId] = useState("");
   const [battleOpponentTeamId, setBattleOpponentTeamId] = useState("");
   const [onlineOpponent, setOnlineOpponent] = useState<OnlineOpponent | null>(null);
+  const [onlineOpponentPool, setOnlineOpponentPool] = useState<OnlineOpponent[]>([]);
+  const [opponentSource, setOpponentSource] = useState<"Saved teams" | "Auto Teams">(settings.battleType === "PvP" ? "Auto Teams" : "Saved teams");
   const [fetchingOpponent, setFetchingOpponent] = useState(false);
   const [opponentSourceError, setOpponentSourceError] = useState("");
   const [battleActive, setBattleActive] = useState(false);
@@ -369,12 +371,14 @@ export default function App() {
           catch { return false; }
         });
       if (!valid.length) throw new Error(`No currently valid six-Pokémon sample teams were found for ${format}.`);
-      const sample = valid[Math.floor(Math.random() * valid.length)];
-      setOnlineOpponent({ name: sample.name || `Online ${format.toUpperCase()} sample`, author: sample.author, format, source: "Smogon sample teams via pkmn/smogon", sets: sample.data! });
+      const pool = valid.map(sample => ({ name: sample.name || ("Online " + format.toUpperCase() + " sample"), author: sample.author, format, source: "Smogon sample teams via pkmn/smogon", sets: sample.data! }));
+      setOnlineOpponentPool(pool);
+      setOnlineOpponent(pool[Math.floor(Math.random() * pool.length)]);
       setBattleOpponentTeamId("");
     } catch (error) {
       setOnlineOpponent(null);
-      setOpponentSourceError(error instanceof Error ? error.message : "Could not fetch an online opponent.");
+      setOnlineOpponentPool([]);
+      setOpponentSourceError(error instanceof Error ? error.message : "Could not fetch online teams.");
     } finally { setFetchingOpponent(false); }
   };
   useEffect(() => {
@@ -426,17 +430,26 @@ export default function App() {
     const opponentId = battleOpponentTeamId || teams.find(team => team.id !== playerId)?.id || "";
     const playerTeam = teams.find(t => t.id === playerId);
     const opponentTeam = teams.find(t => t.id === opponentId);
-    const useOnlineOpponent = settings.battleType === "PvP" && onlineOpponent?.format === battleFormat();
-    if (!playerTeam || (!useOnlineOpponent && !opponentTeam)) { setBattleError("Create a player team and fetch an online opponent or select a saved opponent team."); return; }
-    if (playerTeam.slots.length !== 6 || (!useOnlineOpponent && opponentTeam!.slots.length !== 6)) { setBattleError("Both registered teams need exactly six Pokémon."); return; }
+    const useAutoTeams = opponentSource === "Auto Teams";
+    const currentPool = onlineOpponentPool.filter(team => team.format === battleFormat());
+    const selectedOnlineOpponent = useAutoTeams && settings.battleType === "PvP" && currentPool.length
+      ? currentPool[Math.floor(Math.random() * currentPool.length)] : null;
+    const useOnlineOpponent = Boolean(selectedOnlineOpponent);
+    if (!playerTeam || (useAutoTeams && !useOnlineOpponent) || (!useAutoTeams && !opponentTeam)) {
+      setBattleError(useAutoTeams && settings.battleType === "PvE"
+        ? "The selected game's facility trainer pool is not connected yet. Choose Saved teams instead."
+        : useAutoTeams ? "Load the Auto Teams pool for this generation and tier first." : "Choose a saved opponent team.");
+      return;
+    }
+    if (playerTeam.slots.length !== 6 || (!useAutoTeams && opponentTeam!.slots.length !== 6)) { setBattleError("Both registered teams need exactly six Pokémon."); return; }
     const playerComplete = playerTeam.slots.every(slot => {
       const build = activeBuild(slot);
       return Boolean(build.name.trim() && build.moves.some(move => move.trim()));
     });
-    const opponentComplete = useOnlineOpponent || opponentTeam!.slots.every(slot => {
+    const opponentComplete = useOnlineOpponent || (opponentTeam?.slots.every(slot => {
       const build = activeBuild(slot);
       return Boolean(build.name.trim() && build.moves.some(move => move.trim()));
-    });
+    }) === true);
     if (!playerComplete || !opponentComplete) { setBattleError("Every Pokémon needs a species and at least one move."); return; }
     stopBattle();
     setBattleError("");
@@ -490,7 +503,7 @@ export default function App() {
       const formatid = battleFormat();
       const p1spec = { name: playerTeam.name || "Player", team: Teams.pack(makeBattleSets(playerTeam, settings.generation) as any) };
       const p2spec = useOnlineOpponent
-        ? { name: onlineOpponent!.name, team: Teams.pack(onlineOpponent!.sets as any) }
+        ? { name: selectedOnlineOpponent!.name, team: Teams.pack(selectedOnlineOpponent!.sets as any) }
         : { name: opponentTeam!.name || "Opponent", team: Teams.pack(makeBattleSets(opponentTeam!, settings.generation) as any) };
       void streams.omniscient.write(`>start ${JSON.stringify({ formatid })}\n>player p1 ${JSON.stringify(p1spec)}\n>player p2 ${JSON.stringify(p2spec)}`);
       setBattleActive(true);
@@ -588,16 +601,17 @@ export default function App() {
           </section>
         </>}
         {activePage === "Simulator" && <>
-          <section className="intro"><div><div className="eyebrow">BATTLE ENGINE</div><h2>Run a battle.</h2><p>Execute a Generation {settings.generation} battle using two saved teams and Pokémon Showdown's battle rules. The opponent uses a random legal-choice AI.</p></div></section>
+          <section className="intro"><div><div className="eyebrow">BATTLE ENGINE</div><h2>Run a battle.</h2><p>Execute a Generation {settings.generation} battle using a saved opponent or an automatically selected metagame / facility team.</p></div></section>
           <section className="panel battle-setup-panel">
             <div className="panel-heading"><div><span className="eyebrow">BATTLE SETUP</span><h3>Choose teams</h3></div><span className="build-version">{settings.mode} mode</span></div>
             <div className="field-grid">
               <label className="field"><span>Your team</span><select value={battlePlayerTeamId || activeTeam?.id || ""} onChange={e => setBattlePlayerTeamId(e.target.value)}><option value="">Select team</option>{teams.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>
-              {settings.battleType === "PvP" ? <div className="field"><span>Online opponent</span><div className="derived-value">{onlineOpponent ? onlineOpponent.name : "No online opponent loaded"}</div></div> : <label className="field"><span>Saved opponent team</span><select value={battleOpponentTeamId || teams.find(team => team.id !== (battlePlayerTeamId || activeTeam?.id))?.id || ""} onChange={e => setBattleOpponentTeamId(e.target.value)}><option value="">Select opponent</option>{teams.filter(team => team.id !== (battlePlayerTeamId || activeTeam?.id)).map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>}
+              <label className="field"><span>Opponent source</span><select value={opponentSource} onChange={e => { setOpponentSource(e.target.value as "Saved teams" | "Auto Teams"); setBattleError(""); }}><option>Saved teams</option><option>Auto Teams</option></select></label>
+              {opponentSource === "Saved teams" ? <label className="field"><span>Saved opponent team</span><select value={battleOpponentTeamId || teams.find(team => team.id !== (battlePlayerTeamId || activeTeam?.id))?.id || ""} onChange={e => setBattleOpponentTeamId(e.target.value)}><option value="">Select opponent</option>{teams.filter(team => team.id !== (battlePlayerTeamId || activeTeam?.id)).map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label> : <div className="field"><span>Auto Teams pool</span><div className="derived-value">{settings.battleType === "PvP" ? onlineOpponentPool.filter(team => team.format === battleFormat()).length + " verified " + settings.tier + " teams loaded" : "No verified facility pool connected yet"}</div></div>}
               <div className="field"><span>Ruleset</span><div className="derived-value">Gen {settings.generation} · {settings.battleType === "PvP" ? settings.tier : `${settings.gameVersion} · ${pveFacilities[settings.generation]}`}</div></div>
             </div>
-            {settings.battleType === "PvP" && <div className="battle-actions"><button type="button" className="secondary-button" onClick={fetchOnlineOpponent} disabled={fetchingOpponent}>{fetchingOpponent ? "Fetching sample…" : onlineOpponent ? "Fetch another opponent" : "Fetch online opponent"}</button><span className="hint">{onlineOpponent ? `Source: ${onlineOpponent.source}${onlineOpponent.author ? ` · ${onlineOpponent.author}` : ""}` : "Fetch a current sample team for this generation and tier."}</span></div>}
-            {settings.battleType === "PvE" && <p className="battle-warning">Facility-specific online trainer pools are being connected by game version. Saved teams remain available as a temporary opponent.</p>}
+            {settings.battleType === "PvP" && opponentSource === "Auto Teams" && <div className="battle-actions"><button type="button" className="secondary-button" onClick={fetchOnlineOpponent} disabled={fetchingOpponent}>{fetchingOpponent ? "Loading team pool…" : onlineOpponentPool.length ? "Refresh Auto Teams pool" : "Load Auto Teams pool"}</button><span className="hint">{onlineOpponent ? "Example: " + onlineOpponent.name + " · " + onlineOpponent.source + (onlineOpponent.author ? " · " + onlineOpponent.author : "") : "Loads valid sample teams for this generation and tier. One is randomly selected for each battle."}</span></div>}
+            {settings.battleType === "PvE" && opponentSource === "Auto Teams" && <p className="battle-warning">Auto Teams will use this game's actual facility trainer pool. That version-specific dataset is not connected yet; choose Saved teams for now.</p>}
             {opponentSourceError && <p className="battle-error">{opponentSourceError}</p>}
             {(settings.battleType === "PvE" || settings.tier === "VGC" || settings.tier === "Custom") && <p className="battle-warning">This selection runs in the generation's Custom Game sandbox. Facility-specific, VGC regulation and custom tier rules are not enforced.</p>}
             {battleError && <p className="battle-error">{battleError}</p>}

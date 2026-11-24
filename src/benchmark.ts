@@ -28,7 +28,7 @@ export type BenchmarkProgress = {
 
 type SampleTeam = { name?: string; author?: string; data?: Record<string, unknown>[] };
 
-function canonicalSet(set: Record<string, unknown>) {
+function canonicalSet(set: Record<string, unknown>[]) {
   const normalize = (value: unknown): unknown => {
     if (Array.isArray(value)) return value.map(normalize);
     if (value && typeof value === "object") return Object.fromEntries(

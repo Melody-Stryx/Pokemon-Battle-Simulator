@@ -313,9 +313,9 @@ export async function runExhaustiveBenchmark(args: {
       mergeAnalysis(result.analysis, battle.analysis);
       mergeAnalysis(analysis, battle.analysis);
       completed++;
-      // Avoid cloning the full analytics tree and triggering a React/localStorage write
-      // after every battle. Checkpoint every 10 battles and at each opponent boundary.
-      if (completed % 10 === 0 || repetition === args.repetitions - 1 || completed === total) {
+      // Full progress snapshots trigger React renders and synchronous localStorage writes.
+      // Checkpoint every 100 battles rather than every 10 to keep large runs responsive.
+      if (completed % 100 === 0 || completed === total) {
         args.onProgress({
           completed, total, wins, losses, ties, currentOpponent: opponent.name,
           results: [...results, { ...result, analysis: JSON.parse(JSON.stringify(result.analysis)) as BattleAnalysis }],

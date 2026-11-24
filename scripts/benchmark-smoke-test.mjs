@@ -96,6 +96,7 @@ try {
     shouldCancel: () => false,
     onProgress: () => {},
   });
+  console.log("Tactical benchmark diagnostics:", JSON.stringify({ wins: telemetry.wins, losses: telemetry.losses, ties: telemetry.ties, player: telemetry.analysis.player, opponent: telemetry.analysis.opponent, unattributed: telemetry.analysis.unattributedDamage }));
   const playerDamage = telemetry.analysis.player.pokemon.reduce((sum, pokemon) => sum + pokemon.damageDealt, 0);
   const opponentTaken = telemetry.analysis.opponent.pokemon.reduce((sum, pokemon) => sum + pokemon.damageTaken, 0);
   if (playerDamage <= 0 || opponentTaken <= 0) {

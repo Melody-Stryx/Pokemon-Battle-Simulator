@@ -199,9 +199,10 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
           const sourceIdentMarker = parts.slice(4).find(part => part.startsWith("[of]"));
           let source: { ident: string; name: string } | undefined;
           let moveName = "";
+          const sourceIdent = sourceIdentMarker?.slice("[of]".length).trim();
+          if (sourceIdent) source = { ident: sourceIdent, name: "" };
           if (sourceMarker?.startsWith("[from] move:")) {
             moveName = sourceMarker.slice("[from] move:".length).trim();
-            const sourceIdent = sourceIdentMarker?.slice("[of]".length).trim();
             source = sourceIdent ? { ident: sourceIdent, name: moveName } : latestMoveBySide.get(sourceSide);
           } else if (!sourceMarker) {
             const recent = latestMoveBySide.get(sourceSide);
@@ -214,7 +215,7 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
             const sourceName = namesByIdent.get(source.ident) || identName(source.ident);
             const sourceSummary = source.ident.slice(0, 2) === "p1" ? analysis.player : analysis.opponent;
             addPokemonDamage(sourceSummary, sourceName, damage, 0, moveName);
-            addMoveDamage(sourceSummary, moveName, damage);
+            if (moveName) addMoveDamage(sourceSummary, moveName, damage);
           } else {
             analysis.unattributedDamage += damage;
           }

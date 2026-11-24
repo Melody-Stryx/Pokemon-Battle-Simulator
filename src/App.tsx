@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dex } from "@pkmn/dex";
-import { BattleStreams, RandomPlayerAI, TeamValidator, Teams } from "@pkmn/sim";
+import { BattleStreams, TeamValidator, Teams } from "@pkmn/sim";
+import { TacticalPlayerAI, chooseTacticalChoice } from "./pve-ai";
 import { loadCompleteOpponentPool, runExhaustiveBenchmark, type BenchmarkProgress, type BenchmarkOpponent } from "./benchmark";
 
 declare const __BUILD_NUMBER__: string;
@@ -157,6 +158,7 @@ export default function App() {
   const [benchmarkCoverage, setBenchmarkCoverage] = useState<{sourceCount:number;validCount:number;rejected:number;sourceUrl:string} | null>(null);
   const [matchupRun, setMatchupRun] = useState<MatchupAnalysisRun | null>(readMatchupRun);
   const benchmarkCancel = useRef(false);
+  const battleDecisionLog = useRef<string[]>([]);
   const [battleActive, setBattleActive] = useState(false);
   const [battleLog, setBattleLog] = useState<string[]>([]);
   const [battleError, setBattleError] = useState("");
@@ -518,7 +520,8 @@ export default function App() {
     setManualRequest(null);
     void controller.streams.p1.write(`>p1 ${choice}`);
   };
-  const chooseAutomatically = (request: BattleRequest) => {
+  const chooseAutomatically = (request: BattleRequest) => chooseTacticalChoice(request, battleDecisionLog.current, "p1");
+  const chooseRandomlyLegacy = (request: BattleRequest) => {
     if (request.teamPreview) return "team 123456";
     if (request.forceSwitch?.some(Boolean)) {
       const pokemon = request.side?.pokemon || [];
@@ -575,7 +578,8 @@ export default function App() {
       const streams = BattleStreams.getPlayerStreams(new BattleStreams.BattleStream());
       const controller: BattleController = { streams, stopped: false };
       battleController.current = controller;
-      const p2AI = new RandomPlayerAI(streams.p2);
+      battleDecisionLog.current = [];
+      const p2AI = new TacticalPlayerAI(streams.p2, "p2");
       void p2AI.start();
       void (async () => {
         try {
@@ -597,6 +601,8 @@ export default function App() {
           for await (const chunk of streams.p1) {
             if (controller.stopped) break;
             const lines = String(chunk).split("\n");
+            battleDecisionLog.current.push(...lines.filter(line => line.startsWith("|") && !line.startsWith("|request|")));
+            if (battleDecisionLog.current.length > 1200) battleDecisionLog.current = battleDecisionLog.current.slice(-900);
             for (const line of lines) {
               const marker = line.indexOf("|request|");
               if (marker < 0) continue;

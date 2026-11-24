@@ -377,6 +377,11 @@ export default function App() {
       setOpponentSourceError(error instanceof Error ? error.message : "Could not fetch an online opponent.");
     } finally { setFetchingOpponent(false); }
   };
+  useEffect(() => {
+    if (activePage === "Simulator" && settings.battleType === "PvP" && settings.tier !== "VGC" && settings.tier !== "Custom" && onlineOpponent?.format !== battleFormat() && !fetchingOpponent) {
+      void fetchOnlineOpponent();
+    }
+  }, [activePage, settings.generation, settings.battleType, settings.tier]);
   const stopBattle = () => {
     const controller = battleController.current;
     if (controller && !controller.stopped) {
@@ -591,7 +596,7 @@ export default function App() {
               {settings.battleType === "PvP" ? <div className="field"><span>Online opponent</span><div className="derived-value">{onlineOpponent ? onlineOpponent.name : "No online opponent loaded"}</div></div> : <label className="field"><span>Saved opponent team</span><select value={battleOpponentTeamId || teams.find(team => team.id !== (battlePlayerTeamId || activeTeam?.id))?.id || ""} onChange={e => setBattleOpponentTeamId(e.target.value)}><option value="">Select opponent</option>{teams.filter(team => team.id !== (battlePlayerTeamId || activeTeam?.id)).map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>}
               <div className="field"><span>Ruleset</span><div className="derived-value">Gen {settings.generation} · {settings.battleType === "PvP" ? settings.tier : `${settings.gameVersion} · ${pveFacilities[settings.generation]}`}</div></div>
             </div>
-            {settings.battleType === "PvP" && <div className="battle-actions"><button type="button" className="secondary-button" onClick={fetchOnlineOpponent} disabled={fetchingOpponent}>{fetchingOpponent ? "Fetching sample…" : "Fetch online opponent"}</button><span className="hint">{onlineOpponent ? `Source: ${onlineOpponent.source}${onlineOpponent.author ? ` · ${onlineOpponent.author}` : ""}` : "Fetch a current sample team for this generation and tier."}</span></div>}
+            {settings.battleType === "PvP" && <div className="battle-actions"><button type="button" className="secondary-button" onClick={fetchOnlineOpponent} disabled={fetchingOpponent}>{fetchingOpponent ? "Fetching sample…" : onlineOpponent ? "Fetch another opponent" : "Fetch online opponent"}</button><span className="hint">{onlineOpponent ? `Source: ${onlineOpponent.source}${onlineOpponent.author ? ` · ${onlineOpponent.author}` : ""}` : "Fetch a current sample team for this generation and tier."}</span></div>}
             {settings.battleType === "PvE" && <p className="battle-warning">Facility-specific online trainer pools are being connected by game version. Saved teams remain available as a temporary opponent.</p>}
             {opponentSourceError && <p className="battle-error">{opponentSourceError}</p>}
             {(settings.battleType === "PvE" || settings.tier === "VGC" || settings.tier === "Custom") && <p className="battle-warning">This selection runs in the generation's Custom Game sandbox. Facility-specific, VGC regulation and custom tier rules are not enforced.</p>}

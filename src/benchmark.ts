@@ -156,6 +156,16 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
   void p1.start();
   void p2.start();
   const analysis = emptyAnalysis();
+  const seedRoster = (side: SideDamageSummary, sets: Record<string, unknown>[]) => {
+    for (const set of sets) {
+      const species = String(set.species || set.name || "Pokémon");
+      const nickname = String(set.name || species);
+      const label = nickname.toLowerCase() !== species.toLowerCase() ? `${nickname} (${species})` : species;
+      addPokemonDamage(side, label, 0, 0);
+    }
+  };
+  seedRoster(analysis.player, playerSets);
+  seedRoster(analysis.opponent, opponentSets);
   const hpByIdent = new Map<string, number>();
   const namesByIdent = new Map<string, string>();
   const latestMoveBySide = new Map<string, { ident: string; name: string }>();
@@ -194,7 +204,6 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
           const damage = Math.max(0, Math.round(previous - condition.hp));
           if (!damage) continue;
           const targetSide = target.slice(0, 2);
-          const sourceSide = targetSide === "p1" ? "p2" : "p1";
           const sourceMarker = parts.slice(4).find(part => part.startsWith("[from]"));
           const sourceIdentMarker = parts.slice(4).find(part => part.startsWith("[of]"));
           let source: { ident: string; name: string } | undefined;

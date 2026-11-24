@@ -41,6 +41,23 @@ const tacticalMoveRequest = {
 };
 const tacticalMove = chooseTacticalChoice(tacticalMoveRequest, ["|switch|p2a: Garchomp|Garchomp, L100|100/100"], "p1", 9);
 if (tacticalMove !== "move 2") throw new Error(`Tactical AI failed to select the super-effective move: ${tacticalMove}`);
+
+const luxrayRequest = {
+  side: { pokemon: [{ details: "Luxray, L100", condition: "364/364", active: true, stats: { atk: 372, spa: 176, spe: 176 }, moves: ["Double Kick", "Spark", "Crunch", "Ice Fang"] }] },
+  active: [{ moves: [{ move: "Double Kick" }, { move: "Spark" }, { move: "Crunch" }, { move: "Ice Fang" }] }],
+};
+const gen6Cases = [
+  ["Ferrothorn", "move 1"],
+  ["Landorus-Therian", "move 4"],
+  ["Slowbro", "move 3"],
+  ["Clefable", "move 2"],
+  ["Tyranitar", "move 1"],
+];
+for (const [foe, expected] of gen6Cases) {
+  const choice = chooseTacticalChoice(luxrayRequest, [`|switch|p2a: ${foe}| ${foe}, L100|100/100`.replace("| ", "|")], "p1", 6);
+  if (choice !== expected) throw new Error(`Gen 6 Luxray move selection against ${foe}: expected ${expected}, received ${choice}`);
+}
+console.log("Gen 6 move-selection tests passed: Double Kick is selected for Fighting weaknesses, Ice Fang for Landorus-T, Crunch for Slowbro, and Spark for Clefable.");
 const tacticalSwitchRequest = {
   side: { pokemon: [
     { details: "Charizard, L100", condition: "100/100", active: true, stats: { atk: 100, spa: 100, spe: 100 }, moves: ["Flamethrower"] },

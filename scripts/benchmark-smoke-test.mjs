@@ -105,6 +105,19 @@ try {
     throw new Error("Expected direct move damage to appear in the move rankings.");
   }
   console.log("Damage telemetry test passed: direct move damage is attributed to the attacking Pokémon and move.");
+
+  const solo = await runExhaustiveBenchmark({
+    format: "gen9customgame",
+    playerSets: [makeTeam("Arceus", "Extreme Speed", "Multitype")[0]],
+    opponents: [{ id: "solo-magikarp", name: "Magikarp · Splash", sets: [makeTeam("Magikarp", "Splash", "Swift Swim")[0]] }],
+    repetitions: 1,
+    shouldCancel: () => false,
+    onProgress: () => {},
+  });
+  if (solo.completed !== 1 || solo.results.length !== 1 || solo.results[0].games !== 1) {
+    throw new Error("Single-Pokémon benchmark did not complete one isolated 1v1 matchup.");
+  }
+  console.log("Single-Pokémon benchmark test passed: one saved set battles one opponent set without team members.");
 } finally {
   clearTimeout(timeoutId);
 }

@@ -127,7 +127,12 @@ function mergeSide(target: SideDamageSummary, source: SideDamageSummary) {
       existing.damage += move.damage; existing.hits += move.hits;
     }
   }
-  for (const move of source.moveDamage) addMoveDamage(target, move.move, move.damage), target.moveDamage[target.moveDamage.length - 1].hits += move.hits - 1;
+  for (const move of source.moveDamage) {
+    let existing = target.moveDamage.find(item => item.move === move.move);
+    if (!existing) { existing = { move: move.move, damage: 0, hits: 0 }; target.moveDamage.push(existing); }
+    existing.damage += move.damage;
+    existing.hits += move.hits;
+  }
 }
 function mergeAnalysis(target: BattleAnalysis, source: BattleAnalysis) {
   mergeSide(target.player, source.player);

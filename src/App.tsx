@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dex } from "@pkmn/dex";
 import { BattleStreams, RandomPlayerAI, TeamValidator, Teams } from "@pkmn/sim";
+import { loadCompleteOpponentPool, runExhaustiveBenchmark, type BenchmarkProgress } from "./benchmark";
 
 declare const __BUILD_NUMBER__: string;
 type BattleType = "PvP" | "PvE";
@@ -117,6 +118,11 @@ export default function App() {
   const [opponentSource, setOpponentSource] = useState<"Saved teams" | "Auto Teams">(settings.battleType === "PvP" ? "Auto Teams" : "Saved teams");
   const [fetchingOpponent, setFetchingOpponent] = useState(false);
   const [opponentSourceError, setOpponentSourceError] = useState("");
+  const [benchmarkBusy, setBenchmarkBusy] = useState(false);
+  const [benchmarkProgress, setBenchmarkProgress] = useState<BenchmarkProgress | null>(null);
+  const [benchmarkError, setBenchmarkError] = useState("");
+  const [benchmarkCoverage, setBenchmarkCoverage] = useState<{sourceCount:number;validCount:number;rejected:number;sourceUrl:string} | null>(null);
+  const benchmarkCancel = useRef(false);
   const [battleActive, setBattleActive] = useState(false);
   const [battleLog, setBattleLog] = useState<string[]>([]);
   const [battleError, setBattleError] = useState("");
@@ -386,6 +392,44 @@ export default function App() {
       void fetchOnlineOpponent();
     }
   }, [activePage, settings.generation, settings.battleType, settings.tier]);
+  const runFullBenchmark = async () => {
+    const playerId = battlePlayerTeamId || activeTeam?.id || "";
+    const playerTeam = teams.find(team => team.id === playerId);
+    if (!playerTeam || playerTeam.slots.length !== 6 || !playerTeam.slots.every(slot => {
+      const build = activeBuild(slot);
+      return Boolean(build.name.trim() && build.moves.some(move => move.trim()));
+    })) {
+      setBenchmarkError("Select a complete six-Pokémon team with at least one move per Pokémon.");
+      return;
+    }
+    const format = battleFormat();
+    setBenchmarkBusy(true);
+    setBenchmarkError("");
+    setBenchmarkProgress(null);
+    benchmarkCancel.current = false;
+    try {
+      const dataset = await loadCompleteOpponentPool(format);
+      if (!dataset.opponents.length) throw new Error("The archive contained no complete, valid teams for this format.");
+      const playerSets = makeBattleSets(playerTeam, settings.generation);
+      const result = await runExhaustiveBenchmark({
+        format,
+        playerSets,
+        opponents: dataset.opponents,
+        repetitions: 3,
+        shouldCancel: () => benchmarkCancel.current,
+        onProgress: setBenchmarkProgress,
+      });
+      setBenchmarkProgress(result);
+      if (benchmarkCancel.current) setBenchmarkError("Benchmark cancelled. Results include completed battles only.");
+      else setBenchmarkError("");
+      setOpponentSourceError("");
+      setBenchmarkCoverage({ sourceCount: dataset.sourceCount, validCount: dataset.opponents.length, rejected: dataset.rejected, sourceUrl: dataset.sourceUrl });
+    } catch (error) {
+      setBenchmarkError(error instanceof Error ? error.message : "The exhaustive benchmark failed.");
+    } finally {
+      setBenchmarkBusy(false);
+    }
+  };
   const stopBattle = () => {
     const controller = battleController.current;
     if (controller && !controller.stopped) {
@@ -614,6 +658,22 @@ export default function App() {
             {settings.battleType === "PvE" && opponentSource === "Auto Teams" && <p className="battle-warning">Auto Teams will use this game's actual facility trainer pool. That version-specific dataset is not connected yet; choose Saved teams for now.</p>}
             {opponentSourceError && <p className="battle-error">{opponentSourceError}</p>}
             {(settings.battleType === "PvE" || settings.tier === "VGC" || settings.tier === "Custom") && <p className="battle-warning">This selection runs in the generation's Custom Game sandbox. Facility-specific, VGC regulation and custom tier rules are not enforced.</p>}
+            {settings.battleType === "PvP" && opponentSource === "Auto Teams" && <section className="benchmark-panel">
+              <div className="editor-section-title">Exhaustive published-team benchmark <small>Every distinct complete team in the selected format archive</small></div>
+              <p className="hint">Runs three battles against every validated archived team. Both sides currently use random legal-choice AI, so results are a baseline, not a competitive-skill rating.</p>
+              <div className="battle-actions">
+                <button type="button" className="primary-button" onClick={runFullBenchmark} disabled={benchmarkBusy}>{benchmarkBusy ? "Benchmark running…" : "Test against all archived teams"}</button>
+                {benchmarkBusy && <button type="button" className="secondary-button" onClick={() => { benchmarkCancel.current = true; }}>Cancel benchmark</button>}
+              </div>
+              {benchmarkProgress && <div className="benchmark-results">
+                <strong>{benchmarkProgress.completed.toLocaleString()} / {benchmarkProgress.total.toLocaleString()} battles completed</strong>
+                <div className="benchmark-summary"><span>Wins: {benchmarkProgress.wins}</span><span>Losses: {benchmarkProgress.losses}</span><span>Ties: {benchmarkProgress.ties}</span><span>Win rate: {benchmarkProgress.completed ? ((benchmarkProgress.wins / benchmarkProgress.completed) * 100).toFixed(1) : "0.0"}%</span></div>
+                {benchmarkBusy && <p className="hint">Current opponent: {benchmarkProgress.currentOpponent}</p>}
+                {benchmarkCoverage && <p className="hint">Archive records: {benchmarkCoverage.sourceCount} · distinct valid teams: {benchmarkCoverage.validCount} · rejected: {benchmarkCoverage.rejected}. <a href={benchmarkCoverage.sourceUrl} target="_blank" rel="noreferrer">Dataset source</a></p>}
+                <div className="benchmark-matchups">{[...benchmarkProgress.results].sort((a,b) => (b.wins / Math.max(1,b.games)) - (a.wins / Math.max(1,a.games))).map(result => <div key={result.opponentId}><strong>{result.opponentName}</strong><span>{result.wins}W / {result.losses}L / {result.ties}T</span></div>)}</div>
+              </div>}
+              {benchmarkError && <p className="battle-error">{benchmarkError}</p>}
+            </section>}
             {battleError && <p className="battle-error">{battleError}</p>}
             <div className="battle-actions"><button type="button" className="primary-button" onClick={startBattle}>Start battle</button><button type="button" className="secondary-button" onClick={stopBattle} disabled={!battleActive}>End battle</button><button type="button" className="secondary-button" onClick={() => setSettings(s => ({...s, mode: s.mode === "Auto" ? "Manual" : "Auto"}))}>{settings.mode === "Auto" ? "Switch to Manual" : "Switch to Auto"}</button></div>
           </section>

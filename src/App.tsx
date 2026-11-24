@@ -9,7 +9,18 @@ type BattleMode = "Auto" | "Manual";
 type Page = "Overview" | "Team Builder" | "Legality analysis" | "Simulator" | "Matchup Analysis";
 const generations = Array.from({ length: 9 }, (_, i) => i + 1);
 const tiers = ["Anything Goes", "Ubers", "OU", "UU", "RU", "NU", "PU", "ZU", "Little Cup", "VGC", "Custom"];
-const pveFacilities: Record<number, string> = { 3: "Battle Tower", 4: "Battle Tower", 5: "Battle Subway", 6: "Battle Maison", 7: "Battle Tree", 8: "Battle Tower", 9: "Academy Ace Tournament" };
+const facilityOptionsByGame: Record<number, Record<string, string[]>> = {
+  3: { "Ruby / Sapphire": ["Battle Tower"], "Emerald": ["Battle Frontier"], "FireRed / LeafGreen": ["Trainer Tower"] },
+  4: { "Diamond / Pearl": ["Battle Tower"], "Platinum": ["Battle Frontier"], "HeartGold / SoulSilver": ["Battle Frontier"] },
+  5: { "Black / White": ["Battle Subway"], "Black 2 / White 2": ["Battle Subway"] },
+  6: { "X / Y": ["Battle Maison"], "Omega Ruby / Alpha Sapphire": ["Battle Maison"] },
+  7: { "Sun / Moon": ["Battle Tree"], "Ultra Sun / Ultra Moon": ["Battle Tree"] },
+  8: { "Sword / Shield": ["Battle Tower"], "Brilliant Diamond / Shining Pearl": ["Battle Tower"] },
+  9: { "Scarlet / Violet": ["Academy Ace Tournament"] },
+};
+function facilitiesFor(generation: number, gameVersion: string) {
+  return facilityOptionsByGame[generation]?.[gameVersion] || [];
+}
 const gameVersions: Record<number, string[]> = {
   1: ["Red / Blue", "Yellow"], 2: ["Gold / Silver", "Crystal"],
   3: ["Ruby / Sapphire", "Emerald", "FireRed / LeafGreen"],
@@ -20,12 +31,14 @@ const gameVersions: Record<number, string[]> = {
   8: ["Sword / Shield", "Brilliant Diamond / Shining Pearl"],
   9: ["Scarlet / Violet"],
 };
-type Settings = { generation: number; gameVersion: string; battleType: BattleType; tier: string; mode: BattleMode };
-const defaults: Settings = { generation: 9, gameVersion: "Scarlet / Violet", battleType: "PvP", tier: "OU", mode: "Auto" };
+type Settings = { generation: number; gameVersion: string; battleType: BattleType; tier: string; facility: string; mode: BattleMode };
+const defaults: Settings = { generation: 9, gameVersion: "Scarlet / Violet", battleType: "PvP", tier: "OU", facility: "Academy Ace Tournament", mode: "Auto" };
 function normalizeSettings(s: Settings): Settings {
   const generation = s.battleType === "PvE" && s.generation < 3 ? 3 : s.generation;
   const versions = gameVersions[generation] || [];
-  return { ...s, generation, gameVersion: versions.includes(s.gameVersion) ? s.gameVersion : (versions[0] || "") };
+  const gameVersion = versions.includes(s.gameVersion) ? s.gameVersion : (versions[0] || "");
+  const facilities = facilitiesFor(generation, gameVersion);
+  return { ...s, generation, gameVersion, facility: facilities.includes(s.facility) ? s.facility : (facilities[0] || "") };
 }
 function readSettings(): Settings { try { const saved = localStorage.getItem("battle-lab-settings"); return saved ? normalizeSettings({ ...defaults, ...JSON.parse(saved) }) : defaults; } catch { return defaults; } }
 
@@ -181,7 +194,7 @@ export default function App() {
       if (settings.generation !== 7) {
         return {
           status: "Unsupported format",
-          messages: [`${pveFacilities[settings.generation] || "This facility"} rules are not configured yet. A generic validator cannot certify facility legality.`],
+          messages: [`${settings.facility || "This facility"} rules are not configured yet. A generic validator cannot certify facility legality.`],
         };
       }
 
@@ -582,9 +595,9 @@ export default function App() {
               <label className="field"><span>Generation</span><select value={settings.generation} onChange={e => updateSetting("generation", Number(e.target.value))}>{generations.map(g => <option value={g} key={g} disabled={settings.battleType === "PvE" && g < 3}>Generation {g}</option>)}</select></label>
               <label className="field"><span>Game version</span><select value={settings.gameVersion} onChange={e => updateSetting("gameVersion", e.target.value)}>{(gameVersions[settings.generation] || []).map(version => <option key={version}>{version}</option>)}</select></label>
               <fieldset className="field battle-type-field"><legend>Battle type</legend><div className="segmented">{(["PvP","PvE"] as BattleType[]).map(type => <button type="button" key={type} className={settings.battleType === type ? "selected" : ""} aria-pressed={settings.battleType === type} onClick={() => updateSetting("battleType", type)}>{type}</button>)}</div></fieldset>
-              {settings.battleType === "PvP" ? <label className="field conditional-field"><span>PvP tier</span><select value={settings.tier} onChange={e => updateSetting("tier", e.target.value)}>{tiers.map(t => <option key={t}>{t}</option>)}</select></label> : <div className="field conditional-field"><span>PvE facility</span><div className="derived-value">{pveFacilities[settings.generation] || "No facility configured"}</div></div>}
+              {settings.battleType === "PvP" ? <label className="field conditional-field"><span>PvP tier</span><select value={settings.tier} onChange={e => updateSetting("tier", e.target.value)}>{tiers.map(t => <option key={t}>{t}</option>)}</select></label> : <div className="field conditional-field"><span>PvE facility</span><div className="derived-value">{settings.facility || "No facility configured"}</div></div>}
             </div>
-            <div className="config-summary"><span className="summary-label">ACTIVE RULESET</span><strong>Gen {settings.generation} · {settings.battleType === "PvP" ? settings.tier : pveFacilities[settings.generation]}</strong><span className="summary-copy">The selected ruleset governs legality analysis and battle execution where supported.</span></div>
+            <div className="config-summary"><span className="summary-label">ACTIVE RULESET</span><strong>Gen {settings.generation} · {settings.battleType === "PvP" ? settings.tier : settings.facility}</strong><span className="summary-copy">The selected ruleset governs legality analysis and battle execution where supported.</span></div>
           </section>
           <section className="lower-grid">
             <section className="panel mode-panel"><div className="panel-heading"><div><span className="eyebrow">02 / CONTROL</span><h3>Battle control</h3></div></div><p className="panel-description">Choose how decisions are made during a simulation.</p><div className="mode-options">{(["Auto","Manual"] as BattleMode[]).map(mode => <button type="button" className={settings.mode === mode ? "mode-option chosen" : "mode-option"} key={mode} onClick={() => updateSetting("mode", mode)}><span className="mode-icon">{mode === "Auto" ? "↻" : "⌁"}</span><span><strong>{mode}</strong><small>{mode === "Auto" ? "AI controls decisions" : "You control decisions"}</small></span><span className="radio-mark">{settings.mode === mode ? "●" : "○"}</span></button>)}</div><p className="hint">Auto / Manual switching will be available during live battles without resetting battle state.</p></section>
@@ -633,7 +646,7 @@ export default function App() {
         {activePage === "Legality analysis" && <>
           <section className="intro"><div><div className="eyebrow">TEAM VALIDATION</div><h2>Legality analysis.</h2><p>Validate a six-Pokémon roster against the selected PvP tier or supported facility rules. Battle Tree uses Super Singles restrictions.</p></div></section>
           <section className="panel legality-analysis-panel">
-            <div className="panel-heading"><div><span className="eyebrow">ACTIVE RULESET</span><h3>{settings.battleType === "PvP" ? `Generation ${settings.generation} · ${settings.tier}` : settings.generation === 7 ? "Generation 7 · Battle Tree Super Singles" : `Generation ${settings.generation} · ${pveFacilities[settings.generation] || "PvE facility"}`}</h3></div><button type="button" className="secondary-button" onClick={() => setActivePage("Team Builder")}>Open Team Builder</button></div>
+            <div className="panel-heading"><div><span className="eyebrow">ACTIVE RULESET</span><h3>{settings.battleType === "PvP" ? `Generation ${settings.generation} · ${settings.tier}` : settings.generation === 7 ? "Generation 7 · Battle Tree Super Singles" : `Generation ${settings.generation} · ${settings.facility || "PvE facility"}`}</h3></div><button type="button" className="secondary-button" onClick={() => setActivePage("Team Builder")}>Open Team Builder</button></div>
             <label className="field"><span>Team to analyse</span><select value={activeTeam?.id || ""} onChange={e => setActiveTeamId(e.target.value)}><option value="" disabled>Select a team...</option>{teams.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>
             {!activeTeam ? <div className="empty-state"><strong>No team available</strong><p>Create a team in Team Builder before running legality analysis.</p></div> : <>
               <div className={`legality-report legality-${legality.status.toLowerCase().replace(/[^a-z]+/g,"-")}`}>
@@ -648,14 +661,18 @@ export default function App() {
           <section className="intro"><div><div className="eyebrow">BATTLE ENGINE</div><h2>Run a battle.</h2><p>Execute a Generation {settings.generation} battle using a saved opponent or an automatically selected metagame / facility team.</p></div></section>
           <section className="panel battle-setup-panel">
             <div className="panel-heading"><div><span className="eyebrow">BATTLE SETUP</span><h3>Choose teams</h3></div><span className="build-version">{settings.mode} mode</span></div>
-            <div className="field-grid">
+            <div className="field-grid simulator-rules-grid">
+              <label className="field"><span>Battle type</span><select value={settings.battleType} onChange={e => { updateSetting("battleType", e.target.value as BattleType); if (e.target.value === "PvE") setOpponentSource("Saved teams"); setBattleError(""); }}><option value="PvP">PvP</option><option value="PvE">PvE</option></select></label>
+              <label className="field"><span>Generation</span><select value={settings.generation} onChange={e => updateSetting("generation", Number(e.target.value))}>{generations.map(generation => <option key={generation} value={generation} disabled={settings.battleType === "PvE" && generation < 3}>Generation {generation}</option>)}</select></label>
+              <label className="field"><span>Game version</span><select value={settings.gameVersion} onChange={e => updateSetting("gameVersion", e.target.value)}>{(gameVersions[settings.generation] || []).map(version => <option key={version} value={version}>{version}</option>)}</select></label>
+              {settings.battleType === "PvP" ? <label className="field"><span>Format / tier</span><select value={settings.tier} onChange={e => updateSetting("tier", e.target.value)}>{tiers.map(tier => <option key={tier}>{tier}</option>)}</select></label> : <label className="field"><span>Battle facility</span><select value={settings.facility} onChange={e => updateSetting("facility", e.target.value)}>{facilitiesFor(settings.generation, settings.gameVersion).map(facility => <option key={facility}>{facility}</option>)}</select></label>}
               <label className="field"><span>Your team</span><select value={battlePlayerTeamId || activeTeam?.id || ""} onChange={e => setBattlePlayerTeamId(e.target.value)}><option value="">Select team</option>{teams.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>
-              <label className="field"><span>Opponent source</span><select value={opponentSource} onChange={e => { setOpponentSource(e.target.value as "Saved teams" | "Auto Teams"); setBattleError(""); }}><option>Saved teams</option><option>Auto Teams</option></select></label>
+              {settings.battleType === "PvP" ? <label className="field"><span>Opponent source</span><select value={opponentSource} onChange={e => { setOpponentSource(e.target.value as "Saved teams" | "Auto Teams"); setBattleError(""); }}><option>Saved teams</option><option>Auto Teams</option></select></label> : <div className="field"><span>Opponent source</span><div className="derived-value">Saved teams</div></div>}
               {opponentSource === "Saved teams" ? <label className="field"><span>Saved opponent team</span><select value={battleOpponentTeamId || teams.find(team => team.id !== (battlePlayerTeamId || activeTeam?.id))?.id || ""} onChange={e => setBattleOpponentTeamId(e.target.value)}><option value="">Select opponent</option>{teams.filter(team => team.id !== (battlePlayerTeamId || activeTeam?.id)).map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label> : <div className="field"><span>Auto Teams pool</span><div className="derived-value">{settings.battleType === "PvP" ? onlineOpponentPool.filter(team => team.format === battleFormat()).length + " verified " + settings.tier + " teams loaded" : "No verified facility pool connected yet"}</div></div>}
-              <div className="field"><span>Ruleset</span><div className="derived-value">Gen {settings.generation} · {settings.battleType === "PvP" ? settings.tier : `${settings.gameVersion} · ${pveFacilities[settings.generation]}`}</div></div>
+              <div className="field"><span>Ruleset</span><div className="derived-value">Gen {settings.generation} · {settings.battleType === "PvP" ? settings.tier : `${settings.gameVersion} · ${settings.facility}`}</div></div>
             </div>
             {settings.battleType === "PvP" && opponentSource === "Auto Teams" && <div className="battle-actions"><button type="button" className="secondary-button" onClick={fetchOnlineOpponent} disabled={fetchingOpponent}>{fetchingOpponent ? "Loading team pool…" : onlineOpponentPool.length ? "Refresh Auto Teams pool" : "Load Auto Teams pool"}</button><span className="hint">{onlineOpponent ? "Example: " + onlineOpponent.name + " · " + onlineOpponent.source + (onlineOpponent.author ? " · " + onlineOpponent.author : "") : "Loads valid sample teams for this generation and tier. One is randomly selected for each battle."}</span></div>}
-            {settings.battleType === "PvE" && opponentSource === "Auto Teams" && <p className="battle-warning">Auto Teams will use this game's actual facility trainer pool. That version-specific dataset is not connected yet; choose Saved teams for now.</p>}
+            
             {opponentSourceError && <p className="battle-error">{opponentSourceError}</p>}
             {(settings.battleType === "PvE" || settings.tier === "VGC" || settings.tier === "Custom") && <p className="battle-warning">This selection runs in the generation's Custom Game sandbox. Facility-specific, VGC regulation and custom tier rules are not enforced.</p>}
             {settings.battleType === "PvP" && opponentSource === "Auto Teams" && <section className="benchmark-panel">

@@ -170,12 +170,19 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
   const namesByIdent = new Map<string, string>();
   const latestMoveBySide = new Map<string, { ident: string; name: string }>();
   let outcome: "win" | "loss" | "tie" | null = null;
+  let turnCount = 0;
+  let moveCount = 0;
   const finished = (async () => {
     for await (const chunk of streams.omniscient) {
       for (const line of String(chunk).split("\n")) {
         if (!line.startsWith("|")) continue;
         const parts = line.split("|");
         const tag = parts[1];
+        if (tag === "error") {
+          throw new Error(`Showdown rejected a benchmark battle: ${parts.slice(2).join("|")}`);
+        }
+        if (tag === "turn") turnCount = Number(parts[2]) || turnCount;
+        if (tag === "move") moveCount++;
         if (tag === "win") {
           outcome = parts[2]?.trim() === "Benchmark Player" ? "win" : "loss";
           continue;
@@ -246,6 +253,9 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
           const side = ident.slice(0, 2) === "p1" ? analysis.player : analysis.opponent;
           addPokemonDamage(side, namesByIdent.get(ident) || identName(ident), 0, 0, undefined, true);
         }
+      }
+      if (outcome === "tie" && (!turnCount || !moveCount)) {
+        throw new Error("Showdown ended a benchmark battle in a tie before any turns or moves. The result is invalid and was not counted.");
       }
       if (outcome) return { outcome, analysis };
     }

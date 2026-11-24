@@ -445,6 +445,12 @@ export default function App() {
     try {
       const format = battleFormat();
       const playerSets = makeBattleSets(playerTeam, settings.generation);
+      if (settings.battleType === "PvP") {
+        const playerProblems = TeamValidator.get(format).validateTeam(playerSets as any) || [];
+        if (playerProblems.length) {
+          throw new Error(`Your selected team is not legal for ${format.toUpperCase()}: ${playerProblems.slice(0, 6).join(" | ")}`);
+        }
+      }
       let opponents: BenchmarkOpponent[] = [];
       let sourceCount = 0, rejected = 0, sourceUrl = "Saved teams stored in this browser";
       if (opponentSource === "Auto Teams" && settings.battleType === "PvP") {

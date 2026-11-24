@@ -137,7 +137,12 @@ try {
   if (solo.completed !== 1 || solo.results.length !== 1 || solo.results[0].games !== 1) {
     throw new Error("Single-Pokémon benchmark did not complete one isolated 1v1 matchup.");
   }
-  console.log("Single-Pokémon benchmark test passed: one saved set battles one opponent set without team members.");
+  const playerFaints = solo.analysis.player.pokemon.reduce((sum, pokemon) => sum + pokemon.faints, 0);
+  const opponentFaints = solo.analysis.opponent.pokemon.reduce((sum, pokemon) => sum + pokemon.faints, 0);
+  if (playerFaints !== solo.losses || opponentFaints !== solo.wins) {
+    throw new Error(`1v1 faint telemetry must reconcile with outcomes: player ${playerFaints}/${solo.losses} losses, opponent ${opponentFaints}/${solo.wins} wins.`);
+  }
+  console.log("Single-Pokémon benchmark test passed: isolated 1v1 faint totals reconcile exactly with wins and losses.");
 } finally {
   clearTimeout(timeoutId);
 }

@@ -9,9 +9,23 @@ type Page = "Overview" | "Team Builder" | "Legality analysis" | "Simulator" | "M
 const generations = Array.from({ length: 9 }, (_, i) => i + 1);
 const tiers = ["Anything Goes", "Ubers", "OU", "UU", "RU", "NU", "PU", "ZU", "Little Cup", "VGC", "Custom"];
 const pveFacilities: Record<number, string> = { 3: "Battle Tower", 4: "Battle Tower", 5: "Battle Subway", 6: "Battle Maison", 7: "Battle Tree", 8: "Battle Tower", 9: "Academy Ace Tournament" };
-type Settings = { generation: number; battleType: BattleType; tier: string; mode: BattleMode };
-const defaults: Settings = { generation: 9, battleType: "PvP", tier: "OU", mode: "Auto" };
-function normalizeSettings(s: Settings): Settings { return s.battleType === "PvE" && s.generation < 3 ? { ...s, generation: 3 } : s; }
+const gameVersions: Record<number, string[]> = {
+  1: ["Red / Blue", "Yellow"], 2: ["Gold / Silver", "Crystal"],
+  3: ["Ruby / Sapphire", "Emerald", "FireRed / LeafGreen"],
+  4: ["Diamond / Pearl", "Platinum", "HeartGold / SoulSilver"],
+  5: ["Black / White", "Black 2 / White 2"],
+  6: ["X / Y", "Omega Ruby / Alpha Sapphire"],
+  7: ["Sun / Moon", "Ultra Sun / Ultra Moon"],
+  8: ["Sword / Shield", "Brilliant Diamond / Shining Pearl"],
+  9: ["Scarlet / Violet"],
+};
+type Settings = { generation: number; gameVersion: string; battleType: BattleType; tier: string; mode: BattleMode };
+const defaults: Settings = { generation: 9, gameVersion: "Scarlet / Violet", battleType: "PvP", tier: "OU", mode: "Auto" };
+function normalizeSettings(s: Settings): Settings {
+  const generation = s.battleType === "PvE" && s.generation < 3 ? 3 : s.generation;
+  const versions = gameVersions[generation] || [];
+  return { ...s, generation, gameVersion: versions.includes(s.gameVersion) ? s.gameVersion : (versions[0] || "") };
+}
 function readSettings(): Settings { try { const saved = localStorage.getItem("battle-lab-settings"); return saved ? normalizeSettings({ ...defaults, ...JSON.parse(saved) }) : defaults; } catch { return defaults; } }
 
 type PokemonBuild = {
@@ -22,6 +36,7 @@ type TeamSlot = { id: string; builds: PokemonBuild[]; activeBuildId: string };
 type Team = { id: string; name: string; slots: TeamSlot[]; updatedAt: string };
 type BattleRequest = { active?: Array<{ moves: Array<{ move: string; id?: string; disabled?: boolean; pp?: number; maxpp?: number }> }>; side?: { pokemon: Array<{ ident: string; details: string; condition: string; active?: boolean }> }; forceSwitch?: boolean[]; teamPreview?: boolean; wait?: boolean };
 type BattleController = { streams: any; stopped: boolean };
+type OnlineOpponent = { name: string; author?: string; format: string; source: string; sets: Record<string, unknown>[] };
 const statNames = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"];
 const natures = ["Hardy","Lonely","Brave","Adamant","Naughty","Bold","Docile","Relaxed","Impish","Lax","Timid","Hasty","Serious","Jolly","Naive","Modest","Mild","Quiet","Bashful","Rash","Calm","Gentle","Sassy","Careful","Quirky"];
 const uid = () => crypto.randomUUID();
@@ -97,6 +112,9 @@ export default function App() {
   const [selectedSlotId, setSelectedSlotId] = useState("");
   const [battlePlayerTeamId, setBattlePlayerTeamId] = useState("");
   const [battleOpponentTeamId, setBattleOpponentTeamId] = useState("");
+  const [onlineOpponent, setOnlineOpponent] = useState<OnlineOpponent | null>(null);
+  const [fetchingOpponent, setFetchingOpponent] = useState(false);
+  const [opponentSourceError, setOpponentSourceError] = useState("");
   const [battleActive, setBattleActive] = useState(false);
   const [battleLog, setBattleLog] = useState<string[]>([]);
   const [battleError, setBattleError] = useState("");
@@ -333,6 +351,32 @@ export default function App() {
     const ids: Record<string, string> = { "Anything Goes": "anythinggoes", Ubers: "ubers", OU: "ou", UU: "uu", RU: "ru", NU: "nu", PU: "pu", ZU: "zu", "Little Cup": "lc" };
     return `gen${settings.generation}${ids[settings.tier] || "customgame"}`;
   };
+  const fetchOnlineOpponent = async () => {
+    const format = battleFormat();
+    if (settings.battleType !== "PvP" || settings.tier === "VGC" || settings.tier === "Custom") {
+      setOpponentSourceError("Online sample teams are not available for this ruleset yet.");
+      return;
+    }
+    setFetchingOpponent(true);
+    setOpponentSourceError("");
+    try {
+      const response = await fetch(`https://pkmn.github.io/smogon/data/teams/${format}.json`);
+      if (!response.ok) throw new Error(`Sample-team source returned HTTP ${response.status} for ${format}.`);
+      const samples = await response.json() as Array<{name?: string; author?: string; data?: Record<string, unknown>[] }>;
+      const valid = samples.filter(sample => Array.isArray(sample.data) && sample.data.length === 6)
+        .filter(sample => {
+          try { return (TeamValidator.get(format).validateTeam(sample.data as any) || []).length === 0; }
+          catch { return false; }
+        });
+      if (!valid.length) throw new Error(`No currently valid six-Pokémon sample teams were found for ${format}.`);
+      const sample = valid[Math.floor(Math.random() * valid.length)];
+      setOnlineOpponent({ name: sample.name || `Online ${format.toUpperCase()} sample`, author: sample.author, format, source: "Smogon sample teams via pkmn/smogon", sets: sample.data! });
+      setBattleOpponentTeamId("");
+    } catch (error) {
+      setOnlineOpponent(null);
+      setOpponentSourceError(error instanceof Error ? error.message : "Could not fetch an online opponent.");
+    } finally { setFetchingOpponent(false); }
+  };
   const stopBattle = () => {
     const controller = battleController.current;
     if (controller && !controller.stopped) {
@@ -375,15 +419,20 @@ export default function App() {
   const startBattle = () => {
     const playerId = battlePlayerTeamId || activeTeam?.id || "";
     const opponentId = battleOpponentTeamId || teams.find(team => team.id !== playerId)?.id || "";
-    const playerTeam = teams.find(team => team.id === playerId);
-    const opponentTeam = teams.find(team => team.id === opponentId);
-    if (!playerTeam || !opponentTeam) { setBattleError("Create or select two different teams before starting a battle."); return; }
-    if (playerTeam.slots.length !== 6 || opponentTeam.slots.length !== 6) { setBattleError("Both teams need exactly six Pokémon."); return; }
-    const allComplete = [playerTeam, opponentTeam].every(team => team.slots.every(slot => {
+    const playerTeam = teams.find(t => t.id === playerId);
+    const opponentTeam = teams.find(t => t.id === opponentId);
+    const useOnlineOpponent = settings.battleType === "PvP" && onlineOpponent?.format === battleFormat();
+    if (!playerTeam || (!useOnlineOpponent && !opponentTeam)) { setBattleError("Create a player team and fetch an online opponent or select a saved opponent team."); return; }
+    if (playerTeam.slots.length !== 6 || (!useOnlineOpponent && opponentTeam!.slots.length !== 6)) { setBattleError("Both registered teams need exactly six Pokémon."); return; }
+    const playerComplete = playerTeam.slots.every(slot => {
       const build = activeBuild(slot);
       return Boolean(build.name.trim() && build.moves.some(move => move.trim()));
-    }));
-    if (!allComplete) { setBattleError("Every Pokémon needs a species and at least one move."); return; }
+    });
+    const opponentComplete = useOnlineOpponent || opponentTeam!.slots.every(slot => {
+      const build = activeBuild(slot);
+      return Boolean(build.name.trim() && build.moves.some(move => move.trim()));
+    });
+    if (!playerComplete || !opponentComplete) { setBattleError("Every Pokémon needs a species and at least one move."); return; }
     stopBattle();
     setBattleError("");
     setBattleLog([]);
@@ -435,7 +484,9 @@ export default function App() {
       })();
       const formatid = battleFormat();
       const p1spec = { name: playerTeam.name || "Player", team: Teams.pack(makeBattleSets(playerTeam, settings.generation) as any) };
-      const p2spec = { name: opponentTeam.name || "Opponent", team: Teams.pack(makeBattleSets(opponentTeam, settings.generation) as any) };
+      const p2spec = useOnlineOpponent
+        ? { name: onlineOpponent!.name, team: Teams.pack(onlineOpponent!.sets as any) }
+        : { name: opponentTeam!.name || "Opponent", team: Teams.pack(makeBattleSets(opponentTeam!, settings.generation) as any) };
       void streams.omniscient.write(`>start ${JSON.stringify({ formatid })}\n>player p1 ${JSON.stringify(p1spec)}\n>player p2 ${JSON.stringify(p2spec)}`);
       setBattleActive(true);
     } catch (error) {
@@ -467,6 +518,7 @@ export default function App() {
             <div className="panel-heading"><div><span className="eyebrow">01 / CONFIGURATION</span><h3>Battle environment</h3></div><span className="saved-indicator"><span className="status-dot" /> Settings saved locally</span></div>
             <div className="field-grid">
               <label className="field"><span>Generation</span><select value={settings.generation} onChange={e => updateSetting("generation", Number(e.target.value))}>{generations.map(g => <option value={g} key={g} disabled={settings.battleType === "PvE" && g < 3}>Generation {g}</option>)}</select></label>
+              <label className="field"><span>Game version</span><select value={settings.gameVersion} onChange={e => updateSetting("gameVersion", e.target.value)}>{(gameVersions[settings.generation] || []).map(version => <option key={version}>{version}</option>)}</select></label>
               <fieldset className="field battle-type-field"><legend>Battle type</legend><div className="segmented">{(["PvP","PvE"] as BattleType[]).map(type => <button type="button" key={type} className={settings.battleType === type ? "selected" : ""} aria-pressed={settings.battleType === type} onClick={() => updateSetting("battleType", type)}>{type}</button>)}</div></fieldset>
               {settings.battleType === "PvP" ? <label className="field conditional-field"><span>PvP tier</span><select value={settings.tier} onChange={e => updateSetting("tier", e.target.value)}>{tiers.map(t => <option key={t}>{t}</option>)}</select></label> : <div className="field conditional-field"><span>PvE facility</span><div className="derived-value">{pveFacilities[settings.generation] || "No facility configured"}</div></div>}
             </div>
@@ -536,9 +588,12 @@ export default function App() {
             <div className="panel-heading"><div><span className="eyebrow">BATTLE SETUP</span><h3>Choose teams</h3></div><span className="build-version">{settings.mode} mode</span></div>
             <div className="field-grid">
               <label className="field"><span>Your team</span><select value={battlePlayerTeamId || activeTeam?.id || ""} onChange={e => setBattlePlayerTeamId(e.target.value)}><option value="">Select team</option>{teams.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>
-              <label className="field"><span>Opponent team</span><select value={battleOpponentTeamId || teams.find(team => team.id !== (battlePlayerTeamId || activeTeam?.id))?.id || ""} onChange={e => setBattleOpponentTeamId(e.target.value)}><option value="">Select opponent</option>{teams.filter(team => team.id !== (battlePlayerTeamId || activeTeam?.id)).map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>
-              <div className="field"><span>Ruleset</span><div className="derived-value">Gen {settings.generation} · {settings.battleType === "PvP" ? settings.tier : pveFacilities[settings.generation]}</div></div>
+              {settings.battleType === "PvP" ? <div className="field"><span>Online opponent</span><div className="derived-value">{onlineOpponent ? onlineOpponent.name : "No online opponent loaded"}</div></div> : <label className="field"><span>Saved opponent team</span><select value={battleOpponentTeamId || teams.find(team => team.id !== (battlePlayerTeamId || activeTeam?.id))?.id || ""} onChange={e => setBattleOpponentTeamId(e.target.value)}><option value="">Select opponent</option>{teams.filter(team => team.id !== (battlePlayerTeamId || activeTeam?.id)).map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>}
+              <div className="field"><span>Ruleset</span><div className="derived-value">Gen {settings.generation} · {settings.battleType === "PvP" ? settings.tier : `${settings.gameVersion} · ${pveFacilities[settings.generation]}`}</div></div>
             </div>
+            {settings.battleType === "PvP" && <div className="battle-actions"><button type="button" className="secondary-button" onClick={fetchOnlineOpponent} disabled={fetchingOpponent}>{fetchingOpponent ? "Fetching sample…" : "Fetch online opponent"}</button><span className="hint">{onlineOpponent ? `Source: ${onlineOpponent.source}${onlineOpponent.author ? ` · ${onlineOpponent.author}` : ""}` : "Fetch a current sample team for this generation and tier."}</span></div>}
+            {settings.battleType === "PvE" && <p className="battle-warning">Facility-specific online trainer pools are being connected by game version. Saved teams remain available as a temporary opponent.</p>}
+            {opponentSourceError && <p className="battle-error">{opponentSourceError}</p>}
             {(settings.battleType === "PvE" || settings.tier === "VGC" || settings.tier === "Custom") && <p className="battle-warning">This selection runs in the generation's Custom Game sandbox. Facility-specific, VGC regulation and custom tier rules are not enforced.</p>}
             {battleError && <p className="battle-error">{battleError}</p>}
             <div className="battle-actions"><button type="button" className="primary-button" onClick={startBattle}>Start battle</button><button type="button" className="secondary-button" onClick={stopBattle} disabled={!battleActive}>End battle</button><button type="button" className="secondary-button" onClick={() => setSettings(s => ({...s, mode: s.mode === "Auto" ? "Manual" : "Auto"}))}>{settings.mode === "Auto" ? "Switch to Manual" : "Switch to Auto"}</button></div>

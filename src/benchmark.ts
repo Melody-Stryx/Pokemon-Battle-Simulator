@@ -169,7 +169,7 @@ function mergeSide(target: SideDamageSummary, source: SideDamageSummary) {
   }
   for (const move of source.moveDamage) {
     let existing = target.moveDamage.find(item => item.move === move.move);
-    if (!existing) { existing = { move: move.move, damage: 0, hits: 0 }; target.moveDamage.push(existing); }
+    if (!existing) { existing = { move: move.move, damage: 0, hits: 0, uses: 0 }; target.moveDamage.push(existing); }
     existing.damage += move.damage;
     existing.hits += move.hits;
     existing.uses += move.uses;

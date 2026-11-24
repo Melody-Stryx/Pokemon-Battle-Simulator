@@ -2,14 +2,23 @@ import { BattleStreams, RandomPlayerAI, Teams } from "@pkmn/sim";
 import { readFile, writeFile, unlink } from "node:fs/promises";
 import ts from "typescript";
 
-const benchmarkSource = await readFile(new URL("../src/benchmark.ts", import.meta.url), "utf8");
+const aiSource = await readFile(new URL("../src/pve-ai.ts", import.meta.url), "utf8");
+const compiledAI = ts.transpileModule(aiSource, {
+  compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 },
+}).outputText;
+const aiModuleUrl = new URL("../src/.pve-ai-smoke-runtime.mjs", import.meta.url);
+await writeFile(aiModuleUrl, compiledAI);
+const benchmarkSource = (await readFile(new URL("../src/benchmark.ts", import.meta.url), "utf8"))
+  .replace('"./pve-ai"', '"./.pve-ai-smoke-runtime.mjs"');
 const compiledBenchmark = ts.transpileModule(benchmarkSource, {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 },
 }).outputText;
 const benchmarkModuleUrl = new URL("../src/.benchmark-smoke-runtime.mjs", import.meta.url);
 await writeFile(benchmarkModuleUrl, compiledBenchmark);
 let runExhaustiveBenchmark;
+let chooseTacticalChoice;
 try {
+  ({ chooseTacticalChoice } = await import(aiModuleUrl.href));
   ({ runExhaustiveBenchmark } = await import(benchmarkModuleUrl.href));
 } finally {
   await unlink(benchmarkModuleUrl);
@@ -25,6 +34,22 @@ const makeTeam = (species, move, ability) => Array.from({ length: 6 }, (_, index
   ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
 }));
 
+const tacticalMoveRequest = {
+  side: { pokemon: [{ details: "Pikachu, L100", condition: "100/100", active: true, stats: { atk: 100, spa: 100, spe: 100 }, moves: ["Thunderbolt", "Ice Beam"] }] },
+  active: [{ moves: [{ move: "Thunderbolt", disabled: false }, { move: "Ice Beam", disabled: false }] }],
+};
+const tacticalMove = chooseTacticalChoice(tacticalMoveRequest, ["|switch|p2a: Garchomp|Garchomp, L100|100/100"], "p1");
+if (tacticalMove !== "move 2") throw new Error(`Tactical AI failed to select the super-effective move: ${tacticalMove}`);
+const tacticalSwitchRequest = {
+  side: { pokemon: [
+    { details: "Charizard, L100", condition: "100/100", active: true, stats: { atk: 100, spa: 100, spe: 100 }, moves: ["Flamethrower"] },
+    { details: "Venusaur, L100", condition: "100/100", active: false, stats: { atk: 90, spa: 110, spe: 80 }, moves: ["Energy Ball"] },
+  ] },
+  active: [{ moves: [{ move: "Flamethrower", disabled: false }] }],
+};
+const tacticalSwitch = chooseTacticalChoice(tacticalSwitchRequest, ["|switch|p2a: Blastoise|Blastoise, L100|100/100"], "p1");
+if (tacticalSwitch !== "switch 2") throw new Error(`Tactical AI failed to switch to a favourable counter: ${tacticalSwitch}`);
+console.log("Tactical AI decision tests passed: super-effective move selection and matchup-aware switching.");
 const streams = BattleStreams.getPlayerStreams(new BattleStreams.BattleStream());
 const p1 = new RandomPlayerAI(streams.p1);
 const p2 = new RandomPlayerAI(streams.p2);

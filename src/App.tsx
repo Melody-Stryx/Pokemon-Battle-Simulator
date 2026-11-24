@@ -521,22 +521,6 @@ export default function App() {
     void controller.streams.p1.write(`>p1 ${choice}`);
   };
   const chooseAutomatically = (request: BattleRequest) => chooseTacticalChoice(request, battleDecisionLog.current, "p1");
-  const chooseRandomlyLegacy = (request: BattleRequest) => {
-    if (request.teamPreview) return "team 123456";
-    if (request.forceSwitch?.some(Boolean)) {
-      const pokemon = request.side?.pokemon || [];
-      const available = pokemon.map((p, i) => ({ p, slot: i + 1 })).filter(({p}) => !p.active && !p.condition.endsWith(" fnt"));
-      if (available.length) return `switch ${available[Math.floor(Math.random() * available.length)].slot}`;
-      return "pass";
-    }
-    const moves = request.active?.[0]?.moves || [];
-    const availableMoves = moves.map((move, i) => ({move, slot: i + 1})).filter(entry => !entry.move.disabled);
-    const pokemon = request.side?.pokemon || [];
-    const switches = pokemon.map((p, i) => ({p, slot: i + 1})).filter(({p}) => !p.active && !p.condition.endsWith(" fnt"));
-    if (availableMoves.length && (Math.random() < 0.85 || !switches.length)) return `move ${availableMoves[Math.floor(Math.random() * availableMoves.length)].slot}`;
-    if (switches.length) return `switch ${switches[Math.floor(Math.random() * switches.length)].slot}`;
-    return availableMoves.length ? `move ${availableMoves[0].slot}` : "pass";
-  };
   useEffect(() => {
     if (settings.mode === "Auto" && manualRequest) {
       const request = manualRequest;

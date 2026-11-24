@@ -177,8 +177,9 @@ function identName(ident: string, details?: string) {
 
 async function playOneBattle(format: string, playerSets: Record<string, unknown>[], opponentSets: Record<string, unknown>[]): Promise<{ outcome: "win" | "loss" | "tie"; analysis: BattleAnalysis }> {
   const streams = BattleStreams.getPlayerStreams(new BattleStreams.BattleStream());
-  const p1 = new TacticalPlayerAI(streams.p1, "p1");
-  const p2 = new TacticalPlayerAI(streams.p2, "p2");
+  const generation = Number(format.match(/^gen(\d+)/)?.[1] || 9);
+  const p1 = new TacticalPlayerAI(streams.p1, "p1", generation);
+  const p2 = new TacticalPlayerAI(streams.p2, "p2", generation);
   void p1.start();
   void p2.start();
   const analysis = emptyAnalysis();

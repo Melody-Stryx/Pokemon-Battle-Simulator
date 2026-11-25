@@ -202,7 +202,8 @@ export default function App() {
   const [battleActive, setBattleActive] = useState(false);
   const [battleLog, setBattleLog] = useState<string[]>([]);
   const [battleError, setBattleError] = useState("");
-  const [manualRequest, setManualRequest] = useState<BattleRequest | null>(null);\n  const [teamPreviewSelection, setTeamPreviewSelection] = useState<number[]>([]);
+  const [manualRequest, setManualRequest] = useState<BattleRequest | null>(null);
+  const [teamPreviewSelection, setTeamPreviewSelection] = useState<number[]>([]);
   const [teamTextOpen, setTeamTextOpen] = useState(false);
   const [teamText, setTeamText] = useState("");
   const [teamTextError, setTeamTextError] = useState("");
@@ -363,7 +364,8 @@ export default function App() {
         };
       }
     }
-    if (settings.tier === "Battle Spot Singles" && settings.generation !== 6 && settings.generation !== 7) return { status: "Unsupported format", messages: ["Battle Spot Singles is supported here only for Generations 6 and 7."] };\n    if (settings.tier === "VGC") {
+    if (settings.tier === "Battle Spot Singles" && settings.generation !== 6 && settings.generation !== 7) return { status: "Unsupported format", messages: ["Battle Spot Singles is supported here only for Generations 6 and 7."] };
+    if (settings.tier === "VGC") {
       return {
         status: "Unsupported format",
         messages: ["VGC requires a specific regulation and battle format. Select a supported singles tier for now."],
@@ -635,7 +637,8 @@ export default function App() {
         try {
           for await (const chunk of streams.omniscient) {
             if (controller.stopped) break;
-            const lines = String(chunk).split("\n").filter(Boolean);
+            const lines = String(chunk).split("
+").filter(Boolean);
             setBattleLog(old => [...old, ...lines.map(formatBattleLine).filter(Boolean)].slice(-400));
             if (lines.some(line => line.startsWith("|win|") || line === "|tie")) {
               setBattleActive(false);
@@ -650,7 +653,8 @@ export default function App() {
         try {
           for await (const chunk of streams.p1) {
             if (controller.stopped) break;
-            const lines = String(chunk).split("\n");
+            const lines = String(chunk).split("
+");
             battleDecisionLog.current.push(...lines.filter(line => line.startsWith("|") && !line.startsWith("|request|")));
             if (battleDecisionLog.current.length > 1200) battleDecisionLog.current = battleDecisionLog.current.slice(-900);
             for (const line of lines) {
@@ -664,7 +668,8 @@ export default function App() {
               if (battleModeRef.current === "Auto") {
                 submitBattleChoiceFromController(controller, chooseAutomatically(request));
               } else {
-                setManualRequest(request);\n                if (request.teamPreview) setTeamPreviewSelection(Array.from({ length: Math.min(request.maxTeamSize || request.side?.pokemon.length || 6, request.side?.pokemon.length || 6) }, (_, index) => index + 1));
+                setManualRequest(request);
+                if (request.teamPreview) setTeamPreviewSelection(Array.from({ length: Math.min(request.maxTeamSize || request.side?.pokemon.length || 6, request.side?.pokemon.length || 6) }, (_, index) => index + 1));
               }
             }
           }
@@ -677,7 +682,9 @@ export default function App() {
       const p2spec = useOnlineOpponent
         ? { name: selectedOnlineOpponent!.name, team: Teams.pack(selectedOnlineOpponent!.sets as any) }
         : { name: opponentTeam!.name || "Opponent", team: Teams.pack(makeBattleSets(opponentTeam!, settings.generation) as any) };
-      void streams.omniscient.write(`>start ${JSON.stringify({ formatid })}\n>player p1 ${JSON.stringify(p1spec)}\n>player p2 ${JSON.stringify(p2spec)}`);
+      void streams.omniscient.write(`>start ${JSON.stringify({ formatid })}
+>player p1 ${JSON.stringify(p1spec)}
+>player p2 ${JSON.stringify(p2spec)}`);
       setBattleActive(true);
     } catch (error) {
       setBattleError(error instanceof Error ? error.message : "Could not initialize the battle engine.");

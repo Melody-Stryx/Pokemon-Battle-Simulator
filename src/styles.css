@@ -456,3 +456,8 @@ button.roadmap-row:hover { background: rgba(255,255,255,.025); }
 .stat-input-pair .stat-range { width:100%; height:20px; margin:0; padding:0; border:0; accent-color:#83a9d7; background:transparent; }
 .stat-input-pair .stat-number { width:100%; min-width:0; height:31px; padding:0 5px; text-align:center; font:10px 'DM Mono'; }
 .pokemon-fields input[list] { min-height:36px; }
+
+.slot-reorder { display:flex; align-self:stretch; flex-direction:column; border-left:1px solid #3a414c; }
+.slot-reorder button { flex:1; min-width:25px; padding:0; border:0; color:#aebbd0; background:transparent; font-size:10px; }
+.slot-reorder button:hover:not(:disabled) { color:#fff; background:#3a4656; }
+.slot-reorder button:disabled { opacity:.2; cursor:default; }

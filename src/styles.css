@@ -279,3 +279,150 @@ button.roadmap-row:hover { background: rgba(255,255,255,.025); }
 .damage-move-list span { color:var(--muted); font:9px 'DM Mono'; text-align:right; }
 @media(max-width:800px) { .damage-analysis-grid { grid-template-columns:1fr; } .damage-overview-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:420px) { .damage-overview-grid strong { font-size:15px; } .damage-overview-grid > div { padding:9px; } }
+
+
+/* Compact Pokémon Showdown-inspired team workspace */
+.team-builder-layout {
+  grid-template-columns: minmax(190px, 260px) minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+}
+.team-list-panel, .team-editor-panel {
+  border-radius: 5px;
+  padding: 16px;
+  background: #20242b;
+}
+.team-list-panel .panel-heading, .team-editor-panel .panel-heading {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #3a404a;
+}
+.team-list-panel h3, .team-editor-panel h3 {
+  margin-top: 4px;
+  font-size: 15px;
+}
+.team-list { gap: 2px; margin-top: 10px; }
+.team-list-item {
+  min-height: 48px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: #292e37;
+}
+.team-list-item.current {
+  border-color: #7795b8;
+  background: #303b4a;
+}
+.team-list-item strong { font-size: 11px; }
+.team-list-item small { font-size: 9px; }
+.team-title-row { align-items: center; }
+.team-name-input {
+  width: min(360px, 52vw);
+  padding: 3px 0;
+  border-bottom: 1px solid #4a515d;
+  font-size: 16px;
+}
+.team-slots {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 3px;
+  margin-top: 12px;
+}
+.team-slot {
+  min-height: 43px;
+  border: 1px solid #3a414c;
+  border-radius: 3px;
+  background: #292e37;
+}
+.team-slot.active-slot {
+  border-color: #83a9d7;
+  background: #303b4a;
+  box-shadow: inset 3px 0 #83a9d7;
+}
+.team-slot.vacant {
+  min-height: 37px;
+  padding: 6px 9px;
+  border-radius: 3px;
+}
+.slot-select { padding: 6px 8px; }
+.slot-number {
+  border-radius: 3px;
+  color: #dce7f4;
+  background: #414b59;
+}
+.slot-name { font-size: 11px; }
+.slot-select small { font-size: 9px; }
+.slot-remove { padding-inline: 12px; }
+.add-pokemon-button {
+  width: auto;
+  min-width: 150px;
+  margin-top: 8px;
+  border-radius: 3px;
+  color: #e7edf5;
+  border-color: #52647a;
+  background: #354457;
+}
+.pokemon-editor {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #3a404a;
+}
+.editor-heading { padding-bottom: 10px; }
+.editor-heading h3 { font-size: 15px; }
+.editor-heading select, .team-actions select {
+  min-height: 32px;
+  border-radius: 3px;
+  background: #171b21;
+}
+.primary-button, .secondary-button, .danger-button {
+  border-radius: 3px;
+  padding: 7px 10px;
+  font-size: 10px;
+}
+.primary-button { color: #f0f4fa; border-color: #52647a; background: #354457; }
+.legality-note, .species-summary {
+  border-radius: 3px;
+  background: #292e37;
+}
+.pokemon-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+  margin-top: 13px;
+}
+.pokemon-fields .field select, .move-grid .field select {
+  height: 36px;
+  padding-inline: 9px;
+  border-radius: 3px;
+  background: #171b21;
+  font-size: 11px;
+}
+.field input {
+  height: 36px;
+  border-radius: 3px;
+  background: #171b21;
+}
+.editor-section { margin-top: 16px; }
+.editor-section-title {
+  padding-bottom: 7px;
+  border-bottom: 1px solid #3a404a;
+  font-size: 11px;
+}
+.move-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
+.stat-grid { gap: 7px; }
+.stat-grid .field input { height: 32px; }
+.base-stat-row { gap: 4px; }
+.base-stat-row > div { border-radius: 3px; background: #303640; }
+.base-stat-row .bst-total { background: #354457; }
+.species-summary { padding: 11px; }
+.species-summary-top > strong { font-size: 13px; }
+.species-abilities span { border-radius: 3px; }
+.legality-note { padding: 8px; }
+.build-label-field { max-width: none; }
+@media (max-width: 1050px) {
+  .team-builder-layout { grid-template-columns: 1fr; }
+  .team-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 650px) {
+  .team-list { grid-template-columns: 1fr; }
+  .team-slots { grid-template-columns: 1fr; }
+  .pokemon-fields, .move-grid { grid-template-columns: 1fr; }
+  .team-title-row { align-items: flex-start; }
+}

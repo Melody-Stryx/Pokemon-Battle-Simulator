@@ -206,9 +206,8 @@ export default function App() {
   const [teamTextOpen, setTeamTextOpen] = useState(false);
   const [teamText, setTeamText] = useState("");
   const [teamTextError, setTeamTextError] = useState("");
-  const [battleMusicEnabled, setBattleMusicEnabled] = useState(() => localStorage.getItem("battle-lab-music-enabled") === "true");
-  const [battleMusicUrl, setBattleMusicUrl] = useState(defaultBattleMusicUrl);
-  const [battleMusicName, setBattleMusicName] = useState("Pokémon HeartGold / SoulSilver · Pokémon Center");
+  const [battleMusicEnabled, setBattleMusicEnabled] = useState(() => localStorage.getItem("battle-lab-music-enabled") !== "false");
+  const battleMusicUrl = defaultBattleMusicUrl;
   const battleMusicRef = useRef<HTMLAudioElement | null>(null);
   const battleController = useRef<BattleController | null>(null);
   const battleModeRef = useRef(settings.mode);
@@ -217,18 +216,23 @@ export default function App() {
   useEffect(() => { localStorage.setItem("battle-lab-music-enabled", String(battleMusicEnabled)); }, [battleMusicEnabled]);
   useEffect(() => {
     const audio = battleMusicRef.current;
-    if (!audio || !battleMusicUrl) return;
+    if (!audio) return;
     audio.src = battleMusicUrl;
     audio.loop = true;
     audio.volume = 0.28;
-    return () => { audio.pause(); audio.removeAttribute("src"); audio.load(); if (battleMusicUrl.startsWith("blob:")) URL.revokeObjectURL(battleMusicUrl); };
-  }, [battleMusicUrl]);
-  useEffect(() => {
-    const audio = battleMusicRef.current;
-    if (!audio || !battleMusicUrl) return;
-    if (battleMusicEnabled && activePage === "Simulator") void audio.play().catch(() => setBattleError("Browser playback was blocked. Press the music toggle again to start playback."));
+    if (battleMusicEnabled) void audio.play().catch(() => {});
     else audio.pause();
-  }, [battleMusicEnabled, battleMusicUrl, activePage]);
+    const resumeAfterGesture = () => {
+      if (battleMusicEnabled && audio.paused) void audio.play().catch(() => {});
+    };
+    window.addEventListener("pointerdown", resumeAfterGesture);
+    window.addEventListener("keydown", resumeAfterGesture);
+    return () => {
+      window.removeEventListener("pointerdown", resumeAfterGesture);
+      window.removeEventListener("keydown", resumeAfterGesture);
+      audio.pause();
+    };
+  }, [battleMusicEnabled, battleMusicUrl]);
   useEffect(() => { localStorage.setItem("battle-lab-teams", JSON.stringify(teams)); }, [teams]);
   useEffect(() => {
     if (!matchupRun) return;
@@ -730,7 +734,7 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <audio ref={battleMusicRef} preload="none" />
+      <audio ref={battleMusicRef} preload="auto" autoPlay loop />
       <aside className="sidebar">
         <div className="brand"><div className="brand-mark">P</div><div><strong>Pokémon Battle Lab</strong><span>TEAM TESTING SUITE</span></div></div>
         <nav aria-label="Main navigation">
@@ -739,7 +743,7 @@ export default function App() {
         <div className="sidebar-note"><span className="status-dot" /><span>Local workspace</span></div>
       </aside>
       <section className="main-content">
-        <header className="topbar"><div><div className="eyebrow">POKÉMON TEAM TESTING</div><h1>{activePage}</h1></div><div className="topbar-tag">BUILD <span>{__BUILD_NUMBER__}</span></div></header>
+        <header className="topbar"><div><div className="eyebrow">POKÉMON TEAM TESTING</div><h1>{activePage}</h1></div><div className="topbar-actions"><button type="button" className={battleMusicEnabled ? "music-toggle active" : "music-toggle"} aria-pressed={battleMusicEnabled} onClick={() => setBattleMusicEnabled(enabled => !enabled)} title={battleMusicEnabled ? "Turn Pokémon Center music off" : "Turn Pokémon Center music on"}>{battleMusicEnabled ? "♫ Music on" : "♫ Music off"}</button><button type="button" className="google-login-button" disabled title="Google authentication is not connected yet">Google Login</button><div className="topbar-tag">BUILD <span>{__BUILD_NUMBER__}</span></div></div></header>
         {activePage === "Overview" && <>
           <section className="intro"><div><div className="eyebrow">SIMULATION SETUP</div><h2>Configure your ruleset.</h2><p>Choose a generation and battle environment. Your settings are saved on this device.</p></div><div className="intro-symbol" aria-hidden="true">◈</div></section>
           <section className="panel setup-panel">
@@ -859,8 +863,6 @@ export default function App() {
               {benchmarkError && <p className="battle-error">{benchmarkError}</p>}
             </section>
             {battleError && <p className="battle-error">{battleError}</p>}
-            <div className="battle-music-controls"><div><strong>Battle music</strong><small>{battleMusicName || "Pokémon HeartGold / SoulSilver · Pokémon Center"}</small></div><button type="button" className={battleMusicEnabled ? "primary-button" : "secondary-button"} disabled={!battleMusicUrl} aria-pressed={battleMusicEnabled} onClick={() => setBattleMusicEnabled(enabled => !enabled)}>{battleMusicEnabled ? "Music on · turn off" : "Music off · turn on"}</button><label className="secondary-button music-file-button">Choose audio<input type="file" accept="audio/*" onChange={e => { const file=e.target.files?.[0]; if (!file) return; setBattleMusicName(file.name); setBattleMusicUrl(URL.createObjectURL(file)); setBattleMusicEnabled(true); e.currentTarget.value=""; }} /></label></div>
-            <p className="hint battle-music-hint">Toggle is saved. The supplied Pokémon Center track streams and loops. If the host blocks playback, choose a local audio file instead. Playback pauses when you leave the Simulator.</p>
             <div className="battle-actions"><button type="button" className="primary-button" onClick={startBattle}>Start single battle</button><button type="button" className="secondary-button" onClick={stopBattle} disabled={!battleActive}>End battle</button><button type="button" className="secondary-button" onClick={() => setSettings(s => ({...s, mode: s.mode === "Auto" ? "Manual" : "Auto"}))}>{settings.mode === "Auto" ? "Switch to Manual" : "Switch to Auto"}</button></div>
           </section>
           {(battleActive || battleLog.length > 0) && <section className="panel battle-live-panel">

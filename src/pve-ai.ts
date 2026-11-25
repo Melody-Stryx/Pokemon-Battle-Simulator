@@ -4,7 +4,7 @@ import { RandomPlayerAI } from "@pkmn/sim";
 type SideID = "p1" | "p2";
 type PokemonView = { ident?: string; details?: string; condition?: string; active?: boolean; stats?: Record<string, number>; moves?: string[]; reviving?: boolean; [key: string]: unknown };
 type MoveView = { move: string; disabled?: boolean; [key: string]: unknown };
-type RequestView = { wait?: boolean; teamPreview?: boolean; forceSwitch?: boolean[]; active?: Array<{ moves?: MoveView[]; trapped?: boolean; canMegaEvo?: boolean; canDynamax?: boolean; canTerastallize?: boolean }>; side?: { pokemon: PokemonView[] } };
+type RequestView = { wait?: boolean; teamPreview?: boolean; maxTeamSize?: number; forceSwitch?: boolean[]; active?: Array<{ moves?: MoveView[]; trapped?: boolean; canMegaEvo?: boolean; canDynamax?: boolean; canTerastallize?: boolean }>; side?: { pokemon: PokemonView[] } };
 
 const toID = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
 const speciesName = (pokemon?: PokemonView) => (pokemon?.details || pokemon?.ident || "").split(",")[0].replace(/^p[1-4][a-z]?:\s*/i, "").trim();
@@ -119,7 +119,7 @@ function previewOrder(team: PokemonView[], log: string[], side: SideID, generati
 export function chooseTacticalChoice(request: RequestView, log: string[], side: SideID, generation = 9): string {
   const team = request.side?.pokemon || [];
   if (request.wait) return "pass";
-  if (request.teamPreview) return `team ${previewOrder(team, log, side, generation)}`;
+  if (request.teamPreview) return `team ${previewOrder(team, log, side, generation).slice(0, request.maxTeamSize || team.length)}`;
   const foe = getFoe(log, side);
   if (request.forceSwitch?.length) {
     const used: number[] = [];

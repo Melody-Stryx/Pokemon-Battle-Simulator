@@ -86,7 +86,7 @@ function ivsForHiddenPowerType(type: string, current: Record<string, number>) {
   const stats = ["HP","Atk","Def","Spe","SpA","SpD"];
   let best = { ivs: current, cost: Number.POSITIVE_INFINITY, total: -1 };
   for (let mask = 0; mask < 64; mask++) {
-    const bits = stats.reduce((value, stat, index) => value + (((mask >> index) & 1) * (2 ** index)), 0);
+    const bits = stats.reduce((value, _stat, index) => value + (((mask >> index) & 1) * (2 ** index)), 0);
     if (Math.floor(bits * 15 / 63) !== target) continue;
     const next = { ...current };
     let cost = 0, total = 0;

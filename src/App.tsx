@@ -75,6 +75,35 @@ function readMatchupRun(): MatchupAnalysisRun | null {
   catch { return null; }
 }
 const statNames = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"];
+const hiddenPowerTypes = ["Fighting","Flying","Poison","Ground","Rock","Bug","Ghost","Steel","Fire","Water","Grass","Electric","Psychic","Ice","Dragon","Dark"];
+function hiddenPowerTypeFromIvs(ivs: Record<string, number>) {
+  const bits = ["HP","Atk","Def","Spe","SpA","SpD"].reduce((value, stat, index) => value + ((ivs[stat] || 0) % 2) * (2 ** index), 0);
+  return hiddenPowerTypes[Math.floor(bits * 15 / 63)];
+}
+function ivsForHiddenPowerType(type: string, current: Record<string, number>) {
+  const target = hiddenPowerTypes.indexOf(type);
+  if (target < 0) return current;
+  const stats = ["HP","Atk","Def","Spe","SpA","SpD"];
+  let best = { ivs: current, cost: Number.POSITIVE_INFINITY, total: -1 };
+  for (let mask = 0; mask < 64; mask++) {
+    const bits = stats.reduce((value, stat, index) => value + (((mask >> index) & 1) * (2 ** index)), 0);
+    if (Math.floor(bits * 15 / 63) !== target) continue;
+    const next = { ...current };
+    let cost = 0, total = 0;
+    for (let index = 0; index < stats.length; index++) {
+      const stat = stats[index], parity = (mask >> index) & 1;
+      const old = Math.max(0, Math.min(31, Number(current[stat] ?? 31)));
+      const lower = old - ((old % 2) !== parity ? 1 : 0);
+      const upper = lower + 2;
+      const chosen = [lower, upper].filter(value => value >= 0 && value <= 31).sort((a,b) => Math.abs(a-old)-Math.abs(b-old) || b-a)[0] ?? (parity ? 31 : 30);
+      next[stat] = chosen;
+      cost += Math.abs(chosen - old);
+      total += chosen;
+    }
+    if (cost < best.cost || (cost === best.cost && total > best.total)) best = { ivs: next, cost, total };
+  }
+  return best.ivs;
+}
 const natures = ["Hardy","Lonely","Brave","Adamant","Naughty","Bold","Docile","Relaxed","Impish","Lax","Timid","Hasty","Serious","Jolly","Naive","Modest","Mild","Quiet","Bashful","Rash","Calm","Gentle","Sassy","Careful","Quirky"];
 const uid = () => crypto.randomUUID();
 const natureChanges: Record<string, [string, string]> = {
@@ -760,7 +789,7 @@ export default function App() {
                   {selectedSpecies && <div className="editor-section final-stats-section"><div className="editor-section-title">Final stats <small>Level {selectedBuild.level} · {selectedBuild.nature} · Ability and item modifiers included</small></div><div className="base-stat-row">{statNames.map((label, index) => { const stat = (["hp","atk","def","spa","spd","spe"] as const)[index]; const baseValue = calculateFinalStat(selectedSpecies.baseStats[stat], selectedBuild.ivs[label], selectedBuild.evs[label], selectedBuild.level, stat, selectedBuild.nature); const value = calculateBattleStat(baseValue, stat, selectedBuild.ability, selectedBuild.item); return <div key={stat}><small>{label}</small><strong>{value}</strong>{value !== baseValue && <small className="stat-modifier">Base {baseValue}</small>}</div>; })}<div className="bst-total"><small>Total</small><strong>{statNames.reduce((sum, label, index) => { const stat = (["hp","atk","def","spa","spd","spe"] as const)[index]; const baseValue = calculateFinalStat(selectedSpecies.baseStats[stat], selectedBuild.ivs[label], selectedBuild.evs[label], selectedBuild.level, stat, selectedBuild.nature); return sum + calculateBattleStat(baseValue, stat, selectedBuild.ability, selectedBuild.item); }, 0)}</strong></div></div>{["wise glasses", "muscle band"].includes(selectedBuild.item.toLowerCase()) && <p className="stat-total">Damage modifiers: {selectedBuild.item.toLowerCase() === "wise glasses" ? "Wise Glasses: special-move damage ×1.1." : "Muscle Band: physical-move damage ×1.1."} These boost move damage, not the displayed offensive stat.</p>}</div>}
                   <div className="editor-section"><div className="editor-section-title">Moves <small>{moveOptions.length} moves in Gen {settings.generation} data</small></div><div className="move-grid">{selectedBuild.moves.map((move,i) => <label className="field" key={i}><span>Move {i+1}</span><input list="showdown-moves" value={move} placeholder="Search move…" onChange={e => patchBuild({moves:selectedBuild.moves.map((m,j) => j===i ? e.target.value : m)})} /></label>)}</div></div>
                   <div className="editor-section"><div className="editor-section-title">Effort values (EVs) <small>510 total maximum</small></div><div className="stat-grid">{statNames.map(stat => <label className="field" key={stat}><span>{stat}</span><div className="stat-input-pair"><input className="stat-range" aria-label={`${stat} EV slider`} type="range" min="0" max="252" step="1" value={selectedBuild.evs[stat]} onChange={e => patchBuild({evs:{...selectedBuild.evs,[stat]:Number(e.target.value)}})} /><input className="stat-number" aria-label={`${stat} EV`} type="number" min="0" max="252" value={selectedBuild.evs[stat]} onChange={e => patchBuild({evs:{...selectedBuild.evs,[stat]:Math.max(0,Math.min(252,Number(e.target.value)||0))}})} /></div></label>)}</div><p className="stat-total">Total EVs: {Object.values(selectedBuild.evs).reduce((a,b)=>a+b,0)} / 510</p></div>
-                  <div className="editor-section"><div className="editor-section-title">Individual values (IVs)</div><div className="stat-grid">{statNames.map(stat => <label className="field" key={stat}><span>{stat}</span><div className="stat-input-pair"><input className="stat-range" aria-label={`${stat} IV slider`} type="range" min="0" max="31" step="1" value={selectedBuild.ivs[stat]} onChange={e => patchBuild({ivs:{...selectedBuild.ivs,[stat]:Number(e.target.value)}})} /><input className="stat-number" aria-label={`${stat} IV`} type="number" min="0" max="31" value={selectedBuild.ivs[stat]} onChange={e => patchBuild({ivs:{...selectedBuild.ivs,[stat]:Math.max(0,Math.min(31,Number(e.target.value)||0))}})} /></div></label>)}</div></div>
+                  <div className="editor-section"><div className="editor-section-title">Individual values (IVs) <small>Hidden Power helper available in Generations 3-7</small></div>{settings.generation >= 3 && settings.generation <= 7 && <label className="field hidden-power-field"><span>Hidden Power type · auto-set IVs</span><select value={hiddenPowerTypeFromIvs(selectedBuild.ivs)} onChange={e => patchBuild({ivs:ivsForHiddenPowerType(e.target.value, selectedBuild.ivs)})}>{hiddenPowerTypes.map(type => <option key={type} value={type}>{type}</option>)}</select><small>Chooses the closest IV combination that produces the selected type, preserving your current IVs where possible.</small></label>}<div className="stat-grid">{statNames.map(stat => <label className="field" key={stat}><span>{stat}</span><div className="stat-input-pair"><input className="stat-range" aria-label={`${stat} IV slider`} type="range" min="0" max="31" step="1" value={selectedBuild.ivs[stat]} onChange={e => patchBuild({ivs:{...selectedBuild.ivs,[stat]:Number(e.target.value)}})} /><input className="stat-number" aria-label={`${stat} IV`} type="number" min="0" max="31" value={selectedBuild.ivs[stat]} onChange={e => patchBuild({ivs:{...selectedBuild.ivs,[stat]:Math.max(0,Math.min(31,Number(e.target.value)||0))}})} /></div></label>)}</div></div>
                   <label className="field build-label-field"><span>Build label</span><input value={selectedBuild.label} placeholder="e.g. Choice Scarf, Defensive, Setup" onChange={e => patchBuild({label:e.target.value})} /></label>
                 </div> : activeTeam.slots.length > 0 ? <div className="empty-state"><strong>Select a Pokémon slot</strong><p>Choose a filled slot above to edit its set.</p></div> : <div className="empty-state"><strong>Your team is empty</strong><p>Add a Pokémon to begin building your team.</p></div>}
               </>}

@@ -426,3 +426,27 @@ button.roadmap-row:hover { background: rgba(255,255,255,.025); }
   .pokemon-fields, .move-grid { grid-template-columns: 1fr; }
   .team-title-row { align-items: flex-start; }
 }
+
+
+/* Showdown-style team management and battle soundtrack */
+.roster-section { margin-top:18px; padding-top:14px; border-top:1px solid #3a404a; }
+.roster-heading { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:9px; color:#e8edf5; font-size:11px; }
+.roster-heading span { color:var(--muted); font:10px 'DM Mono'; }
+.team-list { grid-template-columns:1fr; }
+.team-format-hint { margin-top:13px; padding-top:11px; border-top:1px solid #3a404a; }
+.showdown-import-panel { margin:15px 0 18px; padding:13px; border:1px solid #46566a; border-radius:4px; background:#171b21; }
+.showdown-import-panel textarea { display:block; width:100%; min-height:220px; resize:vertical; margin:10px 0; padding:11px; border:1px solid #3d4652; border-radius:3px; outline:0; color:#e8edf5; background:#101318; font:11px/1.55 'DM Mono',monospace; }
+.showdown-import-panel textarea:focus { border-color:#83a9d7; }
+.battle-music-controls { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin:15px 0 0; padding:12px; border:1px solid var(--border); border-radius:5px; background:#171b21; }
+.battle-music-controls > div { display:grid; gap:4px; flex:1 1 180px; min-width:0; }
+.battle-music-controls strong { color:#e8edf5; font-size:11px; }
+.battle-music-controls small { color:var(--muted); font-size:9px; overflow-wrap:anywhere; }
+.music-file-button { position:relative; display:inline-flex; align-items:center; cursor:pointer; }
+.music-file-button input { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
+.battle-music-hint { margin-top:7px; }
+@media(max-width:650px) {
+  .team-builder-layout { grid-template-columns:minmax(0,1fr); }
+  .team-list-panel,.team-editor-panel { padding:13px; }
+  .battle-music-controls { align-items:stretch; }
+  .battle-music-controls > button,.music-file-button { justify-content:center; }
+}

@@ -74,6 +74,7 @@ function readMatchupRun(): MatchupAnalysisRun | null {
   try { const value = localStorage.getItem("battle-lab-matchup-results"); return value ? JSON.parse(value) as MatchupAnalysisRun : null; }
   catch { return null; }
 }
+const defaultBattleMusicUrl = "https://nu.vgmtreasurechest.com/soundtracks/pokemon-heartgold-and-soulsilver/nyaijyqjri/15.%20Pok%C3%A9mon%20Center.mp3";
 const statNames = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"];
 const hiddenPowerTypes = ["Fighting","Flying","Poison","Ground","Rock","Bug","Ghost","Steel","Fire","Water","Grass","Electric","Psychic","Ice","Dragon","Dark"];
 function hiddenPowerTypeFromMove(move: string) {
@@ -206,8 +207,8 @@ export default function App() {
   const [teamText, setTeamText] = useState("");
   const [teamTextError, setTeamTextError] = useState("");
   const [battleMusicEnabled, setBattleMusicEnabled] = useState(() => localStorage.getItem("battle-lab-music-enabled") === "true");
-  const [battleMusicUrl, setBattleMusicUrl] = useState("");
-  const [battleMusicName, setBattleMusicName] = useState("");
+  const [battleMusicUrl, setBattleMusicUrl] = useState(defaultBattleMusicUrl);
+  const [battleMusicName, setBattleMusicName] = useState("Pokémon HeartGold / SoulSilver · Pokémon Center");
   const battleMusicRef = useRef<HTMLAudioElement | null>(null);
   const battleController = useRef<BattleController | null>(null);
   const battleModeRef = useRef(settings.mode);
@@ -220,7 +221,7 @@ export default function App() {
     audio.src = battleMusicUrl;
     audio.loop = true;
     audio.volume = 0.28;
-    return () => { audio.pause(); audio.removeAttribute("src"); audio.load(); URL.revokeObjectURL(battleMusicUrl); };
+    return () => { audio.pause(); audio.removeAttribute("src"); audio.load(); if (battleMusicUrl.startsWith("blob:")) URL.revokeObjectURL(battleMusicUrl); };
   }, [battleMusicUrl]);
   useEffect(() => {
     const audio = battleMusicRef.current;
@@ -858,8 +859,8 @@ export default function App() {
               {benchmarkError && <p className="battle-error">{benchmarkError}</p>}
             </section>
             {battleError && <p className="battle-error">{battleError}</p>}
-            <div className="battle-music-controls"><div><strong>Battle music</strong><small>{battleMusicName || "Load a local HGSS Pokémon Center audio file"}</small></div><button type="button" className={battleMusicEnabled ? "primary-button" : "secondary-button"} disabled={!battleMusicUrl} aria-pressed={battleMusicEnabled} onClick={() => setBattleMusicEnabled(enabled => !enabled)}>{battleMusicEnabled ? "Music on · turn off" : "Music off · turn on"}</button><label className="secondary-button music-file-button">Choose audio<input type="file" accept="audio/*" onChange={e => { const file=e.target.files?.[0]; if (!file) return; setBattleMusicName(file.name); setBattleMusicUrl(URL.createObjectURL(file)); setBattleMusicEnabled(true); e.currentTarget.value=""; }} /></label></div>
-            <p className="hint battle-music-hint">Toggle is saved. Select a local audio file again after refreshing the page. Playback pauses when you leave the Simulator.</p>
+            <div className="battle-music-controls"><div><strong>Battle music</strong><small>{battleMusicName || "Pokémon HeartGold / SoulSilver · Pokémon Center"}</small></div><button type="button" className={battleMusicEnabled ? "primary-button" : "secondary-button"} disabled={!battleMusicUrl} aria-pressed={battleMusicEnabled} onClick={() => setBattleMusicEnabled(enabled => !enabled)}>{battleMusicEnabled ? "Music on · turn off" : "Music off · turn on"}</button><label className="secondary-button music-file-button">Choose audio<input type="file" accept="audio/*" onChange={e => { const file=e.target.files?.[0]; if (!file) return; setBattleMusicName(file.name); setBattleMusicUrl(URL.createObjectURL(file)); setBattleMusicEnabled(true); e.currentTarget.value=""; }} /></label></div>
+            <p className="hint battle-music-hint">Toggle is saved. The supplied Pokémon Center track streams and loops. If the host blocks playback, choose a local audio file instead. Playback pauses when you leave the Simulator.</p>
             <div className="battle-actions"><button type="button" className="primary-button" onClick={startBattle}>Start single battle</button><button type="button" className="secondary-button" onClick={stopBattle} disabled={!battleActive}>End battle</button><button type="button" className="secondary-button" onClick={() => setSettings(s => ({...s, mode: s.mode === "Auto" ? "Manual" : "Auto"}))}>{settings.mode === "Auto" ? "Switch to Manual" : "Switch to Auto"}</button></div>
           </section>
           {(battleActive || battleLog.length > 0) && <section className="panel battle-live-panel">

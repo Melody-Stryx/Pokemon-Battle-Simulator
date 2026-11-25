@@ -185,16 +185,14 @@ export default function App() {
     audio.src = battleMusicUrl;
     audio.loop = true;
     audio.volume = 0.28;
-    if (battleMusicEnabled) void audio.play().catch(() => setBattleError("Browser playback was blocked. Press the music toggle again to start playback."));
-    else audio.pause();
     return () => { audio.pause(); audio.removeAttribute("src"); audio.load(); URL.revokeObjectURL(battleMusicUrl); };
   }, [battleMusicUrl]);
   useEffect(() => {
     const audio = battleMusicRef.current;
     if (!audio || !battleMusicUrl) return;
-    if (battleMusicEnabled) void audio.play().catch(() => setBattleError("Browser playback was blocked. Press the music toggle again to start playback."));
+    if (battleMusicEnabled && activePage === "Simulator") void audio.play().catch(() => setBattleError("Browser playback was blocked. Press the music toggle again to start playback."));
     else audio.pause();
-  }, [battleMusicEnabled, battleMusicUrl]);
+  }, [battleMusicEnabled, battleMusicUrl, activePage]);
   useEffect(() => { localStorage.setItem("battle-lab-teams", JSON.stringify(teams)); }, [teams]);
   useEffect(() => {
     if (!matchupRun) return;
@@ -689,6 +687,7 @@ export default function App() {
 
   return (
     <main className="app-shell">
+      <audio ref={battleMusicRef} preload="none" />
       <aside className="sidebar">
         <div className="brand"><div className="brand-mark">P</div><div><strong>Pokémon Battle Lab</strong><span>TEAM TESTING SUITE</span></div></div>
         <nav aria-label="Main navigation">
@@ -813,12 +812,12 @@ export default function App() {
               {benchmarkError && <p className="battle-error">{benchmarkError}</p>}
             </section>
             {battleError && <p className="battle-error">{battleError}</p>}
+            <div className="battle-music-controls"><div><strong>Battle music</strong><small>{battleMusicName || "Load a local HGSS Pokémon Center audio file"}</small></div><button type="button" className={battleMusicEnabled ? "primary-button" : "secondary-button"} disabled={!battleMusicUrl} aria-pressed={battleMusicEnabled} onClick={() => setBattleMusicEnabled(enabled => !enabled)}>{battleMusicEnabled ? "Music on · turn off" : "Music off · turn on"}</button><label className="secondary-button music-file-button">Choose audio<input type="file" accept="audio/*" onChange={e => { const file=e.target.files?.[0]; if (!file) return; setBattleMusicName(file.name); setBattleMusicUrl(URL.createObjectURL(file)); setBattleMusicEnabled(true); e.currentTarget.value=""; }} /></label></div>
+            <p className="hint battle-music-hint">Toggle is saved. Select a local audio file again after refreshing the page. Playback pauses when you leave the Simulator.</p>
             <div className="battle-actions"><button type="button" className="primary-button" onClick={startBattle}>Start single battle</button><button type="button" className="secondary-button" onClick={stopBattle} disabled={!battleActive}>End battle</button><button type="button" className="secondary-button" onClick={() => setSettings(s => ({...s, mode: s.mode === "Auto" ? "Manual" : "Auto"}))}>{settings.mode === "Auto" ? "Switch to Manual" : "Switch to Auto"}</button></div>
           </section>
           {(battleActive || battleLog.length > 0) && <section className="panel battle-live-panel">
             <div className="panel-heading"><div><span className="eyebrow">LIVE BATTLE</span><h3>{battleActive ? "Battle in progress" : "Battle finished"}</h3></div><span className="saved-indicator"><span className="status-dot" /> {settings.mode} control</span></div>
-            <div className="battle-music-controls"><audio ref={battleMusicRef} preload="none" /><div><strong>Battle music</strong><small>{battleMusicName || "Load a local HGSS Pokémon Center audio file"}</small></div><button type="button" className={battleMusicEnabled ? "primary-button" : "secondary-button"} disabled={!battleMusicUrl} aria-pressed={battleMusicEnabled} onClick={() => setBattleMusicEnabled(enabled => !enabled)}>{battleMusicEnabled ? "Music on · turn off" : "Music off · turn on"}</button><label className="secondary-button music-file-button">Choose audio<input type="file" accept="audio/*" onChange={e => { const file=e.target.files?.[0]; if (!file) return; setBattleMusicName(file.name); setBattleMusicUrl(URL.createObjectURL(file)); setBattleMusicEnabled(true); e.currentTarget.value=""; }} /></label></div>
-            <p className="hint battle-music-hint">The music toggle is saved. The selected local audio file must be loaded again after a page refresh.</p>
             {manualRequest && settings.mode === "Manual" && <div className="manual-controls">
               <strong>Your decision</strong>
               {manualRequest.teamPreview && <div className="team-preview-choice"><p className="hint">Team preview is active. Select the six Pokémon in their current order.</p><button type="button" className="secondary-button" onClick={() => submitBattleChoice("team 123456")}>Confirm team order</button></div> }

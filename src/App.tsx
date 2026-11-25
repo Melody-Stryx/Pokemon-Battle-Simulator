@@ -10,7 +10,7 @@ type BattleMode = "Auto" | "Manual";
 type BenchmarkMode = "Teams" | "Single Pokémon";
 type Page = "Overview" | "Team Builder" | "Legality analysis" | "Simulator" | "Matchup Analysis";
 const generations = Array.from({ length: 9 }, (_, i) => i + 1);
-const tiers = ["Anything Goes", "Ubers", "OU", "UU", "RU", "NU", "PU", "ZU", "Little Cup", "VGC", "Custom"];
+const tiers = ["Anything Goes", "Ubers", "OU", "UU", "RU", "NU", "PU", "ZU", "Little Cup", "Battle Spot Singles", "VGC", "Custom"];
 const facilityOptionsByGame: Record<number, Record<string, string[]>> = {
   3: { "Ruby / Sapphire": ["Battle Tower"], "Emerald": ["Battle Frontier"], "FireRed / LeafGreen": ["Trainer Tower"] },
   4: { "Diamond / Pearl": ["Battle Tower"], "Platinum": ["Battle Frontier"], "HeartGold / SoulSilver": ["Battle Frontier"] },
@@ -50,7 +50,7 @@ type PokemonBuild = {
 };
 type TeamSlot = { id: string; builds: PokemonBuild[]; activeBuildId: string };
 type Team = { id: string; name: string; slots: TeamSlot[]; updatedAt: string };
-type BattleRequest = { active?: Array<{ moves: Array<{ move: string; id?: string; disabled?: boolean; pp?: number; maxpp?: number }> }>; side?: { pokemon: Array<{ ident: string; details: string; condition: string; active?: boolean }> }; forceSwitch?: boolean[]; teamPreview?: boolean; wait?: boolean };
+type BattleRequest = { active?: Array<{ moves: Array<{ move: string; id?: string; disabled?: boolean; pp?: number; maxpp?: number }> }>; side?: { pokemon: Array<{ ident: string; details: string; condition: string; active?: boolean }> }; forceSwitch?: boolean[]; teamPreview?: boolean; maxTeamSize?: number; wait?: boolean };
 type BattleController = { streams: any; stopped: boolean };
 type OnlineOpponent = { name: string; author?: string; format: string; source: string; sets: Record<string, unknown>[] };
 type MatchupAnalysisRun = BenchmarkProgress & {
@@ -202,7 +202,7 @@ export default function App() {
   const [battleActive, setBattleActive] = useState(false);
   const [battleLog, setBattleLog] = useState<string[]>([]);
   const [battleError, setBattleError] = useState("");
-  const [manualRequest, setManualRequest] = useState<BattleRequest | null>(null);
+  const [manualRequest, setManualRequest] = useState<BattleRequest | null>(null);\n  const [teamPreviewSelection, setTeamPreviewSelection] = useState<number[]>([]);
   const [teamTextOpen, setTeamTextOpen] = useState(false);
   const [teamText, setTeamText] = useState("");
   const [teamTextError, setTeamTextError] = useState("");
@@ -351,7 +351,7 @@ export default function App() {
           : {
               status: "Legal",
               messages: [
-                "All six sets pass Generation 7 Showdown set validation and Battle Tree Super Singles restrictions.",
+                "All six registered sets pass Generation 7 Showdown set validation and the implemented Battle Tree Super Singles checks.",
                 "Register six Pokémon and choose three for each battle. Pokémon above level 50 are scaled down; Pokémon below level 50 remain at their level.",
                 "Species Clause, Item Clause and the restricted Pokémon list are clear.",
               ],
@@ -363,7 +363,7 @@ export default function App() {
         };
       }
     }
-    if (settings.tier === "VGC") {
+    if (settings.tier === "Battle Spot Singles" && settings.generation !== 6 && settings.generation !== 7) return { status: "Unsupported format", messages: ["Battle Spot Singles is supported here only for Generations 6 and 7."] };\n    if (settings.tier === "VGC") {
       return {
         status: "Unsupported format",
         messages: ["VGC requires a specific regulation and battle format. Select a supported singles tier for now."],
@@ -376,7 +376,7 @@ export default function App() {
       };
     }
 
-    const tierIds: Record<string, string> = {
+    const tierIds: Record<string, string> = { "Battle Spot Singles": "battlespotsingles",
       "Anything Goes": "anythinggoes",
       "Ubers": "ubers",
       "OU": "ou",
@@ -399,7 +399,7 @@ export default function App() {
       const problems = TeamValidator.get(format).validateTeam(sets as any) || [];
       return problems.length
         ? { status: "Illegal", messages: problems }
-        : { status: "Legal", messages: [`All six sets pass the Generation ${settings.generation} ${settings.tier} validator.`] };
+        : { status: "Legal", messages: [`${namedBuilds.length} Pokémon pass the Generation ${settings.generation} ${settings.tier} validator.`] };
     } catch {
       return {
         status: "Unavailable",
@@ -469,8 +469,8 @@ export default function App() {
   };
   const makeBattleSets = (team: Team, generation: number) => team.slots.map(slot => makeBattleSet(activeBuild(slot), generation));
   const battleFormat = () => {
-    if (settings.battleType === "PvE" || settings.tier === "Custom" || settings.tier === "VGC") return `gen${settings.generation}customgame`;
-    const ids: Record<string, string> = { "Anything Goes": "anythinggoes", Ubers: "ubers", OU: "ou", UU: "uu", RU: "ru", NU: "nu", PU: "pu", ZU: "zu", "Little Cup": "lc" };
+    if (settings.battleType === "PvE" || settings.tier === "Custom" || settings.tier === "VGC" || (settings.tier === "Battle Spot Singles" && settings.generation !== 6 && settings.generation !== 7)) return `gen${settings.generation}customgame`;
+    const ids: Record<string, string> = { "Battle Spot Singles": "battlespotsingles", "Anything Goes": "anythinggoes", Ubers: "ubers", OU: "ou", UU: "uu", RU: "ru", NU: "nu", PU: "pu", ZU: "zu", "Little Cup": "lc" };
     return `gen${settings.generation}${ids[settings.tier] || "customgame"}`;
   };
   const fetchOnlineOpponent = async () => {
@@ -513,9 +513,9 @@ export default function App() {
     if (singleMode) {
       if (settings.battleType !== "PvP") { setBenchmarkError("1 vs Meta currently requires PvP and a published tier dataset."); return; }
       if (!selected?.build?.name.trim() || !selected.build.moves.some(move => move.trim())) { setBenchmarkError("Select a saved Pokémon build with at least one move."); return; }
-    } else if (!playerTeam || playerTeam.slots.length !== 6 || !playerTeam.slots.every(slot => {
+    } else if (!playerTeam || playerTeam.slots.length < 1 || playerTeam.slots.length > 6 || !playerTeam.slots.every(slot => {
       const build = activeBuild(slot); return Boolean(build?.name.trim() && build.moves.some(move => move.trim()));
-    })) { setBenchmarkError("Select a complete six-Pokémon team with at least one move per Pokémon."); return; }
+    })) { setBenchmarkError("Select a team of 1 to 6 complete Pokémon, each with at least one move."); return; }
     setBenchmarkBusy(true); setBenchmarkError(""); setBenchmarkProgress(null); setBenchmarkCoverage(null); benchmarkCancel.current = false;
     try {
       const tierFormat = battleFormat();
@@ -537,7 +537,7 @@ export default function App() {
         const otherTeams = teams.filter(team => team.id !== playerTeam!.id);
         sourceCount = otherTeams.length;
         for (const team of otherTeams) {
-          if (team.slots.length !== 6 || !team.slots.every(slot => { const build = activeBuild(slot); return Boolean(build?.name.trim() && build.moves.some(move => move.trim())); })) { rejected++; continue; }
+          if (team.slots.length < 1 || team.slots.length > 6 || !team.slots.every(slot => { const build = activeBuild(slot); return Boolean(build?.name.trim() && build.moves.some(move => move.trim())); })) { rejected++; continue; }
           const sets = makeBattleSets(team, settings.generation);
           if (settings.battleType === "PvP") {
             try { if ((TeamValidator.get(format).validateTeam(sets as any) || []).length) { rejected++; continue; } }
@@ -548,7 +548,7 @@ export default function App() {
       }
       if (!opponents.length) throw new Error(singleMode
         ? `No individual Pokémon sets were found in the published ${settings.tier} archive for Generation ${settings.generation}.`
-        : "No other complete, usable teams were found. Add another six-Pokémon team or load the online Auto Teams pool.");
+        : "No other complete, usable teams were found. Add another team with 1 to 6 Pokémon or load the online Auto Teams pool.");
       const coverage = { sourceCount, validCount: opponents.length, rejected, sourceUrl };
       setBenchmarkCoverage(coverage);
       const meta = {
@@ -610,12 +610,12 @@ export default function App() {
         : useAutoTeams ? "Load the Auto Teams pool for this generation and tier first." : "Choose a saved opponent team.");
       return;
     }
-    if (playerTeam.slots.length !== 6 || (!useAutoTeams && opponentTeam!.slots.length !== 6)) { setBattleError("Both registered teams need exactly six Pokémon."); return; }
-    const playerComplete = playerTeam.slots.every(slot => {
+    if (playerTeam.slots.length < 1 || playerTeam.slots.length > 6 || (!useAutoTeams && (opponentTeam!.slots.length < 1 || opponentTeam!.slots.length > 6))) { setBattleError("Each team must contain between 1 and 6 Pokémon."); return; }
+    const playerComplete = playerTeam.slots.length > 0 && playerTeam.slots.every(slot => {
       const build = activeBuild(slot);
       return Boolean(build.name.trim() && build.moves.some(move => move.trim()));
     });
-    const opponentComplete = useOnlineOpponent || (opponentTeam?.slots.every(slot => {
+    const opponentComplete = useOnlineOpponent || (Boolean(opponentTeam?.slots.length) && opponentTeam?.slots.every(slot => {
       const build = activeBuild(slot);
       return Boolean(build.name.trim() && build.moves.some(move => move.trim()));
     }) === true);
@@ -664,7 +664,7 @@ export default function App() {
               if (battleModeRef.current === "Auto") {
                 submitBattleChoiceFromController(controller, chooseAutomatically(request));
               } else {
-                setManualRequest(request);
+                setManualRequest(request);\n                if (request.teamPreview) setTeamPreviewSelection(Array.from({ length: Math.min(request.maxTeamSize || request.side?.pokemon.length || 6, request.side?.pokemon.length || 6) }, (_, index) => index + 1));
               }
             }
           }
@@ -752,7 +752,7 @@ export default function App() {
               <label className="field"><span>Generation</span><select value={settings.generation} onChange={e => updateSetting("generation", Number(e.target.value))}>{generations.map(g => <option value={g} key={g} disabled={settings.battleType === "PvE" && g < 3}>Generation {g}</option>)}</select></label>
               <label className="field"><span>Game version</span><select value={settings.gameVersion} onChange={e => updateSetting("gameVersion", e.target.value)}>{(gameVersions[settings.generation] || []).map(version => <option key={version}>{version}</option>)}</select></label>
               <fieldset className="field battle-type-field"><legend>Battle type</legend><div className="segmented">{(["PvP","PvE"] as BattleType[]).map(type => <button type="button" key={type} className={settings.battleType === type ? "selected" : ""} aria-pressed={settings.battleType === type} onClick={() => updateSetting("battleType", type)}>{type}</button>)}</div></fieldset>
-              {settings.battleType === "PvP" ? <label className="field conditional-field"><span>PvP tier</span><select value={settings.tier} onChange={e => updateSetting("tier", e.target.value)}>{tiers.map(t => <option key={t}>{t}</option>)}</select></label> : <div className="field conditional-field"><span>PvE facility</span><div className="derived-value">{settings.facility || "No facility configured"}</div></div>}
+              {settings.battleType === "PvP" ? <label className="field conditional-field"><span>PvP tier</span><select value={settings.tier} onChange={e => updateSetting("tier", e.target.value)}>{tiers.map(t => <option key={t} disabled={t === "Battle Spot Singles" && settings.generation !== 6 && settings.generation !== 7}>{t}</option>)}</select></label> : <div className="field conditional-field"><span>PvE facility</span><div className="derived-value">{settings.facility || "No facility configured"}</div></div>}
             </div>
             <div className="config-summary"><span className="summary-label">ACTIVE RULESET</span><strong>Gen {settings.generation} · {settings.battleType === "PvP" ? settings.tier : settings.facility}</strong><span className="summary-copy">The selected ruleset governs legality analysis and battle execution where supported.</span></div>
           </section>
@@ -809,7 +809,7 @@ export default function App() {
           <p className="hint team-storage-hint">Local-first storage: your teams remain on this device. Account sync and Google login will be connected separately.</p>
         </>}
         {activePage === "Legality analysis" && <>
-          <section className="intro"><div><div className="eyebrow">TEAM VALIDATION</div><h2>Legality analysis.</h2><p>Validate a six-Pokémon roster against the selected PvP tier or supported facility rules. Battle Tree uses Super Singles restrictions.</p></div></section>
+          <section className="intro"><div><div className="eyebrow">TEAM VALIDATION</div><h2>Legality analysis.</h2><p>Validate a team of up to six Pokémon against the selected PvP tier or supported facility rules. Battle Tree uses Super Singles restrictions.</p></div></section>
           <section className="panel legality-analysis-panel">
             <div className="panel-heading"><div><span className="eyebrow">ACTIVE RULESET</span><h3>{settings.battleType === "PvP" ? `Generation ${settings.generation} · ${settings.tier}` : settings.generation === 7 ? "Generation 7 · Battle Tree Super Singles" : `Generation ${settings.generation} · ${settings.facility || "PvE facility"}`}</h3></div><button type="button" className="secondary-button" onClick={() => setActivePage("Team Builder")}>Open Team Builder</button></div>
             <label className="field"><span>Team to analyse</span><select value={activeTeam?.id || ""} onChange={e => setActiveTeamId(e.target.value)}><option value="" disabled>Select a team...</option>{teams.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>
@@ -869,7 +869,7 @@ export default function App() {
             <div className="panel-heading"><div><span className="eyebrow">LIVE BATTLE</span><h3>{battleActive ? "Battle in progress" : "Battle finished"}</h3></div><span className="saved-indicator"><span className="status-dot" /> {settings.mode} control</span></div>
             {manualRequest && settings.mode === "Manual" && <div className="manual-controls">
               <strong>Your decision</strong>
-              {manualRequest.teamPreview && <div className="team-preview-choice"><p className="hint">Team preview is active. Select the six Pokémon in their current order.</p><button type="button" className="secondary-button" onClick={() => submitBattleChoice("team 123456")}>Confirm team order</button></div> }
+              {manualRequest.teamPreview && <div className="team-preview-choice"><p className="hint">Team preview is active. Choose {manualRequest.maxTeamSize || manualRequest.side?.pokemon.length || 6} Pokémon in your preferred order.</p><div className="team-preview-choice-list">{(manualRequest.side?.pokemon || []).map((pokemon,index) => { const slot = index + 1; const selected = teamPreviewSelection.includes(slot); const limit = manualRequest.maxTeamSize || manualRequest.side?.pokemon.length || 6; return <button type="button" key={pokemon.ident} className={selected ? "secondary-button selected" : "secondary-button"} disabled={!selected && teamPreviewSelection.length >= limit} onClick={() => setTeamPreviewSelection(current => selected ? current.filter(value => value !== slot) : [...current, slot])}>{selected ? `${teamPreviewSelection.indexOf(slot)+1}. ` : ""}{pokemon.ident.split(": ").slice(1).join(": ") || pokemon.details}</button>; })}</div><button type="button" className="secondary-button" disabled={teamPreviewSelection.length !== (manualRequest.maxTeamSize || manualRequest.side?.pokemon.length || 6)} onClick={() => submitBattleChoice(`team ${teamPreviewSelection.join("")}`)}>Confirm selection</button></div> }
               {manualRequest.active?.[0]?.moves && <div className="battle-choice-grid">{manualRequest.active[0].moves.map((move,index) => <button type="button" className="secondary-button" key={move.id || move.move} disabled={move.disabled} onClick={() => submitBattleChoice(`move ${index+1}`)}>{move.move} <small>{move.pp ?? "?"}/{move.maxpp ?? "?"} PP</small></button>)}</div>}
               {manualRequest.forceSwitch?.some(Boolean) && <div className="battle-choice-grid">{(manualRequest.side?.pokemon || []).map((pokemon,index) => ({pokemon,index})).filter(({pokemon}) => !pokemon.active && !pokemon.condition.endsWith(" fnt")).map(({pokemon,index}) => <button type="button" className="secondary-button" key={pokemon.ident} onClick={() => submitBattleChoice(`switch ${index+1}`)}>{pokemon.ident.split(": ").slice(1).join(": ") || pokemon.details}</button>)}</div>}
               {!manualRequest.active?.[0]?.moves?.length && !manualRequest.forceSwitch?.some(Boolean) && !manualRequest.teamPreview && <p className="hint">Waiting for the next decision.</p>}

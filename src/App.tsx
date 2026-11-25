@@ -46,7 +46,7 @@ function readSettings(): Settings { try { const saved = localStorage.getItem("ba
 
 type PokemonBuild = {
   id: string; name: string; label: string; nickname: string; level: number; gender: string; ability: string; nature: string; item: string;
-  moves: string[]; evs: Record<string, number>; ivs: Record<string, number>;
+  moves: string[]; evs: Record<string, number>; ivs: Record<string, number>; shiny: boolean; happiness: number; teraType: string;
 };
 type TeamSlot = { id: string; builds: PokemonBuild[]; activeBuildId: string };
 type Team = { id: string; name: string; slots: TeamSlot[]; updatedAt: string };
@@ -112,7 +112,7 @@ function calculateBattleStat(value: number, stat: string, ability: string, item:
   return result;
 }
 function newBuild(name = ""): PokemonBuild {
-  return { id: uid(), name, label: "", nickname: "", level: 100, gender: "", ability: "", nature: "Hardy", item: "", moves: ["","","",""], evs: { HP:0, Atk:0, Def:0, SpA:0, SpD:0, Spe:0 }, ivs: { HP:31, Atk:31, Def:31, SpA:31, SpD:31, Spe:31 } };
+  return { id: uid(), name, label: "", nickname: "", level: 100, gender: "", ability: "", nature: "Hardy", item: "", moves: ["","","",""], evs: { HP:0, Atk:0, Def:0, SpA:0, SpD:0, Spe:0 }, ivs: { HP:31, Atk:31, Def:31, SpA:31, SpD:31, Spe:31 }, shiny: false, happiness: 255, teraType: "" };
 }
 function readTeams(): Team[] { try { return JSON.parse(localStorage.getItem("battle-lab-teams") || "[]"); } catch { return []; } }
 function activeBuild(slot: TeamSlot) { return slot.builds.find(b => b.id === slot.activeBuildId) || slot.builds[0]; }
@@ -167,10 +167,34 @@ export default function App() {
   const [battleLog, setBattleLog] = useState<string[]>([]);
   const [battleError, setBattleError] = useState("");
   const [manualRequest, setManualRequest] = useState<BattleRequest | null>(null);
+  const [teamTextOpen, setTeamTextOpen] = useState(false);
+  const [teamText, setTeamText] = useState("");
+  const [teamTextError, setTeamTextError] = useState("");
+  const [battleMusicEnabled, setBattleMusicEnabled] = useState(() => localStorage.getItem("battle-lab-music-enabled") === "true");
+  const [battleMusicUrl, setBattleMusicUrl] = useState("");
+  const [battleMusicName, setBattleMusicName] = useState("");
+  const battleMusicRef = useRef<HTMLAudioElement | null>(null);
   const battleController = useRef<BattleController | null>(null);
   const battleModeRef = useRef(settings.mode);
   useEffect(() => { localStorage.setItem("battle-lab-settings", JSON.stringify(settings)); }, [settings]);
   useEffect(() => { battleModeRef.current = settings.mode; }, [settings.mode]);
+  useEffect(() => { localStorage.setItem("battle-lab-music-enabled", String(battleMusicEnabled)); }, [battleMusicEnabled]);
+  useEffect(() => {
+    const audio = battleMusicRef.current;
+    if (!audio || !battleMusicUrl) return;
+    audio.src = battleMusicUrl;
+    audio.loop = true;
+    audio.volume = 0.28;
+    if (battleMusicEnabled) void audio.play().catch(() => setBattleError("Browser playback was blocked. Press the music toggle again to start playback."));
+    else audio.pause();
+    return () => { audio.pause(); audio.removeAttribute("src"); audio.load(); URL.revokeObjectURL(battleMusicUrl); };
+  }, [battleMusicUrl]);
+  useEffect(() => {
+    const audio = battleMusicRef.current;
+    if (!audio || !battleMusicUrl) return;
+    if (battleMusicEnabled) void audio.play().catch(() => setBattleError("Browser playback was blocked. Press the music toggle again to start playback."));
+    else audio.pause();
+  }, [battleMusicEnabled, battleMusicUrl]);
   useEffect(() => { localStorage.setItem("battle-lab-teams", JSON.stringify(teams)); }, [teams]);
   useEffect(() => {
     if (!matchupRun) return;
@@ -388,13 +412,14 @@ export default function App() {
   };
   const makeBattleSet = (build: PokemonBuild, generation: number) => {
     const set: Record<string, unknown> = {
-      name: build.nickname || build.name, species: build.name, level: build.level, moves: build.moves.filter(Boolean),
+      name: build.nickname || build.name, species: build.name, level: build.level, moves: build.moves.filter(Boolean), shiny: build.shiny, happiness: build.happiness,
       evs: { hp: build.evs.HP, atk: build.evs.Atk, def: build.evs.Def, spa: build.evs.SpA, spd: build.evs.SpD, spe: build.evs.Spe },
       ivs: { hp: build.ivs.HP, atk: build.ivs.Atk, def: build.ivs.Def, spa: build.ivs.SpA, spd: build.ivs.SpD, spe: build.ivs.Spe },
     };
     if (generation >= 2 && build.item) set.item = build.item;
     if (generation >= 3) { if (build.ability) set.ability = build.ability; set.nature = build.nature; }
     if (generation >= 2 && build.gender) set.gender = build.gender;
+    if (generation >= 9 && build.teraType) set.teraType = build.teraType;
     return set;
   };
   const makeBattleSets = (team: Team, generation: number) => team.slots.map(slot => makeBattleSet(activeBuild(slot), generation));
@@ -614,6 +639,47 @@ export default function App() {
       setBattleActive(false);
     }
   };
+  const openTeamText = () => {
+    setTeamText(activeTeam ? Teams.export(makeBattleSets(activeTeam, settings.generation) as any) : "");
+    setTeamTextError("");
+    setTeamTextOpen(true);
+  };
+  const importShowdownText = () => {
+    try {
+      if (!activeTeam) throw new Error("Create or select a team before importing.");
+      const imported = (Teams as any).import(teamText) as Array<Record<string, any>>;
+      if (!Array.isArray(imported) || !imported.length) throw new Error("No Pokémon sets were found in that text.");
+      if (imported.length > 6) throw new Error(`The import contains ${imported.length} Pokémon. A team can contain at most six.`);
+      const slots: TeamSlot[] = imported.map(set => {
+        const speciesName = String(set.species || set.name || "").trim();
+        const build = newBuild(speciesName);
+        const statValue = (source: any, key: string, fallback: number) => Number.isFinite(Number(source?.[key])) ? Math.max(0, Number(source[key])) : fallback;
+        build.nickname = set.name && set.name !== speciesName ? String(set.name) : "";
+        build.level = Math.max(1, Math.min(100, Number(set.level) || 100));
+        build.gender = String(set.gender || "");
+        build.ability = String(set.ability || "");
+        build.nature = String(set.nature || "Hardy");
+        build.item = String(set.item || "");
+        build.moves = [...(Array.isArray(set.moves) ? set.moves : [])].slice(0, 4).map(String);
+        build.evs = { HP:statValue(set.evs,"hp",0), Atk:statValue(set.evs,"atk",0), Def:statValue(set.evs,"def",0), SpA:statValue(set.evs,"spa",0), SpD:statValue(set.evs,"spd",0), Spe:statValue(set.evs,"spe",0) };
+        build.ivs = { HP:statValue(set.ivs,"hp",31), Atk:statValue(set.ivs,"atk",31), Def:statValue(set.ivs,"def",31), SpA:statValue(set.ivs,"spa",31), SpD:statValue(set.ivs,"spd",31), Spe:statValue(set.ivs,"spe",31) };
+        build.shiny = Boolean(set.shiny);
+        build.happiness = Math.max(0, Math.min(255, Number(set.happiness ?? 255)));
+        build.teraType = String(set.teraType || "");
+        return { id:uid(), builds:[build], activeBuildId:build.id };
+      });
+      patchTeam(activeTeam.id, team => ({ ...team, slots }));
+      setSelectedSlotId(slots[0]?.id || "");
+      setTeamTextOpen(false);
+      setTeamTextError("");
+    } catch (error) {
+      setTeamTextError(error instanceof Error ? error.message : "Could not parse Pokémon Showdown text.");
+    }
+  };
+  const copyShowdownText = async () => {
+    try { await navigator.clipboard.writeText(teamText); setTeamTextError("Copied Showdown text to clipboard."); }
+    catch { setTeamTextError("Clipboard access was blocked. Select and copy the text manually."); }
+  };
   const exportTeam = () => {
     if (!activeTeam) return;
     const blob = new Blob([JSON.stringify(activeTeam, null, 2)], { type: "application/json" });
@@ -653,14 +719,15 @@ export default function App() {
           <section className="intro"><div><div className="eyebrow">LOCAL TEAM WORKSPACE</div><h2>Build and tune your teams.</h2><p>Teams and Pokémon sets save automatically in this browser. Each team supports six slots and multiple builds per Pokémon.</p></div></section>
           <div className="team-builder-layout">
             <section className="panel team-list-panel">
-              <div className="panel-heading"><div><span className="eyebrow">YOUR TEAMS</span><h3>Team library</h3></div><button className="primary-button" onClick={createTeam}>+ New team</button></div>
+              <div className="panel-heading"><div><span className="eyebrow">TEAM LIBRARY</span><h3>Your teams</h3></div><button className="primary-button" onClick={createTeam}>+ New</button></div>
               {teams.length === 0 ? <div className="empty-state"><strong>No teams yet</strong><p>Create a team to start adding Pokémon.</p></div> : <div className="team-list">{teams.map(team => <button key={team.id} className={activeTeam?.id === team.id ? "team-list-item current" : "team-list-item"} onClick={() => { setActiveTeamId(team.id); setSelectedSlotId(team.slots[0]?.id || ""); }}><span><strong>{team.name || "Untitled team"}</strong><small>{team.slots.length}/6 Pokémon</small></span><span className="team-arrow">›</span></button>)}</div>}
+              {activeTeam && <div className="roster-section"><div className="roster-heading"><strong>{activeTeam.name || "Untitled team"}</strong><span>{activeTeam.slots.length}/6</span></div><div className="team-slots">{Array.from({length:6}, (_,i) => activeTeam.slots[i]).map((slot,index) => slot ? <div key={slot.id} className={selectedSlot?.id === slot.id ? "team-slot active-slot" : "team-slot"}><button className="slot-select" onClick={() => setSelectedSlotId(slot.id)}><span className="slot-number">{index+1}</span><span className="slot-name">{activeBuild(slot)?.name || "Empty Pokémon"}</span></button><button className="slot-remove" aria-label="Remove Pokémon slot" onClick={() => removeSlot(slot.id)}>×</button></div> : <div className="team-slot vacant" key={"empty-"+index}><span className="slot-number">{index+1}</span><span>Empty slot</span></div>)}</div>{activeTeam.slots.length < 6 && <button className="add-pokemon-button" onClick={addPokemon}>+ Add Pokémon</button>}</div>}
+              <p className="hint team-format-hint">Format: Gen {settings.generation} · {settings.battleType === "PvP" ? settings.tier : settings.facility}</p>
             </section>
             <section className="panel team-editor-panel">
               {!activeTeam ? <div className="empty-state"><strong>Select or create a team</strong><p>Your team editor will appear here.</p></div> : <>
-                <div className="panel-heading team-title-row"><div><span className="eyebrow">TEAM EDITOR · {activeTeam.slots.length}/6 SLOTS</span><input className="team-name-input" aria-label="Team name" value={activeTeam.name} onChange={e => renameTeam(e.target.value)} /></div><div className="team-actions"><button className="secondary-button" onClick={exportTeam}>Export JSON</button><button className="danger-button" onClick={deleteTeam}>Delete</button></div></div>
-                <div className="team-slots">{Array.from({length:6}, (_,i) => activeTeam.slots[i]).map((slot, index) => slot ? <div key={slot.id} className={selectedSlot?.id === slot.id ? "team-slot active-slot" : "team-slot"}><button className="slot-select" onClick={() => setSelectedSlotId(slot.id)}><span className="slot-number">{index+1}</span><span className="slot-name">{activeBuild(slot)?.name || "Empty Pokémon"}</span><small>{slot.builds.length} build{slot.builds.length === 1 ? "" : "s"}</small></button><button className="slot-remove" aria-label="Remove Pokémon slot" onClick={() => removeSlot(slot.id)}>×</button></div> : <div className="team-slot vacant" key={"empty-"+index}><span className="slot-number">{index+1}</span><span>Empty slot</span></div>)}</div>
-                {activeTeam.slots.length < 6 && <button className="add-pokemon-button" onClick={addPokemon}>+ Add Pokémon</button>}
+                <div className="panel-heading team-title-row"><div><span className="eyebrow">TEAM EDITOR</span><input className="team-name-input" aria-label="Team name" value={activeTeam.name} onChange={e => renameTeam(e.target.value)} /></div><div className="team-actions"><button className="secondary-button" onClick={openTeamText}>Import / Export</button><button className="secondary-button" onClick={exportTeam}>Export JSON</button><button className="danger-button" onClick={deleteTeam}>Delete team</button></div></div>
+                {teamTextOpen && <div className="showdown-import-panel"><div className="editor-section-title">Pokémon Showdown text import / export <small>Paste a team or copy this export into Showdown.</small></div><textarea aria-label="Pokémon Showdown team text" value={teamText} onChange={e => { setTeamText(e.target.value); setTeamTextError(""); }} rows={12} spellCheck={false} placeholder="Pokémon Showdown team text…" /><div className="team-actions"><button className="primary-button" onClick={importShowdownText}>Import team</button><button className="secondary-button" onClick={copyShowdownText}>Copy export</button><button className="secondary-button" onClick={() => setTeamTextOpen(false)}>Close</button></div>{teamTextError && <p className="hint">{teamTextError}</p>}</div>}
                 {selectedSlot && selectedBuild ? <div className="pokemon-editor">
                   <div className="editor-heading"><div><span className="eyebrow">POKÉMON SET</span><h3>{selectedBuild.name || "New Pokémon"}</h3></div><div className="team-actions"><select aria-label="Active build" value={selectedBuild.id} onChange={e => patchTeam(activeTeam.id, t => ({...t, slots:t.slots.map(s => s.id === selectedSlot.id ? {...s, activeBuildId:e.target.value} : s)}))}>{selectedSlot.builds.map((b,i) => <option value={b.id} key={b.id}>{b.label || "Build "+(i+1)}</option>)}</select><button className="secondary-button" onClick={createBuildVariant}>+ Variant</button><button className="danger-button" disabled={selectedSlot.builds.length < 2} onClick={deleteSelectedBuild}>Delete build</button></div></div>
                   <div className={`legality-note legality-${legality.status.toLowerCase().replace(/[^a-z]+/g,"-")}`}><span className="status-dot status-muted" /> Team legality: <strong>{legality.status}</strong><span>{legality.messages.join(" · ")}</span></div>
@@ -676,6 +743,9 @@ export default function App() {
                     <label className="field"><span>Ability</span><select value={selectedBuild.ability} onChange={e => patchBuild({ability:e.target.value})}><option value="">Select ability...</option>{selectedBuild.ability && !(speciesAbilities.length ? speciesAbilities : abilityOptions.map(x => x.name)).includes(selectedBuild.ability) && <option value={selectedBuild.ability}>{selectedBuild.ability} (custom)</option>}{(speciesAbilities.length ? speciesAbilities : abilityOptions.map(x => x.name)).map(name => <option value={name} key={name}>{name}</option>)}</select></label>
                     <label className="field"><span>Nature</span><select value={selectedBuild.nature} onChange={e => patchBuild({nature:e.target.value})}>{natures.map(n => <option key={n}>{n}</option>)}</select></label>
                     <label className="field"><span>Held item</span><select value={selectedBuild.item} onChange={e => patchBuild({item:e.target.value})}><option value="">No item</option>{selectedBuild.item && !itemOptions.some(i => i.name === selectedBuild.item) && <option value={selectedBuild.item}>{selectedBuild.item} (custom)</option>}{itemOptions.map(i => <option value={i.name} key={i.name}>{i.name}</option>)}</select></label>
+                    <label className="field"><span>Happiness</span><input type="number" min="0" max="255" value={selectedBuild.happiness} onChange={e => patchBuild({happiness:Math.max(0,Math.min(255,Number(e.target.value)||0))})} /></label>
+                    <label className="field"><span>Shiny</span><select value={selectedBuild.shiny ? "yes" : "no"} onChange={e => patchBuild({shiny:e.target.value === "yes"})}><option value="no">No</option><option value="yes">Yes</option></select></label>
+                    {settings.generation >= 9 && <label className="field"><span>Tera type</span><select value={selectedBuild.teraType} onChange={e => patchBuild({teraType:e.target.value})}><option value="">Default</option>{["Normal","Fire","Water","Electric","Grass","Ice","Fighting","Poison","Ground","Flying","Psychic","Bug","Rock","Ghost","Dragon","Dark","Steel","Fairy","Stellar"].map(type => <option key={type}>{type}</option>)}</select></label>}
                   </div>
                   {selectedSpecies && <div className="editor-section final-stats-section"><div className="editor-section-title">Final stats <small>Level {selectedBuild.level} · {selectedBuild.nature} · Ability and item modifiers included</small></div><div className="base-stat-row">{statNames.map((label, index) => { const stat = (["hp","atk","def","spa","spd","spe"] as const)[index]; const baseValue = calculateFinalStat(selectedSpecies.baseStats[stat], selectedBuild.ivs[label], selectedBuild.evs[label], selectedBuild.level, stat, selectedBuild.nature); const value = calculateBattleStat(baseValue, stat, selectedBuild.ability, selectedBuild.item); return <div key={stat}><small>{label}</small><strong>{value}</strong>{value !== baseValue && <small className="stat-modifier">Base {baseValue}</small>}</div>; })}<div className="bst-total"><small>Total</small><strong>{statNames.reduce((sum, label, index) => { const stat = (["hp","atk","def","spa","spd","spe"] as const)[index]; const baseValue = calculateFinalStat(selectedSpecies.baseStats[stat], selectedBuild.ivs[label], selectedBuild.evs[label], selectedBuild.level, stat, selectedBuild.nature); return sum + calculateBattleStat(baseValue, stat, selectedBuild.ability, selectedBuild.item); }, 0)}</strong></div></div>{["wise glasses", "muscle band"].includes(selectedBuild.item.toLowerCase()) && <p className="stat-total">Damage modifiers: {selectedBuild.item.toLowerCase() === "wise glasses" ? "Wise Glasses: special-move damage ×1.1." : "Muscle Band: physical-move damage ×1.1."} These boost move damage, not the displayed offensive stat.</p>}</div>}
                   <div className="editor-section"><div className="editor-section-title">Moves <small>{moveOptions.length} moves in Gen {settings.generation} data</small></div><div className="move-grid">{selectedBuild.moves.map((move,i) => <label className="field" key={i}><span>Move {i+1}</span><select value={move} onChange={e => patchBuild({moves:selectedBuild.moves.map((m,j) => j===i ? e.target.value : m)})}><option value="">Select move...</option>{move && !moveOptions.some(option => option.name === move) && <option value={move}>{move} (custom)</option>}{moveOptions.map(option => <option value={option.name} key={option.name}>{option.name}</option>)}</select></label>)}</div></div>
@@ -747,6 +817,8 @@ export default function App() {
           </section>
           {(battleActive || battleLog.length > 0) && <section className="panel battle-live-panel">
             <div className="panel-heading"><div><span className="eyebrow">LIVE BATTLE</span><h3>{battleActive ? "Battle in progress" : "Battle finished"}</h3></div><span className="saved-indicator"><span className="status-dot" /> {settings.mode} control</span></div>
+            <div className="battle-music-controls"><audio ref={battleMusicRef} preload="none" /><div><strong>Battle music</strong><small>{battleMusicName || "Load a local HGSS Pokémon Center audio file"}</small></div><button type="button" className={battleMusicEnabled ? "primary-button" : "secondary-button"} disabled={!battleMusicUrl} aria-pressed={battleMusicEnabled} onClick={() => setBattleMusicEnabled(enabled => !enabled)}>{battleMusicEnabled ? "Music on · turn off" : "Music off · turn on"}</button><label className="secondary-button music-file-button">Choose audio<input type="file" accept="audio/*" onChange={e => { const file=e.target.files?.[0]; if (!file) return; setBattleMusicName(file.name); setBattleMusicUrl(URL.createObjectURL(file)); setBattleMusicEnabled(true); e.currentTarget.value=""; }} /></label></div>
+            <p className="hint battle-music-hint">The music toggle is saved. The selected local audio file must be loaded again after a page refresh.</p>
             {manualRequest && settings.mode === "Manual" && <div className="manual-controls">
               <strong>Your decision</strong>
               {manualRequest.teamPreview && <div className="team-preview-choice"><p className="hint">Team preview is active. Select the six Pokémon in their current order.</p><button type="button" className="secondary-button" onClick={() => submitBattleChoice("team 123456")}>Confirm team order</button></div> }

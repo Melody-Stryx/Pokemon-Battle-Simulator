@@ -221,7 +221,7 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
   let outcome: "win" | "loss" | "tie" | null = null;
   let turnCount = 0;
   let moveCount = 0;
-  const finished = (async () => {
+  const finished: Promise<{ outcome: "win" | "loss" | "tie"; analysis: BattleAnalysis }> = (async () => {
     for await (const chunk of streams.omniscient) {
       for (const line of String(chunk).split("\n")) {
         if (!line.startsWith("|")) continue;

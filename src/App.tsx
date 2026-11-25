@@ -397,6 +397,13 @@ export default function App() {
       return { ...s, builds, activeBuildId: builds[0].id };
     }) }));
   };
+  const moveSlot = (slotId: string, direction: -1 | 1) => {
+    if (!activeTeam) return;
+    const index = activeTeam.slots.findIndex(slot => slot.id === slotId);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= activeTeam.slots.length) return;
+    patchTeam(activeTeam.id, team => { const slots = [...team.slots]; [slots[index], slots[target]] = [slots[target], slots[index]]; return { ...team, slots }; });
+  };
   const removeSlot = (slotId: string) => {
     if (!activeTeam) return;
     patchTeam(activeTeam.id, t => ({ ...t, slots: t.slots.filter(s => s.id !== slotId) }));
@@ -720,7 +727,7 @@ export default function App() {
             <section className="panel team-list-panel">
               <div className="panel-heading"><div><span className="eyebrow">TEAM LIBRARY</span><h3>Your teams</h3></div><button className="primary-button" onClick={createTeam}>+ New</button></div>
               {teams.length === 0 ? <div className="empty-state"><strong>No teams yet</strong><p>Create a team to start adding Pokémon.</p></div> : <div className="team-list">{teams.map(team => <button key={team.id} className={activeTeam?.id === team.id ? "team-list-item current" : "team-list-item"} onClick={() => { setActiveTeamId(team.id); setSelectedSlotId(team.slots[0]?.id || ""); }}><span><strong>{team.name || "Untitled team"}</strong><small>{team.slots.length}/6 Pokémon</small></span><span className="team-arrow">›</span></button>)}</div>}
-              {activeTeam && <div className="roster-section"><div className="roster-heading"><strong>{activeTeam.name || "Untitled team"}</strong><span>{activeTeam.slots.length}/6</span></div><div className="team-slots">{Array.from({length:6}, (_,i) => activeTeam.slots[i]).map((slot,index) => slot ? <div key={slot.id} className={selectedSlot?.id === slot.id ? "team-slot active-slot" : "team-slot"}><button className="slot-select" onClick={() => setSelectedSlotId(slot.id)}><span className="slot-number">{index+1}</span><span className="slot-name">{activeBuild(slot)?.name || "Empty Pokémon"}</span></button><button className="slot-remove" aria-label="Remove Pokémon slot" onClick={() => removeSlot(slot.id)}>×</button></div> : <div className="team-slot vacant" key={"empty-"+index}><span className="slot-number">{index+1}</span><span>Empty slot</span></div>)}</div>{activeTeam.slots.length < 6 && <button className="add-pokemon-button" onClick={addPokemon}>+ Add Pokémon</button>}</div>}
+              {activeTeam && <div className="roster-section"><div className="roster-heading"><strong>{activeTeam.name || "Untitled team"}</strong><span>{activeTeam.slots.length}/6</span></div><div className="team-slots">{Array.from({length:6}, (_,i) => activeTeam.slots[i]).map((slot,index) => slot ? <div key={slot.id} className={selectedSlot?.id === slot.id ? "team-slot active-slot" : "team-slot"}><button className="slot-select" onClick={() => setSelectedSlotId(slot.id)}><span className="slot-number">{index+1}</span><span className="slot-name">{activeBuild(slot)?.name || "Empty Pokémon"}</span></button><div className="slot-reorder"><button type="button" aria-label={`Move ${activeBuild(slot)?.name || "Pokémon"} up`} disabled={index === 0} onClick={() => moveSlot(slot.id,-1)}>↑</button><button type="button" aria-label={`Move ${activeBuild(slot)?.name || "Pokémon"} down`} disabled={index === activeTeam.slots.length-1} onClick={() => moveSlot(slot.id,1)}>↓</button></div><button className="slot-remove" aria-label="Remove Pokémon slot" onClick={() => removeSlot(slot.id)}>×</button></div> : <div className="team-slot vacant" key={"empty-"+index}><span className="slot-number">{index+1}</span><span>Empty slot</span></div>)}</div>{activeTeam.slots.length < 6 && <button className="add-pokemon-button" onClick={addPokemon}>+ Add Pokémon</button>}</div>}
               <p className="hint team-format-hint">Format: Gen {settings.generation} · {settings.battleType === "PvP" ? settings.tier : settings.facility}</p>
             </section>
             <section className="panel team-editor-panel">

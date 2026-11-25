@@ -637,8 +637,7 @@ export default function App() {
         try {
           for await (const chunk of streams.omniscient) {
             if (controller.stopped) break;
-            const lines = String(chunk).split("
-").filter(Boolean);
+            const lines = String(chunk).split("\\n").filter(Boolean);
             setBattleLog(old => [...old, ...lines.map(formatBattleLine).filter(Boolean)].slice(-400));
             if (lines.some(line => line.startsWith("|win|") || line === "|tie")) {
               setBattleActive(false);
@@ -653,8 +652,7 @@ export default function App() {
         try {
           for await (const chunk of streams.p1) {
             if (controller.stopped) break;
-            const lines = String(chunk).split("
-");
+            const lines = String(chunk).split("\\n");
             battleDecisionLog.current.push(...lines.filter(line => line.startsWith("|") && !line.startsWith("|request|")));
             if (battleDecisionLog.current.length > 1200) battleDecisionLog.current = battleDecisionLog.current.slice(-900);
             for (const line of lines) {

@@ -202,6 +202,7 @@ export default function App() {
   const [battleActive, setBattleActive] = useState(false);
   const [battleLog, setBattleLog] = useState<string[]>([]);
   const [battleError, setBattleError] = useState("");
+  const [simulationLegalityWarning, setSimulationLegalityWarning] = useState("");
   const [manualRequest, setManualRequest] = useState<BattleRequest | null>(null);
   const [teamPreviewSelection, setTeamPreviewSelection] = useState<number[]>([]);
   const [teamTextOpen, setTeamTextOpen] = useState(false);
@@ -518,14 +519,18 @@ export default function App() {
     } else if (!playerTeam || playerTeam.slots.length < 1 || playerTeam.slots.length > 6 || !playerTeam.slots.every(slot => {
       const build = activeBuild(slot); return Boolean(build?.name.trim() && build.moves.some(move => move.trim()));
     })) { setBenchmarkError("Select a team of 1 to 6 complete Pokémon, each with at least one move."); return; }
-    setBenchmarkBusy(true); setBenchmarkError(""); setBenchmarkProgress(null); setBenchmarkCoverage(null); benchmarkCancel.current = false;
+    setBenchmarkBusy(true); setBenchmarkError(""); setSimulationLegalityWarning(""); setBenchmarkProgress(null); setBenchmarkCoverage(null); benchmarkCancel.current = false;
     try {
       const tierFormat = battleFormat();
       const format = singleMode ? `gen${settings.generation}customgame` : tierFormat;
       const playerSets = singleMode ? [makeBattleSet(selected!.build, settings.generation)] : makeBattleSets(playerTeam!, settings.generation);
       if (!singleMode && settings.battleType === "PvP") {
-        const problems = TeamValidator.get(format).validateTeam(playerSets as any) || [];
-        if (problems.length) throw new Error(`Your selected team is not legal for ${format.toUpperCase()}: ${problems.slice(0, 6).join(" | ")}`);
+        try {
+          const problems = TeamValidator.get(format).validateTeam(playerSets as any) || [];
+          if (problems.length) setSimulationLegalityWarning(`Your team is illegal for ${format.toUpperCase()}: ${problems.slice(0, 6).join(" | ")} Simulation will run anyway.`);
+        } catch (error) {
+          setSimulationLegalityWarning(`Your team legality could not be verified for ${format.toUpperCase()}: ${error instanceof Error ? error.message : "validator unavailable"} Simulation will run anyway.`);
+        }
       }
       let opponents: BenchmarkOpponent[] = [];
       let sourceCount = 0, rejected = 0, sourceUrl = "Saved teams stored in this browser";
@@ -624,6 +629,16 @@ export default function App() {
     if (!playerComplete || !opponentComplete) { setBattleError("Every Pokémon needs a species and at least one move."); return; }
     stopBattle();
     setBattleError("");
+    setSimulationLegalityWarning("");
+    if (settings.battleType === "PvP") {
+      try {
+        const format = battleFormat();
+        const problems = TeamValidator.get(format).validateTeam(makeBattleSets(playerTeam, settings.generation) as any) || [];
+        if (problems.length) setSimulationLegalityWarning(`Your team is illegal for ${format.toUpperCase()}: ${problems.slice(0, 6).join(" | ")} Simulation will run anyway.`);
+      } catch (error) {
+        setSimulationLegalityWarning(`Your team legality could not be verified: ${error instanceof Error ? error.message : "validator unavailable"} Simulation will run anyway.`);
+      }
+    }
     setBattleLog([]);
     setManualRequest(null);
     try {

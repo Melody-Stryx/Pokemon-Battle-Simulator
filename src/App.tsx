@@ -882,6 +882,7 @@ export default function App() {
               </div>}
               {benchmarkError && <p className="battle-error">{benchmarkError}</p>}
             </section>
+            {simulationLegalityWarning && <p className="battle-warning">{simulationLegalityWarning}</p>}
             {battleError && <p className="battle-error">{battleError}</p>}
             <div className="battle-actions"><button type="button" className="primary-button" onClick={startBattle}>Start single battle</button><button type="button" className="secondary-button" onClick={stopBattle} disabled={!battleActive}>End battle</button><button type="button" className="secondary-button" onClick={() => setSettings(s => ({...s, mode: s.mode === "Auto" ? "Manual" : "Auto"}))}>{settings.mode === "Auto" ? "Switch to Manual" : "Switch to Auto"}</button></div>
           </section>

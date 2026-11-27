@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { User } from "@supabase/supabase-js";
+import { supabase } from "./lib/supabase";
 import { Dex } from "@pkmn/dex";
 import { BattleStreams, TeamValidator, Teams } from "@pkmn/sim";
 import { TacticalPlayerAI, chooseTacticalChoice } from "./pve-ai";
@@ -220,6 +222,11 @@ export default function App() {
   const [activePage, setActivePage] = useState<Page>("Overview");
   const [teams, setTeams] = useState<Team[]>(readTeams);
   const [folders, setFolders] = useState<string[]>(readFolders);
+  const [user, setUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [cloudUserId, setCloudUserId] = useState("");
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<"local" | "loading" | "synced" | "error">("local");
+  const [authError, setAuthError] = useState("");
   const [activeTeamId, setActiveTeamId] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState("");
   const [teamSearch, setTeamSearch] = useState("");
@@ -278,6 +285,54 @@ export default function App() {
     };
   }, [battleMusicEnabled, battleMusicUrl]);
   useEffect(() => { localStorage.setItem("battle-lab-teams", JSON.stringify(teams)); }, [teams]);
+  useEffect(() => {
+    let mounted = true;
+    void supabase.auth.getSession().then(({ data, error }) => {
+      if (!mounted) return;
+      if (error) setAuthError(error.message);
+      setUser(data.session?.user ?? null);
+      setAuthReady(true);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
+      setUser(session?.user ?? null);
+      setAuthReady(true);
+      if (!session) { setCloudUserId(""); setCloudSyncStatus("local"); }
+    });
+    return () => { mounted = false; subscription.unsubscribe(); };
+  }, []);
+  useEffect(() => {
+    if (!authReady || !user) { if (authReady && !user) setCloudUserId(""); return; }
+    let active = true;
+    setCloudSyncStatus("loading");
+    setAuthError("");
+    void (async () => {
+      const { data, error } = await supabase.from("user_teams").select("teams, folders").eq("user_id", user.id).maybeSingle();
+      if (!active) return;
+      if (error) { setCloudSyncStatus("error"); setAuthError(`Cloud sync failed: ${error.message}`); return; }
+      if (data) {
+        setTeams(Array.isArray(data.teams) ? data.teams as Team[] : []);
+        setFolders(Array.isArray(data.folders) ? data.folders as string[] : []);
+      } else {
+        const { error: saveError } = await supabase.from("user_teams").upsert({ user_id: user.id, teams, folders, updated_at: new Date().toISOString() });
+        if (!active) return;
+        if (saveError) { setCloudSyncStatus("error"); setAuthError(`Initial cloud save failed: ${saveError.message}`); return; }
+      }
+      if (active) { setCloudUserId(user.id); setCloudSyncStatus("synced"); }
+    })();
+    return () => { active = false; };
+  }, [authReady, user?.id]);
+  useEffect(() => {
+    if (!user || cloudUserId !== user.id) return;
+    const timer = window.setTimeout(() => {
+      setCloudSyncStatus("loading");
+      void supabase.from("user_teams").upsert({ user_id: user.id, teams, folders, updated_at: new Date().toISOString() }).then(({ error }) => {
+        if (error) { setCloudSyncStatus("error"); setAuthError(`Cloud sync failed: ${error.message}`); }
+        else { setCloudSyncStatus("synced"); setAuthError(""); }
+      });
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [teams, folders, user?.id, cloudUserId]);
   useEffect(() => { localStorage.setItem("battle-lab-team-folders", JSON.stringify(folders)); }, [folders]);
   useEffect(() => {
     if (!matchupRun) return;
@@ -881,7 +936,8 @@ export default function App() {
         <div className="sidebar-note"><span className="status-dot" /><span>Local workspace</span></div>
       </aside>
       <section className="main-content">
-        <header className="topbar"><div><div className="eyebrow">POKÉMON TEAM TESTING</div><h1>{activePage}</h1></div><div className="topbar-actions"><button type="button" className={battleMusicEnabled ? "music-toggle active" : "music-toggle"} aria-pressed={battleMusicEnabled} onClick={() => setBattleMusicEnabled(enabled => !enabled)} title={battleMusicEnabled ? "Turn Pokémon Center music off" : "Turn Pokémon Center music on"}>{battleMusicEnabled ? "♫ Music on" : "♫ Music off"}</button><button type="button" className="google-login-button" disabled title="Google authentication is not connected yet">Google Login</button><div className="topbar-tag">BUILD <span>{__BUILD_NUMBER__}</span></div></div></header>
+        <header className="topbar"><div><div className="eyebrow">POKÉMON TEAM TESTING</div><h1>{activePage}</h1></div><div className="topbar-actions"><button type="button" className={battleMusicEnabled ? "music-toggle active" : "music-toggle"} aria-pressed={battleMusicEnabled} onClick={() => setBattleMusicEnabled(enabled => !enabled)} title={battleMusicEnabled ? "Turn Pokémon Center music off" : "Turn Pokémon Center music on"}>{battleMusicEnabled ? "♫ Music on" : "♫ Music off"}</button><button type="button" className="google-login-button" onClick={async () => { setAuthError(""); if (user) { const { error } = await supabase.auth.signOut(); if (error) setAuthError(error.message); } else { const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin, queryParams: { prompt: "select_account" } } }); if (error) setAuthError(error.message); } }} title={user ? "Sign out of your account" : "Sign in with Google"}>{user ? "Sign out" : "Sign in with Google"}</button><div className="topbar-tag">BUILD <span>{__BUILD_NUMBER__}</span></div></div></header>
+        {authError && <div className="account-error" role="alert">{authError}</div>}
         {activePage === "Overview" && <>
           <section className="intro"><div><div className="eyebrow">SIMULATION SETUP</div><h2>Configure your ruleset.</h2><p>Choose a generation and battle environment. Your settings are saved on this device.</p></div><div className="intro-symbol" aria-hidden="true">◈</div></section>
           <section className="panel setup-panel">
@@ -980,7 +1036,7 @@ export default function App() {
               </>}
             </section>
           </div>
-          <p className="hint team-storage-hint">Local-first storage: your teams remain on this device. Account sync and Google login will be connected separately.</p>
+          <p className="hint team-storage-hint">{user ? `Signed in as ${user.email || "Google account"} · ${cloudSyncStatus === "loading" ? "Syncing…" : cloudSyncStatus === "error" ? "Sync error" : "Cloud sync active"}` : "Local storage is active. Sign in with Google to sync teams and folders across devices."}</p>
         </>}
         {activePage === "Legality analysis" && <>
           <section className="intro"><div><div className="eyebrow">TEAM VALIDATION</div><h2>Legality analysis.</h2><p>Validate a team of up to six Pokémon against the selected PvP tier or supported facility rules. Battle Tree uses Super Singles restrictions.</p></div></section>

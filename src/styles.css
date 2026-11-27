@@ -471,7 +471,9 @@ button.roadmap-row:hover { background: rgba(255,255,255,.025); }
 }
 .music-toggle.active { border-color:#718eaf; color:#fff; background:#35485e; }
 .google-login-button { color:#aeb6c3; background:#20242b; }
-.google-login-button:disabled { opacity:.7; cursor:not-allowed; }
+.google-login-button:hover { border-color:#718eaf; color:#fff; }
+.account-error { margin:12px 0; padding:10px 12px; border:1px solid #8a4545; border-radius:4px; color:#ffb6b6; background:#3a2024; font-size:12px; }
+
 @media(max-width:650px) {
   .topbar { align-items:flex-start; gap:12px; }
   .topbar-actions { justify-content:flex-end; flex-wrap:wrap; gap:6px; }

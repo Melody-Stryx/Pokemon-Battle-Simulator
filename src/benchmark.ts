@@ -7,6 +7,7 @@ export type BenchmarkOpponent = {
   author?: string;
   sets: Record<string, unknown>[];
   teamPool?: Record<string, unknown>[][];
+  fixedTeam?: boolean;
 };
 
 export type MoveDamageSummary = { move: string; damage: number; hits: number; uses: number };
@@ -97,60 +98,64 @@ export async function loadCompleteOpponentPool(format: string): Promise<{
 
 type FacilityDataset = {
   generation: number;
-  trainers: Array<{ name: string; trainerClass: string; orasName?: string; number?: number; pokemon: string[]; ivs?: Record<string, number> }>;
-  pokemon: Array<Record<string, unknown> & { name: string; species: string }>;
+  trainers: Array<{ name: string; trainerClass?: string; displayName?: string; pokemon: string[]; ivs?: Record<string, number>; level?: number; fixedTeam?: boolean; teamSize?: number }>;
+  pokemon: Array<Record<string, unknown> & { name: string; species: string; moves?: string[] }>;
 };
 
-export async function loadFacilityOpponentPool(generation: number, gameVersion: string, facility: string): Promise<{
-  opponents: BenchmarkOpponent[];
-  sourceCount: number;
-  rejected: number;
-  sourceUrl: string;
-}> {
-  const supported: Record<number, { version: string; facility: string; url: string }> = {
-    3: { version: "Emerald", facility: "Battle Frontier", url: "/data/facilities/gen3.json" },
-    4: { version: "HeartGold / SoulSilver", facility: "Battle Frontier", url: "/data/facilities/gen4.json" },
-    5: { version: "Black / White", facility: "Battle Subway", url: "/data/facilities/gen5.json" },
-    6: { version: "X / Y", facility: "Battle Maison", url: "/data/facilities/gen6.json" },
+export async function loadFacilityOpponentPool(generation: number, gameVersion: string, facility: string): Promise<{ opponents: BenchmarkOpponent[]; sourceCount: number; rejected: number; sourceUrl: string }> {
+  const sources: Record<string, { url: string; label: string }> = {
+    "3|Ruby / Sapphire|Battle Tower": { url: "/data/facilities/gen3-rs.json", label: "Ruby / Sapphire Battle Tower" },
+    "3|Emerald|Battle Frontier": { url: "/data/facilities/gen3.json", label: "Emerald Battle Frontier" },
+    "4|Diamond / Pearl|Battle Tower": { url: "/data/facilities/gen4-dp.json", label: "Diamond / Pearl Battle Tower" },
+    "4|Platinum|Battle Frontier": { url: "/data/facilities/gen4.json", label: "Platinum Battle Frontier" },
+    "4|HeartGold / SoulSilver|Battle Frontier": { url: "/data/facilities/gen4.json", label: "HeartGold / SoulSilver Battle Frontier" },
+    "5|Black / White|Battle Subway": { url: "/data/facilities/gen5.json", label: "Black / White Battle Subway" },
+    "5|Black 2 / White 2|Battle Subway": { url: "/data/facilities/gen5.json", label: "Black 2 / White 2 Battle Subway" },
+    "6|X / Y|Battle Maison": { url: "/data/facilities/gen6.json", label: "X / Y Battle Maison" },
+    "6|Omega Ruby / Alpha Sapphire|Battle Maison": { url: "/data/facilities/gen6.json", label: "Omega Ruby / Alpha Sapphire Battle Maison" },
+    "7|Sun / Moon|Battle Tree": { url: "/data/facilities/gen7-sm.json", label: "Sun / Moon Battle Tree" },
+    "7|Ultra Sun / Ultra Moon|Battle Tree": { url: "/data/facilities/gen7-usum.json", label: "Ultra Sun / Ultra Moon Battle Tree" },
+    "8|Sword / Shield|Battle Tower": { url: "/data/facilities/gen8-swsh.json", label: "Sword / Shield Battle Tower" },
+    "8|Brilliant Diamond / Shining Pearl|Battle Tower": { url: "/data/facilities/gen8-bdsp.json", label: "Brilliant Diamond / Shining Pearl Battle Tower" },
+    "9|Scarlet / Violet|Academy Ace Tournament": { url: "/data/facilities/gen9.json", label: "Scarlet / Violet Academy Ace Tournament" },
   };
-  const source = generation === 6 && gameVersion === "Omega Ruby / Alpha Sapphire"
-    ? { version: "Omega Ruby / Alpha Sapphire", facility: "Battle Maison", url: "/data/facilities/gen6.json" }
-    : supported[generation];
-  if (!source || source.version !== gameVersion || source.facility !== facility) {
-    throw new Error(`Authentic trainer data is not yet available for Generation ${generation} ${gameVersion} ${facility}. The simulator will not substitute saved teams or fabricate opponents.`);
-  }
+  const source = sources[generation + "|" + gameVersion + "|" + facility];
+  if (!source) throw new Error("Authentic opponent data is not available for " + gameVersion + " " + facility + ". No saved teams or generated stand-ins will be substituted.");
   const response = await fetch(source.url);
-  if (!response.ok) throw new Error(`Could not load the Generation ${generation} facility dataset (HTTP ${response.status}).`);
+  if (!response.ok) throw new Error("Could not load " + source.label + " dataset (HTTP " + response.status + ").");
   const dataset = await response.json() as FacilityDataset;
   const setsByName = new Map(dataset.pokemon.map(set => [String(set.name).toLowerCase(), set]));
   const opponents: BenchmarkOpponent[] = [];
-  const eligibleTrainers = generation === 6 ? dataset.trainers.filter(trainer => (trainer.number || 0) >= 111) : dataset.trainers;
   let rejected = 0;
-  for (const trainer of eligibleTrainers) {
-    const pool = trainer.pokemon.map(name => setsByName.get(name.toLowerCase())).filter((set): set is FacilityDataset["pokemon"][number] => Boolean(set));
-    if (pool.length < 3) { rejected++; continue; }
-    // Store the trainer's real selectable Pokémon pool. A fresh legal three-Pokémon
-    // roster is drawn for each battle, rather than treating the entire pool as a team.
-    const uniqueSpecies = new Set(pool.map(set => String(set.species).toLowerCase()));
-    if (uniqueSpecies.size < 3) { rejected++; continue; }
-    const converted = pool.map(set => ({
-      name: String(set.species),
-      species: String(set.species),
-      level: 50,
-      nature: String(set.nature || "Serious"),
-      item: String(set.item || ""),
-      moves: Array.isArray(set.moves) ? set.moves.map(String) : [set.move1, set.move2, set.move3, set.move4].filter(value => typeof value === "string" && value.trim()).map(String),
-      ivs: trainer.ivs || { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-      evs: (set.evs as Record<string, number> | undefined) || { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
-    }));
+  for (const trainer of dataset.trainers) {
+    const rawSets = trainer.pokemon.map(name => setsByName.get(name.toLowerCase())).filter((set): set is FacilityDataset["pokemon"][number] => Boolean(set));
+    if (!rawSets.length) { rejected++; continue; }
+    const converted = rawSets.map(set => {
+      const species = String(set.species || set.baseSpecies || set.name);
+      const moves = Array.isArray(set.moves) ? set.moves.map(String) : [set.move1, set.move2, set.move3, set.move4].filter((move): move is string => typeof move === "string" && Boolean(move.trim()));
+      const stats = (input?: Record<string, number>) => input ? { hp: Number(input.hp ?? 31), atk: Number(input.atk ?? 31), def: Number(input.def ?? 31), spa: Number(input.spa ?? 31), spd: Number(input.spd ?? 31), spe: Number(input.spe ?? 31) } : undefined;
+      return {
+        name: species, species, level: Number(set.level || trainer.level || 50),
+        nature: String(set.nature || "Serious"), ability: String(set.ability || ""),
+        item: String(set.item || ""), moves,
+        ivs: stats(set.ivs as Record<string, number> | undefined) || stats(trainer.ivs) || { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+        evs: stats(set.evs as Record<string, number> | undefined) || { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+      } as Record<string, unknown>;
+    }).filter(set => Array.isArray(set.moves) && (set.moves as string[]).length > 0);
+    if (!converted.length) { rejected++; continue; }
+    const fixedTeam = Boolean(trainer.fixedTeam);
+    const teamSize = Number(trainer.teamSize || (generation === 9 ? 6 : 3));
+    if (fixedTeam && converted.length !== teamSize) { rejected++; continue; }
+    if (!fixedTeam && new Set(converted.map(set => String(set.species).toLowerCase())).size < 3) { rejected++; continue; }
+    const displayName = trainer.displayName || [trainer.trainerClass, trainer.name].filter(Boolean).join(" ");
     opponents.push({
-      id: `facility-${generation}-${trainer.name}-${opponents.length}`,
-      name: `${trainer.trainerClass} ${gameVersion === "Omega Ruby / Alpha Sapphire" ? (trainer.orasName || trainer.name) : trainer.name}`,
-      sets: converted.slice(0, 3),
-      teamPool: [converted],
+      id: "facility-" + generation + "-" + gameVersion + "-" + trainer.name + "-" + opponents.length,
+      name: displayName || "Facility Trainer " + (opponents.length + 1),
+      sets: fixedTeam ? converted : converted.slice(0, 3),
+      ...(fixedTeam ? { fixedTeam: true } : { teamPool: [converted] }),
     });
   }
-  return { opponents, sourceCount: eligibleTrainers.length, rejected, sourceUrl: source.url };
+  return { opponents, sourceCount: dataset.trainers.length, rejected, sourceUrl: source.url };
 }
 
 export async function loadMetaPokemonPool(format: string): Promise<{

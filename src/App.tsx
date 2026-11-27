@@ -523,7 +523,10 @@ export default function App() {
     try {
       const tierFormat = battleFormat();
       const format = singleMode ? `gen${settings.generation}customgame` : tierFormat;
-      const playerSets = singleMode ? [makeBattleSet(selected!.build, settings.generation)] : makeBattleSets(playerTeam!, settings.generation);
+      const rawPlayerSets = singleMode ? [makeBattleSet(selected!.build, settings.generation)] : makeBattleSets(playerTeam!, settings.generation);
+      const playerSets = settings.battleType === "PvE" && settings.generation < 9
+        ? rawPlayerSets.map(set => ({ ...set, level: Math.min(50, Number(set.level || 50)) }))
+        : rawPlayerSets;
       if (!singleMode && settings.battleType === "PvP") {
         try {
           const problems = TeamValidator.get(format).validateTeam(playerSets as any) || [];
@@ -568,7 +571,7 @@ export default function App() {
         benchmarkMode, ...coverage,
       };
       const result = await runExhaustiveBenchmark({
-        format, playerSets, opponents, repetitions: 100, playerSelectionSize: settings.battleType === "PvE" ? 3 : undefined, shouldCancel: () => benchmarkCancel.current,
+        format, playerSets, opponents, repetitions: 100, playerSelectionSize: settings.battleType === "PvE" && settings.generation < 9 ? 3 : undefined, shouldCancel: () => benchmarkCancel.current,
         onProgress: progress => { setBenchmarkProgress(progress); setMatchupRun({ ...meta, ...progress }); },
       });
       setBenchmarkProgress(result); setMatchupRun({ ...meta, ...result });

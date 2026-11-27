@@ -310,7 +310,7 @@ export default function App() {
         };
         source.start(startAt);
         const nextStart = startAt + buffer.duration - fadeDuration;
-        const delay = Math.max(0, (nextStart - context.currentTime) * 1000);
+        const delay = Math.max(0, (nextStart - fadeDuration - context.currentTime) * 1000);
         timer = window.setTimeout(() => scheduleTrack(nextStart, true), delay);
       };
       scheduleTrack(context.currentTime + 0.05, false);

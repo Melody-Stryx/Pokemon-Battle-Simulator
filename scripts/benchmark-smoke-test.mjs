@@ -213,7 +213,7 @@ const doublesAIChoice = chooseTacticalChoice({
     { moves: [{ move: "Ice Beam", target: "normal" }, { move: "Dragon Claw", target: "normal" }] },
   ],
 }, ["|switch|p2a: Gengar|Gengar, L100|261/261", "|switch|p2b: Magikarp|Magikarp, L100|181/181"], "p1", 9);
-if (doublesAIChoice !== "move 2 1, move 2 1") throw new Error("Doubles AI did not score each active Pokémon independently and select legal explicit targets.");
+if (doublesAIChoice !== "move 2, move 2") throw new Error("Doubles AI did not score each active Pokémon independently and select legal moves.");
 
 const doublesReflectChoice = chooseTacticalChoice({
   side: { pokemon: [

@@ -118,12 +118,12 @@ await runUntilEvent({
 });
 
 await runUntilEvent({
-  label: "Water Absorb heals from Water damage",
+  label: "Water Absorb blocks incoming Water damage",
   player: [makeSet("Vaporeon", "Water Absorb", ["Splash"])],
   opponent: [makeSet("Golduck", "Swift Swim", ["Surf"])],
   choosePlayer: request => moveOne(request),
   chooseOpponent: request => moveOne(request),
-  expected: line => line.startsWith("|-heal|p1a: Vaporeon|") && line.includes("Water Absorb"),
+  expected: line => line.startsWith("|-immune|p1a: Vaporeon|") && line.includes("Water Absorb"),
 });
 
 await runUntilEvent({

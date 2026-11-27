@@ -226,7 +226,7 @@ export function chooseTacticalChoice(request: RequestView, log: string[], side: 
     ]);
     const moveId = toID(String((bestMove.option as any).id || bestMove.option.move));
     const isFieldOrSideCondition = Boolean(moveData?.sideCondition || moveData?.pseudoWeather || moveData?.weather || moveData?.terrain) || targetlessEffects.has(moveId);
-    const needsExplicitTarget = !isFieldOrSideCondition && ["normal", "adjacentFoe", "any", "adjacentAlly", "adjacentAllyOrSelf"].includes(moveTarget);
+    const needsExplicitTarget = request.active.length === 1 && !isFieldOrSideCondition && ["normal", "adjacentFoe", "any", "adjacentAlly", "adjacentAllyOrSelf"].includes(moveTarget);
     const targetLocation = moveTarget === "adjacentAlly" || moveTarget === "adjacentAllyOrSelf" ? (i === 0 ? -2 : -1) : 1;
     let choice = `move ${bestMove.slot}${needsExplicitTarget ? ` ${targetLocation}` : ""}`;
     if (active.canMegaEvo) choice += " mega";

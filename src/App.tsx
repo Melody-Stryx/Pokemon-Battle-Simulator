@@ -621,7 +621,7 @@ export default function App() {
       setBattleError(useAutoTeams ? "Load the Auto Teams pool for this generation and tier first." : "Choose a saved player team.");
       return;
     }
-    if (playerTeam.slots.length < 1 || playerTeam.slots.length > 6 || (!useFacilityOpponent && !useAutoOpponent && opponentTeam!.slots.length > 6)) {
+    if (playerTeam.slots.length < 1 || playerTeam.slots.length > 6 || (!useFacilityOpponent && !useAutoTeams && (opponentTeam!.slots.length < 1 || opponentTeam!.slots.length > 6))) {
       setBattleError("Each team must contain between 1 and 6 Pokémon.");
       return;
     }
@@ -657,7 +657,7 @@ export default function App() {
       }
       const playerSets = makeBattleSets(playerTeam, settings.generation) as any[];
       const isTrainerTower = settings.generation === 3 && settings.gameVersion === "FireRed / LeafGreen";
-      const battlePlayerSets = useFacilityOpponent && !isTrainerTower
+      const battlePlayerSets = useFacilityOpponent && settings.generation < 9 && !isTrainerTower
         ? createFacilityTeam(playerSets, Math.min(3, playerSets.length))
         : playerSets;
       const playerMaxLevel = Math.max(1, ...battlePlayerSets.map(set => Number(set.level) || 100));

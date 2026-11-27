@@ -12,7 +12,8 @@ An independent, responsive Pokémon team-building and battle-testing workspace b
 - Local-first team builder with six slots, multiple builds per Pokémon, export, and automatic browser storage.
 - Generation-aware Pokédex selectors, gender handling, EVs, IVs, natures, and calculated battle stats.
 - Legality analysis using Pokémon Showdown's team validator, including Generation 7 Battle Tree Super Singles roster restrictions.
-- Battle execution using `@pkmn/sim`.
+- Battle execution using `@pkmn/sim`, with generation-specific ability, type, status, weather, residual-damage and entry-hazard mechanics handled by the battle engine.
+- Ability compatibility warnings when a selected ability is unavailable to that species in the chosen generation.
 - Exhaustive PvP benchmark against every distinct, complete, currently valid team in the published sample-team archive for the selected generation and tier, with 100 randomized baseline battles per team.
 - Auto mode with random legal-choice control and Manual mode with move/switch selection.
 - Switch between Auto and Manual during a battle without restarting it.
@@ -50,7 +51,7 @@ GitHub Actions runs the production build, battle-engine smoke test, ability/stat
 - The archive is a curated sample-team collection, not an exhaustive record of all ladder teams. The UI reports source record count, accepted distinct teams and rejected records.
 - Replay logs and usage statistics are not silently converted into complete teams: they may omit unrevealed Pokémon or set details. Such partial evidence is not counted as a tested team.
 - PvE facility pools are game-version-specific and are connected to live battles and the exhaustive benchmark. Supported sources include Ruby/Sapphire Battle Tower, Emerald Battle Frontier, FireRed/LeafGreen Trainer Tower, the Generation IV Battle Tower/Frontier, Generation V Battle Subway, Generation VI Battle Maison, Generation VII Battle Tree, Generation VIII Battle Tower, and the Generation IX Academy Ace Tournament.
-- 100 battles are run per published team. Both sides currently use random legal-choice AI; meaningful competitive win-rate estimates require the planned strategic, information-limited AI.
+- 100 battles are run per published team. Both sides use the rules-based TacticalPlayerAI described below; results are useful for comparing teams against a consistent heuristic, not as a substitute for human play or a tournament-grade competitive AI.
 
 ### Tactical battle AI
 
@@ -63,7 +64,8 @@ The AI accounts for revealed ability immunities, status already present, and exi
 - PvP Auto Teams benchmarks all distinct valid complete teams in the published sample archive for the selected format.
 - Saved teams benchmarks every other complete team in the browser's local team library. PvE benchmarks use the selected facility's version-specific trainer pool.
 - Per-opponent and aggregate wins, losses, ties, completion counts, selected game/ruleset, and source coverage are persisted locally and displayed in Matchup Analysis.
-- Combat telemetry records HP damage taken, source-attributed damage dealt per Pokémon, faint counts, damage ratios, and passive damage grouped by hazards, status, weather, abilities or items when the battle log identifies the source.
+- Combat telemetry records HP damage taken, source-attributed damage dealt per Pokémon, faint counts, damage ratios, and passive damage grouped by entry hazards, poison, bad poison, burn, weather, abilities or items when the battle log identifies the source.
+- Status telemetry records major status conditions applied to and cured from each Pokémon, separately from residual damage.
 - Move rankings show damage attributed to individual moves for both teams. Residual damage and damage without a reliable source remain outside move rankings and are reported as unattributed.
 - Trainer Tower Knockout Mode reports each one-Pokémon trainer battle separately; continuous HP carryover between consecutive Knockout battles is not currently simulated.
 - A run can be cancelled; completed battles remain recorded.

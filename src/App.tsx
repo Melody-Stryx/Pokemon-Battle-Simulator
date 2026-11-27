@@ -144,7 +144,7 @@ function formatBattleLine(line: string): string {
   if (tag === "player") return `${parts[3]} joined the battle`;
   if (tag === "switch" || tag === "drag") return `${pokemonName(parts[2])} entered the battle (${parts[4] || parts[3] || ""})`;
   if (tag === "move") return `${pokemonName(parts[2])} used ${parts[3]}`;
-  const source = parts.slice(4).find(part => part.startsWith("[from]"))?.slice(6);
+  const source = parts.slice(4).find(part => part.startsWith("[from]"))?.slice(6).trim();
   const statusNames: Record<string, string> = { brn: "burn", psn: "poison", tox: "badly poisoned", par: "paralysis", slp: "sleep", frz: "freeze" };
   const sideName = (value: string) => value?.startsWith("p1") ? "Your side" : "Opponent's side";
   if (tag === "-damage") return `${pokemonName(parts[2])} took damage${source ? ` from ${source.replace(/^move: /, "")}` : ""} (${parts[3]})`;

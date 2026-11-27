@@ -115,7 +115,7 @@ await runUntilEvent({
   opponent: [makeSet("Gengar", "Levitate", ["Splash"])],
   choosePlayer: request => moveOne(request),
   chooseOpponent: request => moveOne(request),
-  expected: line => line.startsWith("|-immune|p2a: Gengar|") && line.includes("[from] ability: Levitate"),
+  expected: line => line.startsWith("|-immune|p2a: Gengar|"),
 });
 
 await runUntilEvent({

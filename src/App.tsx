@@ -640,14 +640,26 @@ export default function App() {
     stopBattle();
     setBattleError("");
     setSimulationLegalityWarning("");
+    const abilityWarnings = settings.generation >= 3 ? playerTeam.slots.flatMap(slot => {
+      const build = activeBuild(slot);
+      if (!build.name.trim() || !build.ability.trim()) return [];
+      const species = generationDex.species.get(build.name);
+      if (!species.exists) return [];
+      const allowed = Object.values(species.abilities).filter(Boolean).map(value => String(value).toLowerCase().replace(/[^a-z0-9]/g, ""));
+      const chosen = build.ability.toLowerCase().replace(/[^a-z0-9]/g, "");
+      return allowed.includes(chosen) ? [] : [`${build.nickname || build.name}: ${build.ability} is not an available ability in Generation ${settings.generation}.`];
+    }) : [];
     if (settings.battleType === "PvP") {
       try {
         const format = battleFormat();
         const problems = TeamValidator.get(format).validateTeam(makeBattleSets(playerTeam, settings.generation) as any) || [];
-        if (problems.length) setSimulationLegalityWarning(`Your team is illegal for ${format.toUpperCase()}: ${problems.slice(0, 6).join(" | ")} Simulation will run anyway.`);
+        const warnings = [...problems, ...abilityWarnings];
+        if (warnings.length) setSimulationLegalityWarning(`Your team has validation warnings for ${format.toUpperCase()}: ${warnings.slice(0, 6).join(" | ")} Simulation will run anyway.`);
       } catch (error) {
         setSimulationLegalityWarning(`Your team legality could not be verified: ${error instanceof Error ? error.message : "validator unavailable"} Simulation will run anyway.`);
       }
+    } else if (abilityWarnings.length) {
+      setSimulationLegalityWarning(`Ability warnings: ${abilityWarnings.slice(0, 6).join(" | ")} Battle will run, but invalid abilities will not activate.`);
     }
     setBattleLog([]);
     setManualRequest(null);
@@ -835,7 +847,7 @@ export default function App() {
                     <label className="field"><span>Nickname</span><input value={selectedBuild.nickname} placeholder="Optional" onChange={e => patchBuild({nickname:e.target.value})} /></label>
                     <label className="field"><span>Level</span><input type="number" min="1" max="100" value={selectedBuild.level} onChange={e => patchBuild({level:Math.max(1,Math.min(100,Number(e.target.value)||1))})} /></label>
                     <label className="field"><span>Gender</span><select value={selectedSpecies?.gender === "N" ? "N" : selectedSpecies?.gender === "M" || selectedSpecies?.gender === "F" ? selectedSpecies.gender : selectedBuild.gender} disabled={selectedSpecies?.gender === "N" || selectedSpecies?.gender === "M" || selectedSpecies?.gender === "F"} onChange={e => patchBuild({gender:e.target.value})}><option value="">Auto / unspecified</option><option value="M">Male</option><option value="F">Female</option><option value="N">Genderless</option></select></label>
-                    <label className="field"><span>Ability</span><input list="showdown-abilities" value={selectedBuild.ability} placeholder="Search ability…" onChange={e => patchBuild({ability:e.target.value})} /></label>
+                    <label className="field"><span>Ability</span><input list="showdown-abilities" value={selectedBuild.ability} placeholder="Search ability…" onChange={e => patchBuild({ability:e.target.value})} />{selectedBuild.ability.trim() && selectedSpecies && !speciesAbilities.some(ability => ability.toLowerCase().replace(/[^a-z0-9]/g,"") === selectedBuild.ability.toLowerCase().replace(/[^a-z0-9]/g,"")) && <small className="hint">This ability is not available to {selectedSpecies.name} in Generation {settings.generation}; it will not activate.</small>}</label>
                     <label className="field"><span>Nature</span><select value={selectedBuild.nature} onChange={e => patchBuild({nature:e.target.value})}>{natures.map(n => <option key={n}>{n}</option>)}</select></label>
                     <label className="field"><span>Held item</span><input list="showdown-items" value={selectedBuild.item} placeholder="Search item…" onChange={e => patchBuild({item:e.target.value})} /></label>
                     <label className="field"><span>Happiness</span><input type="number" min="0" max="255" value={selectedBuild.happiness} onChange={e => patchBuild({happiness:Math.max(0,Math.min(255,Number(e.target.value)||0))})} /></label>

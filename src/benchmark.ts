@@ -1,3 +1,4 @@
+import { Dex } from "@pkmn/dex";
 import { BattleStreams, TeamValidator, Teams } from "@pkmn/sim";
 import { TacticalPlayerAI } from "./pve-ai";
 
@@ -8,6 +9,8 @@ export type BenchmarkOpponent = {
   sets: Record<string, unknown>[];
   teamPool?: Record<string, unknown>[][];
   fixedTeam?: boolean;
+  format?: string;
+  scaleLevelToPlayer?: boolean;
 };
 
 export type MoveDamageSummary = { move: string; damage: number; hits: number; uses: number };
@@ -120,6 +123,10 @@ export async function loadFacilityOpponentPool(generation: number, gameVersion: 
   const sources: Record<string, { url: string; label: string }> = {
     "3|Ruby / Sapphire|Battle Tower": { url: "/data/facilities/gen3-rs.json", label: "Ruby / Sapphire Battle Tower" },
     "3|Emerald|Battle Frontier": { url: "/data/facilities/gen3.json", label: "Emerald Battle Frontier" },
+    "3|FireRed / LeafGreen|Trainer Tower - Single Mode": { url: "/data/facilities/gen3-frlg-trainer-tower.json", label: "FireRed / LeafGreen Trainer Tower Single Mode" },
+    "3|FireRed / LeafGreen|Trainer Tower - Double Mode": { url: "/data/facilities/gen3-frlg-trainer-tower.json", label: "FireRed / LeafGreen Trainer Tower Double Mode" },
+    "3|FireRed / LeafGreen|Trainer Tower - Knockout Mode": { url: "/data/facilities/gen3-frlg-trainer-tower.json", label: "FireRed / LeafGreen Trainer Tower Knockout Mode" },
+    "3|FireRed / LeafGreen|Trainer Tower - Mixed Mode": { url: "/data/facilities/gen3-frlg-trainer-tower.json", label: "FireRed / LeafGreen Trainer Tower Mixed Mode" },
     "4|Diamond / Pearl|Battle Tower": { url: "/data/facilities/gen4-dp.json", label: "Diamond / Pearl Battle Tower" },
     "4|Platinum|Battle Frontier": { url: "/data/facilities/gen4.json", label: "Platinum Battle Frontier" },
     "4|HeartGold / SoulSilver|Battle Frontier": { url: "/data/facilities/gen4.json", label: "HeartGold / SoulSilver Battle Frontier" },
@@ -137,7 +144,84 @@ export async function loadFacilityOpponentPool(generation: number, gameVersion: 
   if (!source) throw new Error("Authentic opponent data is not available for " + gameVersion + " " + facility + ". No saved teams or generated stand-ins will be substituted.");
   const response = await fetch(source.url);
   if (!response.ok) throw new Error("Could not load " + source.label + " dataset (HTTP " + response.status + ").");
-  const dataset = await response.json() as FacilityDataset;
+  const dataset = await response.json() as FacilityDataset & {
+    modes?: Record<string, Array<{
+      floor: number;
+      challengeType: "SINGLE" | "DOUBLE" | "KNOCKOUT";
+      trainers: Array<{
+        name: string;
+        trainerClass: string;
+        pokemon: Array<{
+          species: string; item: string; moves: string[]; abilityNum: number; nature: string; gender?: string;
+          happiness: number; ivs: Record<string, number>; evs: Record<string, number>;
+        }>;
+      }>;
+    }>>;
+  };
+  if (dataset.modes) {
+    const floors = dataset.modes[facility];
+    if (!floors?.length) throw new Error("The Trainer Tower dataset has no floor data for " + facility + ".");
+    const dex = Dex.forGen(3);
+    const idOf = (value: string) => value.toLowerCase().replace(/_/g, "");
+    const trainerClassName = (value: string) => value.replace(/^RS_/, "").replace(/^PKMN_/, "POKEMON_").split("_")
+      .map(part => part === "F" || part === "M" ? part : part.charAt(0) + part.slice(1).toLowerCase())
+      .join(" ");
+    const convertTowerSet = (raw: NonNullable<typeof floors>[number]["trainers"][number]["pokemon"][number]) => {
+      const speciesId = raw.species === "NIDORAN_F" ? "nidoranfemale" : raw.species === "NIDORAN_M" ? "nidoranmale" : idOf(raw.species);
+      const species = dex.species.get(speciesId);
+      if (!species.exists) throw new Error("Unknown Trainer Tower species macro: " + raw.species);
+      const moves = raw.moves.map(moveId => {
+        const move = dex.moves.get(idOf(moveId));
+        if (!move.exists) throw new Error("Unknown Trainer Tower move macro: " + moveId);
+        return move.name;
+      });
+      const item = raw.item ? dex.items.get(idOf(raw.item)) : null;
+      if (item && !item.exists) throw new Error("Unknown Trainer Tower item macro: " + raw.item);
+      const ability = species.abilities[String(raw.abilityNum)] || species.abilities["0"];
+      if (!ability) throw new Error("No Generation 3 ability found for " + species.name + ".");
+      return {
+        name: species.name, species: species.name, ability, item: item?.name || "",
+        nature: raw.nature.charAt(0) + raw.nature.slice(1).toLowerCase(),
+        gender: raw.gender, happiness: raw.happiness, moves,
+        ivs: raw.ivs, evs: raw.evs,
+      } as Record<string, unknown>;
+    };
+    const opponents: BenchmarkOpponent[] = [];
+    let sourceCount = 0;
+    for (const floor of floors) {
+      sourceCount += floor.trainers.length;
+      const addOpponent = (name: string, sets: Record<string, unknown>[], format: string) => {
+        opponents.push({
+          id: "frlg-trainer-tower-" + facility.toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-floor-" + floor.floor + "-" + opponents.length,
+          name, sets, fixedTeam: true, format, scaleLevelToPlayer: true,
+        });
+      };
+      if (floor.challengeType === "SINGLE") {
+        const trainer = floor.trainers[0];
+        addOpponent(
+          "Floor " + floor.floor + " · " + trainerClassName(trainer.trainerClass) + " " + trainer.name,
+          trainer.pokemon.map(convertTowerSet),
+          "gen3customgame",
+        );
+      } else if (floor.challengeType === "DOUBLE") {
+        const trainerNames = floor.trainers.map(trainer => trainerClassName(trainer.trainerClass) + " " + trainer.name);
+        addOpponent(
+          "Floor " + floor.floor + " · " + trainerNames.join(" & "),
+          floor.trainers.flatMap(trainer => trainer.pokemon.map(convertTowerSet)),
+          "gen3doublescustomgame",
+        );
+      } else {
+        for (const trainer of floor.trainers) {
+          addOpponent(
+            "Floor " + floor.floor + " · " + trainerClassName(trainer.trainerClass) + " " + trainer.name + " (Knockout)",
+            trainer.pokemon.map(convertTowerSet),
+            "gen3customgame",
+          );
+        }
+      }
+    }
+    return { opponents, sourceCount, rejected: 0, sourceUrl: source.url };
+  }
   const setsByName = new Map(dataset.pokemon.map(set => [String(set.name).toLowerCase(), set]));
   const setsBySpeciesTier = new Map(dataset.pokemon.filter(set => set.tier !== undefined).map(set => [String(set.species).toLowerCase() + "-" + String(set.tier), set]));
   const opponents: BenchmarkOpponent[] = [];
@@ -498,11 +582,15 @@ export async function runExhaustiveBenchmark(args: {
     const result: BenchmarkResult = { opponentId: opponent.id, opponentName: opponent.name, wins: 0, losses: 0, ties: 0, games: 0, analysis: emptyAnalysis() };
     for (let repetition = 0; repetition < args.repetitions; repetition++) {
       if (args.shouldCancel()) return { completed, total, wins, losses, ties, currentOpponent: opponent.name, results, analysis };
-      const battleTeam = opponent.teamPool?.length ? createFacilityTeam(opponent.teamPool[0]) : opponent.sets;
       const playerTeam = args.playerSelectionSize
         ? createFacilityTeam(args.playerSets, Math.min(args.playerSelectionSize, args.playerSets.length))
         : args.playerSets;
-      const battle = await playOneBattle(args.format, playerTeam, battleTeam);
+      const rawBattleTeam = opponent.teamPool?.length ? createFacilityTeam(opponent.teamPool[0]) : opponent.sets;
+      const playerMaxLevel = Math.max(1, ...playerTeam.map(set => Number(set.level) || 100));
+      const battleTeam = opponent.scaleLevelToPlayer
+        ? rawBattleTeam.map(set => ({ ...set, level: playerMaxLevel }))
+        : rawBattleTeam;
+      const battle = await playOneBattle(opponent.format || args.format, playerTeam, battleTeam);
       const outcome = normalizeBenchmarkOutcome(battle.outcome);
       result[outcome === "win" ? "wins" : outcome === "loss" ? "losses" : "ties"]++;
       result.games++;

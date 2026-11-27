@@ -324,7 +324,7 @@ try {
 
   const hazardTelemetry = await runExhaustiveBenchmark({
     format: "gen9customgame",
-    playerSets: [makeTeam("Aerodactyl", "Stealth Rock", "Pressure")[0], makeTeam("Skarmory", "Roar", "Keen Eye")[0]],
+    playerSets: [{ ...makeTeam("Aerodactyl", "Stealth Rock", "Pressure")[0], moves: ["Stealth Rock", "Roar"] }],
     opponents: [{ id: "hazard-pidgey", name: "Switching targets", sets: [makeTeam("Magikarp", "Splash", "Swift Swim")[0], makeTeam("Pidgey", "Splash", "Keen Eye")[0]] }],
     repetitions: 1,
     shouldCancel: () => false,

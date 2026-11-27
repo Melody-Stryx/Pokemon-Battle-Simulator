@@ -230,6 +230,7 @@ export function chooseTacticalChoice(request: RequestView, log: string[], side: 
     const needsExplicitTarget = request.active.length > 1 && !isFieldOrSideCondition && ["normal", "adjacentFoe", "any", "adjacentAlly", "adjacentAllyOrSelf"].includes(moveTarget);
     const targetLocation = moveTarget === "adjacentAlly" || moveTarget === "adjacentAllyOrSelf" ? (i === 0 ? -2 : -1) : 1;
     let choice = `move ${bestMove.slot}${needsExplicitTarget ? ` ${targetLocation}` : ""}`;
+    if (needsExplicitTarget) console.log("[TacticalPlayerAI] explicit target", { move: bestMove.option.move, moveId, moveTarget, choice });
     if (moveId === "reflect") console.log("[TacticalPlayerAI] Reflect choice", choice);
     if (active.canMegaEvo) choice += " mega";
     else if (active.canDynamax && (hpRatio(own) < 0.65 || bestMove.score >= 100)) choice += " dynamax";

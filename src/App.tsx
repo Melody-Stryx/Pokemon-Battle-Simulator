@@ -127,26 +127,6 @@ function calculateFinalStat(base: number, iv: number, ev: number, level: number,
   const natureModifier = stat === up ? 1.1 : stat === down ? 0.9 : 1;
   return Math.floor((value + 5) * natureModifier);
 }
-function calculateBattleStat(value: number, stat: string, ability: string, item: string) {
-  let result = value;
-  const abilityName = ability.toLowerCase();
-  const itemName = item.toLowerCase();
-  if (stat === "atk") {
-    if (abilityName === "huge power" || abilityName === "pure power") result = Math.floor(result * 2);
-    if (abilityName === "gorilla tactics") result = Math.floor(result * 1.5);
-    if (itemName === "choice band") result = Math.floor(result * 1.5);
-  }
-  if (stat === "def") {
-    if (abilityName === "fur coat") result = Math.floor(result * 2);
-  }
-  if (stat === "spa") {
-    if (itemName === "choice specs") result = Math.floor(result * 1.5);
-  }
-  if (stat === "spe") {
-    if (itemName === "choice scarf") result = Math.floor(result * 1.5);
-  }
-  return result;
-}
 function newBuild(name = ""): PokemonBuild {
   return { id: uid(), name, label: "", nickname: "", level: 100, gender: "", ability: "", nature: "Hardy", item: "", moves: ["","","",""], evs: { HP:0, Atk:0, Def:0, SpA:0, SpD:0, Spe:0 }, ivs: { HP:31, Atk:31, Def:31, SpA:31, SpD:31, Spe:31 }, shiny: false, happiness: 255, teraType: "" };
 }
@@ -160,14 +140,31 @@ function formatBattleLine(line: string): string {
   if (tag === "player") return `${parts[3]} joined the battle`;
   if (tag === "switch" || tag === "drag") return `${pokemonName(parts[2])} entered the battle (${parts[4] || parts[3] || ""})`;
   if (tag === "move") return `${pokemonName(parts[2])} used ${parts[3]}`;
-  if (tag === "-damage") return `${pokemonName(parts[2])} took damage (${parts[3]})`;
-  if (tag === "-heal") return `${pokemonName(parts[2])} recovered HP (${parts[3]})`;
+  const source = parts.slice(4).find(part => part.startsWith("[from]"))?.slice(6);
+  const statusNames: Record<string, string> = { brn: "burn", psn: "poison", tox: "badly poisoned", par: "paralysis", slp: "sleep", frz: "freeze" };
+  const sideName = (value: string) => value?.startsWith("p1") ? "Your side" : "Opponent's side";
+  if (tag === "-damage") return `${pokemonName(parts[2])} took damage${source ? ` from ${source.replace(/^move: /, "")}` : ""} (${parts[3]})`;
+  if (tag === "-heal") return `${pokemonName(parts[2])} recovered HP${source ? ` from ${source.replace(/^move: /, "")}` : ""} (${parts[3]})`;
   if (tag === "faint") return `${pokemonName(parts[2])} fainted`;
   if (tag === "win") return `${parts[2]} wins`;
   if (tag === "tie") return "The battle ended in a tie";
-  if (tag === "-status") return `${pokemonName(parts[2])} was afflicted with ${parts[3]}`;
-  if (tag === "-curestatus") return `${pokemonName(parts[2])} recovered from ${parts[3]}`;
-  if (tag === "-boost" || tag === "-unboost") return `${pokemonName(parts[2])}'s ${parts[3]} was ${tag === "-boost" ? "raised" : "lowered"}`;
+  if (tag === "-status") return `${pokemonName(parts[2])} was afflicted with ${statusNames[parts[3]] || parts[3]}`;
+  if (tag === "-curestatus") return `${pokemonName(parts[2])} recovered from ${statusNames[parts[3]] || parts[3]}`;
+  if (tag === "-ability") return `${pokemonName(parts[2])}'s ${parts[3]} activated`;
+  if (tag === "-activate") return `${pokemonName(parts[2])} activated ${parts[3]}`;
+  if (tag === "-sidestart") return `${sideName(parts[2])}: ${(parts[3] || "").replace(/^move: /, "")} was set`;
+  if (tag === "-sideend") return `${sideName(parts[2])}: ${(parts[3] || "").replace(/^move: /, "")} ended`;
+  if (tag === "-start") return `${pokemonName(parts[2])} gained ${(parts[3] || "").replace(/^move: /, "")}${source ? ` from ${source.replace(/^move: /, "")}` : ""}`;
+  if (tag === "-end") return `${pokemonName(parts[2])} lost ${(parts[3] || "").replace(/^move: /, "")}`;
+  if (tag === "-weather") return parts[2] === "none" ? "The weather cleared" : `Weather changed: ${(parts[2] || "").replace(/^weather: /, "")}`;
+  if (tag === "-fieldstart") return `Field effect started: ${(parts[2] || "").replace(/^move: /, "")}`;
+  if (tag === "-fieldend") return `Field effect ended: ${(parts[2] || "").replace(/^move: /, "")}`;
+  if (tag === "-immune") return `${pokemonName(parts[2])} was immune${source ? ` (${source})` : ""}`;
+  if (tag === "-supereffective") return `Super-effective hit on ${pokemonName(parts[2])}`;
+  if (tag === "-resisted") return `Not very effective against ${pokemonName(parts[2])}`;
+  if (tag === "-fail") return `${pokemonName(parts[2])}'s move failed`;
+  if (tag === "-miss") return `${pokemonName(parts[2])}'s attack missed`;
+  if (tag === "-boost" || tag === "-unboost") return `${pokemonName(parts[2])}'s ${parts[3]} was ${tag === "-boost" ? "raised" : "lowered"} by ${parts[4] || 1}`;
   if (tag === "message") return parts.slice(2).join("|");
   if (tag === "error") return parts.slice(2).join("|");
   return "";
@@ -821,7 +818,7 @@ export default function App() {
                     <datalist id="showdown-items">{itemOptions.map(item => <option key={item.name} value={item.name} />)}</datalist>
                     <datalist id="showdown-moves">{moveOptions.map(option => <option key={option.name} value={option.name} />)}</datalist>
                   </div>
-                  {selectedSpecies && <div className="editor-section final-stats-section"><div className="editor-section-title">Final stats <small>Level {selectedBuild.level} · {selectedBuild.nature} · Ability and item modifiers included</small></div><div className="base-stat-row">{statNames.map((label, index) => { const stat = (["hp","atk","def","spa","spd","spe"] as const)[index]; const baseValue = calculateFinalStat(selectedSpecies.baseStats[stat], selectedBuild.ivs[label], selectedBuild.evs[label], selectedBuild.level, stat, selectedBuild.nature); const value = calculateBattleStat(baseValue, stat, selectedBuild.ability, selectedBuild.item); return <div key={stat}><small>{label}</small><strong>{value}</strong>{value !== baseValue && <small className="stat-modifier">Base {baseValue}</small>}</div>; })}<div className="bst-total"><small>Total</small><strong>{statNames.reduce((sum, label, index) => { const stat = (["hp","atk","def","spa","spd","spe"] as const)[index]; const baseValue = calculateFinalStat(selectedSpecies.baseStats[stat], selectedBuild.ivs[label], selectedBuild.evs[label], selectedBuild.level, stat, selectedBuild.nature); return sum + calculateBattleStat(baseValue, stat, selectedBuild.ability, selectedBuild.item); }, 0)}</strong></div></div>{["wise glasses", "muscle band"].includes(selectedBuild.item.toLowerCase()) && <p className="stat-total">Damage modifiers: {selectedBuild.item.toLowerCase() === "wise glasses" ? "Wise Glasses: special-move damage ×1.1." : "Muscle Band: physical-move damage ×1.1."} These boost move damage, not the displayed offensive stat.</p>}</div>}
+                  {selectedSpecies && <div className="editor-section final-stats-section"><div className="editor-section-title">Final stats <small>Level {selectedBuild.level} · {selectedBuild.nature} · Calculated stats before in-battle modifiers</small></div><div className="base-stat-row">{statNames.map((label, index) => { const stat = (["hp","atk","def","spa","spd","spe"] as const)[index]; const baseValue = calculateFinalStat(selectedSpecies.baseStats[stat], selectedBuild.ivs[label], selectedBuild.evs[label], selectedBuild.level, stat, selectedBuild.nature); const value = baseValue; return <div key={stat}><small>{label}</small><strong>{value}</strong></div>; })}<div className="bst-total"><small>Total</small><strong>{statNames.reduce((sum, label, index) => { const stat = (["hp","atk","def","spa","spd","spe"] as const)[index]; const baseValue = calculateFinalStat(selectedSpecies.baseStats[stat], selectedBuild.ivs[label], selectedBuild.evs[label], selectedBuild.level, stat, selectedBuild.nature); return sum + baseValue; }, 0)}</strong></div></div>{["wise glasses", "muscle band"].includes(selectedBuild.item.toLowerCase()) && <p className="stat-total">Damage modifiers: {selectedBuild.item.toLowerCase() === "wise glasses" ? "Wise Glasses: special-move damage ×1.1." : "Muscle Band: physical-move damage ×1.1."} These boost move damage, not the displayed offensive stat.</p>}</div>}
                   <div className="editor-section"><div className="editor-section-title">Moves <small>{moveOptions.length} moves in Gen {settings.generation} data</small></div><div className="move-grid">{selectedBuild.moves.map((move,i) => <label className="field" key={i}><span>Move {i+1}</span><input list="showdown-moves" value={move} placeholder="Search move…" onChange={e => { const moves = selectedBuild.moves.map((m,j) => j===i ? e.target.value : m); const hiddenPowerType = settings.generation >= 3 && settings.generation <= 7 ? hiddenPowerTypeFromMove(e.target.value) : undefined; patchBuild({moves, ...(hiddenPowerType ? {ivs:ivsForHiddenPowerType(hiddenPowerType, selectedBuild.ivs)} : {})}); }} /></label>)}</div></div>
                   <div className="editor-section"><div className="editor-section-title">Effort values (EVs) <small>510 total maximum</small></div><div className="stat-grid">{statNames.map(stat => <label className="field" key={stat}><span>{stat}</span><div className="stat-input-pair"><input className="stat-range" aria-label={`${stat} EV slider`} type="range" min="0" max="252" step="1" value={selectedBuild.evs[stat]} onChange={e => patchBuild({evs:{...selectedBuild.evs,[stat]:Number(e.target.value)}})} /><input className="stat-number" aria-label={`${stat} EV`} type="number" min="0" max="252" value={selectedBuild.evs[stat]} onChange={e => patchBuild({evs:{...selectedBuild.evs,[stat]:Math.max(0,Math.min(252,Number(e.target.value)||0))}})} /></div></label>)}</div><p className="stat-total">Total EVs: {Object.values(selectedBuild.evs).reduce((a,b)=>a+b,0)} / 510</p></div>
                   <div className="editor-section"><div className="editor-section-title">Individual values (IVs) <small>Hidden Power helper available in Generations 3-7</small></div>{settings.generation >= 3 && settings.generation <= 7 && <label className="field hidden-power-field"><span>Hidden Power type · auto-set IVs</span><select value={hiddenPowerTypeFromIvs(selectedBuild.ivs)} onChange={e => patchBuild({ivs:ivsForHiddenPowerType(e.target.value, selectedBuild.ivs)})}>{hiddenPowerTypes.map(type => <option key={type} value={type}>{type}</option>)}</select><small>Chooses the closest IV combination that produces the selected type, preserving your current IVs where possible.</small></label>}<div className="stat-grid">{statNames.map(stat => <label className="field" key={stat}><span>{stat}</span><div className="stat-input-pair"><input className="stat-range" aria-label={`${stat} IV slider`} type="range" min="0" max="31" step="1" value={selectedBuild.ivs[stat]} onChange={e => patchBuild({ivs:{...selectedBuild.ivs,[stat]:Number(e.target.value)}})} /><input className="stat-number" aria-label={`${stat} IV`} type="number" min="0" max="31" value={selectedBuild.ivs[stat]} onChange={e => patchBuild({ivs:{...selectedBuild.ivs,[stat]:Math.max(0,Math.min(31,Number(e.target.value)||0))}})} /></div></label>)}</div></div>

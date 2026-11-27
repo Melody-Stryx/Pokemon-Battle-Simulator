@@ -418,7 +418,7 @@ function shuffledCopy<T>(items: T[]): T[] {
   return shuffled;
 }
 
-function createFacilityTeam(pool: Record<string, unknown>[]): Record<string, unknown>[] {
+function createFacilityTeam(pool: Record<string, unknown>[], teamSize = 3): Record<string, unknown>[] {
   const shuffled = shuffledCopy(pool);
   const selected: Record<string, unknown>[] = [];
   const species = new Set<string>();
@@ -430,9 +430,9 @@ function createFacilityTeam(pool: Record<string, unknown>[]): Record<string, unk
     species.add(speciesId);
     if (itemId) items.add(itemId);
     selected.push(set);
-    if (selected.length === 3) break;
+    if (selected.length === teamSize) break;
   }
-  if (selected.length !== 3) throw new Error("Facility trainer pool could not produce a legal three-Pokémon roster.");
+  if (selected.length !== teamSize) throw new Error(`Facility pool could not produce a legal ${teamSize}-Pokémon roster without duplicate species or held items.`);
   return selected;
 }
 
@@ -455,7 +455,7 @@ export async function runExhaustiveBenchmark(args: {
       if (args.shouldCancel()) return { completed, total, wins, losses, ties, currentOpponent: opponent.name, results, analysis };
       const battleTeam = opponent.teamPool?.length ? createFacilityTeam(opponent.teamPool[0]) : opponent.sets;
       const playerTeam = args.playerSelectionSize && args.playerSets.length > args.playerSelectionSize
-        ? shuffledCopy(args.playerSets).slice(0, args.playerSelectionSize)
+        ? createFacilityTeam(args.playerSets, args.playerSelectionSize)
         : args.playerSets;
       const battle = await playOneBattle(args.format, playerTeam, battleTeam);
       const outcome = battle.outcome;

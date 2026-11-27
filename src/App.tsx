@@ -4,7 +4,7 @@ import { supabase } from "./lib/supabase";
 import { Dex } from "@pkmn/dex";
 import { BattleStreams, TeamValidator, Teams } from "@pkmn/sim";
 import { TacticalPlayerAI, chooseTacticalChoice } from "./pve-ai";
-import { createFacilityTeam, loadCompleteOpponentPool, loadFacilityOpponentPool, loadMetaPokemonPool, runExhaustiveBenchmark, type BenchmarkProgress, type BenchmarkOpponent } from "./benchmark";
+import { createFacilityTeam, loadCompleteOpponentPool, loadFacilityOpponentPool, loadMetaPokemonPool, runExhaustiveBenchmark, type BenchmarkProgress, type BenchmarkOpponent, type BenchmarkSkipDiagnostic } from "./benchmark";
 
 declare const __BUILD_NUMBER__: string;
 type BattleType = "PvP" | "PvE";
@@ -73,6 +73,7 @@ type MatchupAnalysisRun = BenchmarkProgress & {
   sourceCount: number;
   validCount: number;
   rejected: number;
+  skippedTeams?: BenchmarkSkipDiagnostic[];
   sourceUrl: string;
   benchmarkMode?: BenchmarkMode;
 };
@@ -244,7 +245,7 @@ export default function App() {
   const [selectedSinglePokemonKey, setSelectedSinglePokemonKey] = useState("");
   const [benchmarkProgress, setBenchmarkProgress] = useState<BenchmarkProgress | null>(null);
   const [benchmarkError, setBenchmarkError] = useState("");
-  const [benchmarkCoverage, setBenchmarkCoverage] = useState<{sourceCount:number;validCount:number;rejected:number;sourceUrl:string} | null>(null);
+  const [benchmarkCoverage, setBenchmarkCoverage] = useState<{sourceCount:number;validCount:number;rejected:number;skippedTeams?:BenchmarkSkipDiagnostic[];sourceUrl:string} | null>(null);
   const [matchupRun, setMatchupRun] = useState<MatchupAnalysisRun | null>(readMatchupRun);
   const benchmarkCancel = useRef(false);
   const battleDecisionLog = useRef<string[]>([]);
@@ -671,9 +672,10 @@ export default function App() {
       }
       let opponents: BenchmarkOpponent[] = [];
       let sourceCount = 0, rejected = 0, sourceUrl = "Saved teams stored in this browser";
+      let skippedTeams: BenchmarkSkipDiagnostic[] = [];
       if (singleMode) {
         const dataset = await loadMetaPokemonPool(tierFormat);
-        opponents = dataset.opponents; sourceCount = dataset.sourceCount; rejected = dataset.rejected; sourceUrl = dataset.sourceUrl;
+        opponents = dataset.opponents; sourceCount = dataset.sourceCount; rejected = dataset.rejected; skippedTeams = dataset.skippedTeams; sourceUrl = dataset.sourceUrl;
       } else if (settings.battleType === "PvE") {
         const dataset = await loadFacilityOpponentPool(settings.generation, settings.gameVersion, settings.facility);
         opponents = dataset.opponents; sourceCount = dataset.sourceCount; rejected = dataset.rejected; sourceUrl = dataset.sourceUrl;
@@ -694,7 +696,7 @@ export default function App() {
       if (!opponents.length) throw new Error(singleMode
         ? `No individual Pokémon sets were found in the published ${settings.tier} archive for Generation ${settings.generation}.`
         : settings.battleType === "PvE" ? "No valid facility trainers were loaded. Check the selected game's supported facility dataset." : "No other complete, usable teams were found. Add another team with 1 to 6 Pokémon or load the online Auto Teams pool.");
-      const coverage = { sourceCount, validCount: opponents.length, rejected, sourceUrl };
+      const coverage = { sourceCount, validCount: opponents.length, rejected, skippedTeams, sourceUrl };
       setBenchmarkCoverage(coverage);
       const meta = {
         id: uid(), createdAt: new Date().toISOString(), playerTeamId: playerTeam!.id,
@@ -1087,7 +1089,10 @@ export default function App() {
                 <strong>{benchmarkProgress.completed.toLocaleString()} / {benchmarkProgress.total.toLocaleString()} battles completed</strong>
                 <div className="benchmark-summary"><span>Wins: {benchmarkProgress.wins}</span><span>Losses: {benchmarkProgress.losses}</span><span>Ties: {benchmarkProgress.ties}</span><span>Win rate: {benchmarkProgress.completed ? ((benchmarkProgress.wins / benchmarkProgress.completed) * 100).toFixed(1) : "0.0"}%</span></div>
                 {benchmarkBusy && <p className="hint">Current opponent: {benchmarkProgress.currentOpponent}</p>}
-                {benchmarkCoverage && <p className="hint">{benchmarkMode === "Single Pokémon" ? "Source Pokémon sets" : "Source teams"}: {benchmarkCoverage.sourceCount} · tested {benchmarkMode === "Single Pokémon" ? "sets" : "teams"}: {benchmarkCoverage.validCount} · skipped: {benchmarkCoverage.rejected}. {benchmarkCoverage.sourceUrl.startsWith("http") ? <a href={benchmarkCoverage.sourceUrl} target="_blank" rel="noreferrer">Dataset source</a> : benchmarkCoverage.sourceUrl}</p>}
+                {benchmarkCoverage && <>
+                  <p className="hint">{benchmarkMode === "Single Pokémon" ? "Source Pokémon sets" : "Source teams"}: {benchmarkCoverage.sourceCount} · tested {benchmarkMode === "Single Pokémon" ? "sets" : "teams"}: {benchmarkCoverage.validCount} · skipped: {benchmarkCoverage.rejected}. {benchmarkCoverage.sourceUrl.startsWith("http") ? <a href={benchmarkCoverage.sourceUrl} target="_blank" rel="noreferrer">Dataset source</a> : benchmarkCoverage.sourceUrl}</p>
+                  {!!benchmarkCoverage.skippedTeams?.length && <details className="benchmark-skip-details"><summary>Skipped team diagnostics ({benchmarkCoverage.skippedTeams.length})</summary><ul>{benchmarkCoverage.skippedTeams.map((item, index) => <li key={item.name + index}><strong>{item.name}</strong>{item.author ? ` · ${item.author}` : ""} <span>({item.category})</span><ul>{item.reasons.map((reason, reasonIndex) => <li key={reasonIndex}>{reason}</li>)}</ul></li>)}</ul></details>}
+                </>}
                 <div className="benchmark-matchups">{[...benchmarkProgress.results].sort((a,b) => (b.wins / Math.max(1,b.games)) - (a.wins / Math.max(1,a.games))).map(result => <div key={result.opponentId}><strong>{result.opponentName}</strong><span>{result.wins}W / {result.losses}L / {result.ties}T</span></div>)}</div>
               </div>}
               {benchmarkError && <p className="battle-error">{benchmarkError}</p>}
@@ -1117,6 +1122,7 @@ export default function App() {
               <div className="benchmark-summary"><span>{matchupRun.benchmarkMode === "Single Pokémon" ? "Meta Pokémon sets tested" : "Teams tested"}: {matchupRun.validCount}</span><span>Battles: {matchupRun.completed.toLocaleString()} / {matchupRun.total.toLocaleString()}</span><span>Wins: {matchupRun.wins}</span><span>Losses: {matchupRun.losses}</span><span>Ties: {matchupRun.ties}</span><span>Win rate: {matchupRun.completed ? (matchupRun.wins / matchupRun.completed * 100).toFixed(1) : "0.0"}%</span></div>
               <p className="hint">Source entries: {matchupRun.sourceCount} · skipped: {matchupRun.rejected} · Saved locally in this browser.</p>
               {matchupRun.sourceUrl.startsWith("http") && <p className="hint"><a href={matchupRun.sourceUrl} target="_blank" rel="noreferrer">Open opponent dataset</a></p>}
+              {!!matchupRun.skippedTeams?.length && <details className="benchmark-skip-details"><summary>Skipped team diagnostics ({matchupRun.skippedTeams.length})</summary><ul>{matchupRun.skippedTeams.map((item, index) => <li key={item.name + index}><strong>{item.name}</strong>{item.author ? ` · ${item.author}` : ""} <span>({item.category})</span><ul>{item.reasons.map((reason, reasonIndex) => <li key={reasonIndex}>{reason}</li>)}</ul></li>)}</ul></details>}
             </section>
             {matchupRun.analysis && <section className="panel">
               <div className="panel-heading"><div><span className="eyebrow">COMBAT TELEMETRY</span><h3>Damage performance</h3></div><span className="build-version">{matchupRun.completed.toLocaleString()} battles</span></div>

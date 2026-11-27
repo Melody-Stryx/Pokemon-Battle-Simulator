@@ -107,6 +107,44 @@ const tacticalSwitchRequest = {
 };
 const tacticalSwitch = chooseTacticalChoice(tacticalSwitchRequest, ["|switch|p2a: Blastoise|Blastoise, L100|100/100"], "p1");
 if (tacticalSwitch !== "switch 2") throw new Error(`Tactical AI failed to switch to a favourable counter: ${tacticalSwitch}`);
+const abilityAwareRequest = {
+  side: { pokemon: [{ details: "Garchomp, L100", condition: "357/357", active: true, stats: { atk: 359, spa: 196, spe: 333 }, moves: ["Earthquake", "Ice Beam"] }] },
+  active: [{ moves: [{ move: "Earthquake", disabled: false }, { move: "Ice Beam", disabled: false }] }],
+};
+const abilityAwareChoice = chooseTacticalChoice(
+  abilityAwareRequest,
+  ["|switch|p2a: Gengar|Gengar, L100|261/261", "|-ability|p2a: Gengar|Levitate|boost"],
+  "p1",
+  9,
+);
+if (abilityAwareChoice !== "move 2") throw new Error("Tactical AI ignored the revealed Levitate ability and selected Earthquake.");
+
+const hazardAwareRequest = {
+  side: { pokemon: [{ details: "Skarmory, L100", condition: "334/334", active: true, stats: { atk: 196, spa: 176, spe: 196 }, moves: ["Spikes", "Toxic Spikes"] }] },
+  active: [{ moves: [{ move: "Spikes", disabled: false }, { move: "Toxic Spikes", disabled: false }] }],
+};
+const hazardLog = [
+  "|switch|p2a: Garchomp|Garchomp, L100|357/357",
+  "|-sidestart|p2: Benchmark Opponent|move: Spikes",
+  "|-sidestart|p2: Benchmark Opponent|move: Spikes",
+  "|-sidestart|p2: Benchmark Opponent|move: Spikes",
+];
+const hazardAwareChoice = chooseTacticalChoice(hazardAwareRequest, hazardLog, "p1", 9);
+if (hazardAwareChoice !== "move 2") throw new Error("Tactical AI kept setting Spikes after all three layers were already active.");
+
+const statusAwareRequest = {
+  side: { pokemon: [{ details: "Gengar, L100", condition: "261/261", active: true, stats: { atk: 156, spa: 359, spe: 350 }, moves: ["Toxic", "Shadow Ball"] }] },
+  active: [{ moves: [{ move: "Toxic", disabled: false }, { move: "Shadow Ball", disabled: false }] }],
+};
+const statusAwareChoice = chooseTacticalChoice(
+  statusAwareRequest,
+  ["|switch|p2a: Magikarp|Magikarp, L100|181/181", "|-status|p2a: Magikarp|psn"],
+  "p1",
+  9,
+);
+if (statusAwareChoice !== "move 2") throw new Error("Tactical AI tried to inflict a second major status condition on an already-poisoned target.");
+console.log("Tactical AI mechanic-awareness tests passed: Levitate, hazard layer limits and existing status conditions.");
+
 console.log("Tactical AI decision tests passed: super-effective move selection and matchup-aware switching.");
 
 if (normalizeBenchmarkOutcome("tie") !== "loss" || normalizeBenchmarkOutcome("loss") !== "loss" || normalizeBenchmarkOutcome("win") !== "win") {

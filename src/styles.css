@@ -888,7 +888,7 @@ button.roadmap-row:hover { background: rgba(255,255,255,.025); }
 .team-library-row > select { width:100%; font-size:9px; }
 .search-field-results { max-height:340px; }
 .search-filter-row { position:sticky; top:-4px; z-index:2; display:flex; flex-wrap:wrap; gap:5px; padding:5px; margin:-4px -4px 4px; border-bottom:1px solid #465363; background:#202833; }
-.search-filter-row label { display:grid; flex:1 1 90px; min-width:0; gap:3px; color:#aebbd0; font-size:8px; }
+.search-filter-row > div { display:grid; flex:1 1 90px; min-width:0; gap:3px; color:#aebbd0; font-size:8px; }
 .search-filter-row select { width:100%; min-width:0; height:27px; padding:0 5px; border:1px solid #46505e; border-radius:3px; color:#e8edf5; background:#171b21; font-size:9px; }
 .search-no-results { padding:9px; margin:0; color:#aeb8c7; font-size:10px; }
 @media(max-width:480px) { .team-library-row { grid-template-columns:minmax(0,1fr) 82px; } .new-folder-control { flex-wrap:wrap; } }

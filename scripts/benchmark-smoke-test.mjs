@@ -172,6 +172,20 @@ try {
   }
   console.log("Damage telemetry test passed: direct move damage is attributed to the attacking Pokémon and move.");
 
+  const residualTelemetry = await runExhaustiveBenchmark({
+    format: "gen9customgame",
+    playerSets: [makeTeam("Gengar", "Toxic", "Cursed Body")[0]],
+    opponents: [{ id: "residual-magikarp", name: "Magikarp · Splash", sets: [makeTeam("Magikarp", "Splash", "Swift Swim")[0]] }],
+    repetitions: 1,
+    shouldCancel: () => false,
+    onProgress: () => {},
+  });
+  const passiveSources = residualTelemetry.analysis.passiveDamage?.opponent || [];
+  if (!passiveSources.length || passiveSources.reduce((sum, item) => sum + item.damage, 0) <= 0) {
+    throw new Error("Status residual damage must be classified in benchmark telemetry instead of disappearing into unattributed damage.");
+  }
+  console.log("Residual damage telemetry test passed: poison damage is tracked by source.");
+
   const solo = await runExhaustiveBenchmark({
     format: "gen9customgame",
     playerSets: [makeTeam("Arceus", "Extreme Speed", "Multitype")[0]],

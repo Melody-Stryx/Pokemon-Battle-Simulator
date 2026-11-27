@@ -280,7 +280,7 @@ try {
     onProgress: () => {},
   });
   const passiveSources = residualTelemetry.analysis.passiveDamage?.opponent || [];
-  if (!passiveSources.length || passiveSources.reduce((sum, item) => sum + item.damage, 0) <= 0) {
+  if (!passiveSources.some(item => item.source === "Bad poison") || passiveSources.reduce((sum, item) => sum + item.damage, 0) <= 0) {
     throw new Error("Status residual damage must be classified in benchmark telemetry instead of disappearing into unattributed damage.");
   }
   console.log("Residual damage telemetry test passed: poison damage is tracked by source.");

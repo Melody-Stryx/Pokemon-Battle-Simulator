@@ -405,7 +405,8 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
             addPokemonDamage(sourceSummary, sourceName, damage, 0, moveName || undefined);
             if (moveName) addMoveDamage(sourceSummary, moveName, damage);
           } else if (sourceMarker && !sourceMarker.startsWith("[from] move:")) {
-            const sourceLabel = sourceMarker.slice("[from] ".length).replace(/^ability: /, "Ability: ").replace(/^item: /, "Item: ");
+            let sourceLabel = sourceMarker.slice("[from] ".length).replace(/^ability: /, "Ability: ").replace(/^item: /, "Item: ");
+            if (sourceLabel === "psn" && /\\btox\\b/.test(String(parts[3] || ""))) sourceLabel = "Bad poison";
             addPassiveDamage(analysis, targetSide === "p1" ? "player" : "opponent", sourceLabel, damage);
           } else {
             analysis.unattributedDamage += damage;

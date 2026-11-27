@@ -146,6 +146,16 @@ await runUntilEvent({
 });
 
 await runUntilEvent({
+  label: "Mold Breaker bypasses Levitate",
+  format: "gen3customgame",
+  player: [makeSet("Excadrill", "Mold Breaker", ["Earthquake"])],
+  opponent: [makeSet("Gengar", "Levitate", ["Splash"])],
+  choosePlayer: request => moveOne(request),
+  chooseOpponent: request => moveOne(request),
+  expected: line => line.startsWith("|-damage|p2a: Gengar|"),
+});
+
+await runUntilEvent({
   label: "Burn residual damage",
   player: [makeSet("Gengar", "Cursed Body", ["Will-O-Wisp"])],
   opponent: [makeSet("Magikarp", "Swift Swim", ["Splash"])],

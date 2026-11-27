@@ -216,7 +216,7 @@ export function chooseTacticalChoice(request: RequestView, log: string[], side: 
         continue;
       }
     }
-    const moveTarget = String((bestMove.option as any).target || "");
+    const moveTarget = String((move(bestMove.option.move, generation) as any)?.target || "");
     const needsExplicitTarget = request.active.length > 1 && ["normal", "adjacentFoe", "any", "adjacentAlly", "adjacentAllyOrSelf"].includes(moveTarget);
     const targetLocation = moveTarget === "adjacentAlly" || moveTarget === "adjacentAllyOrSelf" ? (i === 0 ? -2 : -1) : 1;
     let choice = `move ${bestMove.slot}${needsExplicitTarget ? ` ${targetLocation}` : ""}`;

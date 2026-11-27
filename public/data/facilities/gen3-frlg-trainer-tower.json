@@ -13,6 +13,7 @@
             "pokemon": [
               {
                 "species": "FERALIGATR",
+                "nickname": "FERALIGATR",
                 "item": "FOCUS_BAND",
                 "moves": [
                   "SURF",
@@ -43,6 +44,7 @@
               },
               {
                 "species": "KANGASKHAN",
+                "nickname": "KANGASKHAN",
                 "item": "QUICK_CLAW",
                 "moves": [
                   "CRUSH_CLAW",
@@ -85,6 +87,7 @@
             "pokemon": [
               {
                 "species": "BEEDRILL",
+                "nickname": "BEEDRILL",
                 "item": "BRIGHT_POWDER",
                 "moves": [
                   "SLUDGE_BOMB",
@@ -115,6 +118,7 @@
               },
               {
                 "species": "YANMA",
+                "nickname": "YANMA",
                 "item": "BRIGHT_POWDER",
                 "moves": [
                   "HYPNOSIS",
@@ -157,6 +161,7 @@
             "pokemon": [
               {
                 "species": "WEEZING",
+                "nickname": "WEEZING",
                 "item": "SALAC_BERRY",
                 "moves": [
                   "EXPLOSION",
@@ -187,6 +192,7 @@
               },
               {
                 "species": "EXEGGCUTE",
+                "nickname": "EXEGGCUTE",
                 "item": "QUICK_CLAW",
                 "moves": [
                   "EXPLOSION",
@@ -229,6 +235,7 @@
             "pokemon": [
               {
                 "species": "PRIMEAPE",
+                "nickname": "PRIMEAPE",
                 "item": "SITRUS_BERRY",
                 "moves": [
                   "OVERHEAT",
@@ -259,6 +266,7 @@
               },
               {
                 "species": "SLOWBRO",
+                "nickname": "SLOWBRO",
                 "item": "SITRUS_BERRY",
                 "moves": [
                   "SUNNY_DAY",
@@ -301,6 +309,7 @@
             "pokemon": [
               {
                 "species": "NIDOKING",
+                "nickname": "NIDOKING",
                 "item": "SOFT_SAND",
                 "moves": [
                   "EARTHQUAKE",
@@ -331,6 +340,7 @@
               },
               {
                 "species": "TAUROS",
+                "nickname": "TAUROS",
                 "item": "SILK_SCARF",
                 "moves": [
                   "EARTHQUAKE",
@@ -373,6 +383,7 @@
             "pokemon": [
               {
                 "species": "DUNSPARCE",
+                "nickname": "DUNSPARCE",
                 "item": "PERSIM_BERRY",
                 "moves": [
                   "WATER_PULSE",
@@ -403,6 +414,7 @@
               },
               {
                 "species": "POLITOED",
+                "nickname": "POLITOED",
                 "item": "CHESTO_BERRY",
                 "moves": [
                   "SURF",
@@ -445,6 +457,7 @@
             "pokemon": [
               {
                 "species": "MEOWTH",
+                "nickname": "MEOWTH",
                 "item": "LIECHI_BERRY",
                 "moves": [
                   "SWAGGER",
@@ -475,6 +488,7 @@
               },
               {
                 "species": "CHANSEY",
+                "nickname": "CHANSEY",
                 "item": "LUCKY_PUNCH",
                 "moves": [
                   "FLAMETHROWER",
@@ -517,6 +531,7 @@
             "pokemon": [
               {
                 "species": "TOGEPI",
+                "nickname": "TOGEPI",
                 "item": "SITRUS_BERRY",
                 "moves": [
                   "CHARM",
@@ -547,6 +562,7 @@
               },
               {
                 "species": "SNORLAX",
+                "nickname": "SNORLAX",
                 "item": "LEFTOVERS",
                 "moves": [
                   "CHARM",
@@ -591,6 +607,7 @@
             "pokemon": [
               {
                 "species": "JOLTEON",
+                "nickname": "JOLTEON",
                 "item": "QUICK_CLAW",
                 "moves": [
                   "QUICK_ATTACK",
@@ -627,6 +644,7 @@
             "pokemon": [
               {
                 "species": "ESPEON",
+                "nickname": "ESPEON",
                 "item": "BRIGHT_POWDER",
                 "moves": [
                   "LIGHT_SCREEN",
@@ -669,6 +687,7 @@
             "pokemon": [
               {
                 "species": "ALAKAZAM",
+                "nickname": "ALAKAZAM",
                 "item": "SALAC_BERRY",
                 "moves": [
                   "FIRE_PUNCH",
@@ -705,6 +724,7 @@
             "pokemon": [
               {
                 "species": "HOUNDOOM",
+                "nickname": "HOUNDOOM",
                 "item": "FOCUS_BAND",
                 "moves": [
                   "ROAR",
@@ -747,6 +767,7 @@
             "pokemon": [
               {
                 "species": "GOLEM",
+                "nickname": "GOLEM",
                 "item": "SCOPE_LENS",
                 "moves": [
                   "BRICK_BREAK",
@@ -783,6 +804,7 @@
             "pokemon": [
               {
                 "species": "MACHAMP",
+                "nickname": "MACHAMP",
                 "item": "SCOPE_LENS",
                 "moves": [
                   "CROSS_CHOP",
@@ -825,6 +847,7 @@
             "pokemon": [
               {
                 "species": "PILOSWINE",
+                "nickname": "PILOSWINE",
                 "item": "SOFT_SAND",
                 "moves": [
                   "EARTHQUAKE",
@@ -861,6 +884,7 @@
             "pokemon": [
               {
                 "species": "CROBAT",
+                "nickname": "CROBAT",
                 "item": "KINGS_ROCK",
                 "moves": [
                   "GIGA_DRAIN",
@@ -903,6 +927,7 @@
             "pokemon": [
               {
                 "species": "BLISSEY",
+                "nickname": "BLISSEY",
                 "item": "LEFTOVERS",
                 "moves": [
                   "LIGHT_SCREEN",
@@ -939,6 +964,7 @@
             "pokemon": [
               {
                 "species": "ARCANINE",
+                "nickname": "ARCANINE",
                 "item": "CHARCOAL",
                 "moves": [
                   "HEAT_WAVE",
@@ -981,6 +1007,7 @@
             "pokemon": [
               {
                 "species": "URSARING",
+                "nickname": "URSARING",
                 "item": "LUM_BERRY",
                 "moves": [
                   "REST",
@@ -1017,6 +1044,7 @@
             "pokemon": [
               {
                 "species": "FURRET",
+                "nickname": "FURRET",
                 "item": "SHELL_BELL",
                 "moves": [
                   "FLAMETHROWER",
@@ -1059,6 +1087,7 @@
             "pokemon": [
               {
                 "species": "LANTURN",
+                "nickname": "LANTURN",
                 "item": "BRIGHT_POWDER",
                 "moves": [
                   "RAIN_DANCE",
@@ -1095,6 +1124,7 @@
             "pokemon": [
               {
                 "species": "DRAGONAIR",
+                "nickname": "DRAGONAIR",
                 "item": "SHELL_BELL",
                 "moves": [
                   "THUNDER",
@@ -1137,6 +1167,7 @@
             "pokemon": [
               {
                 "species": "GYARADOS",
+                "nickname": "GYARADOS",
                 "item": "SALAC_BERRY",
                 "moves": [
                   "HYPER_BEAM",
@@ -1173,6 +1204,7 @@
             "pokemon": [
               {
                 "species": "RHYDON",
+                "nickname": "RHYDON",
                 "item": "QUICK_CLAW",
                 "moves": [
                   "EARTHQUAKE",
@@ -1217,6 +1249,7 @@
             "pokemon": [
               {
                 "species": "MAGBY",
+                "nickname": "MAGBY",
                 "item": "LAX_INCENSE",
                 "moves": [
                   "SMOKESCREEN",
@@ -1253,6 +1286,7 @@
             "pokemon": [
               {
                 "species": "TOGEPI",
+                "nickname": "TOGEPI",
                 "item": "QUICK_CLAW",
                 "moves": [
                   "FRUSTRATION",
@@ -1289,6 +1323,7 @@
             "pokemon": [
               {
                 "species": "SMOOCHUM",
+                "nickname": "SMOOCHUM",
                 "item": "BRIGHT_POWDER",
                 "moves": [
                   "SWEET_KISS",
@@ -1331,6 +1366,7 @@
             "pokemon": [
               {
                 "species": "CHARIZARD",
+                "nickname": "CHARIZARD",
                 "item": "SCOPE_LENS",
                 "moves": [
                   "DRAGON_CLAW",
@@ -1367,6 +1403,7 @@
             "pokemon": [
               {
                 "species": "FLAREON",
+                "nickname": "FLAREON",
                 "item": "SILK_SCARF",
                 "moves": [
                   "IRON_TAIL",
@@ -1403,6 +1440,7 @@
             "pokemon": [
               {
                 "species": "POLIWRATH",
+                "nickname": "POLIWRATH",
                 "item": "KINGS_ROCK",
                 "moves": [
                   "BODY_SLAM",
@@ -1445,6 +1483,7 @@
             "pokemon": [
               {
                 "species": "MILTANK",
+                "nickname": "MILTANK",
                 "item": "SILK_SCARF",
                 "moves": [
                   "MILK_DRINK",
@@ -1481,6 +1520,7 @@
             "pokemon": [
               {
                 "species": "VILEPLUME",
+                "nickname": "VILEPLUME",
                 "item": "PERSIM_BERRY",
                 "moves": [
                   "SWEET_SCENT",
@@ -1517,6 +1557,7 @@
             "pokemon": [
               {
                 "species": "LAPRAS",
+                "nickname": "LAPRAS",
                 "item": "LUM_BERRY",
                 "moves": [
                   "SURF",
@@ -1559,6 +1600,7 @@
             "pokemon": [
               {
                 "species": "CHANSEY",
+                "nickname": "CHANSEY",
                 "item": "ORAN_BERRY",
                 "moves": [
                   "WATER_PULSE",
@@ -1595,6 +1637,7 @@
             "pokemon": [
               {
                 "species": "SEAKING",
+                "nickname": "SEAKING",
                 "item": "CHERI_BERRY",
                 "moves": [
                   "HORN_DRILL",
@@ -1631,6 +1674,7 @@
             "pokemon": [
               {
                 "species": "VAPOREON",
+                "nickname": "VAPOREON",
                 "item": "SHELL_BELL",
                 "moves": [
                   "SURF",
@@ -1673,6 +1717,7 @@
             "pokemon": [
               {
                 "species": "NIDORAN_F",
+                "nickname": "NIDORAN♀",
                 "item": "SITRUS_BERRY",
                 "moves": [
                   "CRUNCH",
@@ -1709,6 +1754,7 @@
             "pokemon": [
               {
                 "species": "NIDORINA",
+                "nickname": "NIDORINA",
                 "item": "CHOICE_BAND",
                 "moves": [
                   "SHOCK_WAVE",
@@ -1745,6 +1791,7 @@
             "pokemon": [
               {
                 "species": "NIDOQUEEN",
+                "nickname": "NIDOQUEEN",
                 "item": "CHOICE_BAND",
                 "moves": [
                   "THUNDERBOLT",
@@ -1787,6 +1834,7 @@
             "pokemon": [
               {
                 "species": "AMPHAROS",
+                "nickname": "AMPHAROS",
                 "item": "SHELL_BELL",
                 "moves": [
                   "THUNDERBOLT",
@@ -1823,6 +1871,7 @@
             "pokemon": [
               {
                 "species": "GRANBULL",
+                "nickname": "GRANBULL",
                 "item": "CHOICE_BAND",
                 "moves": [
                   "THUNDERBOLT",
@@ -1859,6 +1908,7 @@
             "pokemon": [
               {
                 "species": "MISDREAVUS",
+                "nickname": "MISDREAVUS",
                 "item": "SALAC_BERRY",
                 "moves": [
                   "PSYCHIC",
@@ -1901,6 +1951,7 @@
             "pokemon": [
               {
                 "species": "GOLDEEN",
+                "nickname": "GOLDEEN",
                 "item": "SITRUS_BERRY",
                 "moves": [
                   "WATER_PULSE",
@@ -1937,6 +1988,7 @@
             "pokemon": [
               {
                 "species": "QWILFISH",
+                "nickname": "QWILFISH",
                 "item": "QUICK_CLAW",
                 "moves": [
                   "HYDRO_PUMP",
@@ -1973,6 +2025,7 @@
             "pokemon": [
               {
                 "species": "MANTINE",
+                "nickname": "MANTINE",
                 "item": "MENTAL_HERB",
                 "moves": [
                   "SURF",
@@ -2015,6 +2068,7 @@
             "pokemon": [
               {
                 "species": "STARMIE",
+                "nickname": "STARMIE",
                 "item": "PETAYA_BERRY",
                 "moves": [
                   "PSYCHIC",
@@ -2050,6 +2104,7 @@
             "pokemon": [
               {
                 "species": "ARCANINE",
+                "nickname": "ARCANINE",
                 "item": "SITRUS_BERRY",
                 "moves": [
                   "EXTREME_SPEED",
@@ -2086,6 +2141,7 @@
             "pokemon": [
               {
                 "species": "VENUSAUR",
+                "nickname": "VENUSAUR",
                 "item": "SALAC_BERRY",
                 "moves": [
                   "GIGA_DRAIN",
@@ -2130,6 +2186,7 @@
             "pokemon": [
               {
                 "species": "STARMIE",
+                "nickname": "STARMIE",
                 "item": "LUM_BERRY",
                 "moves": [
                   "SURF",
@@ -2159,6 +2216,7 @@
               },
               {
                 "species": "KINGDRA",
+                "nickname": "KINGDRA",
                 "item": "CHESTO_BERRY",
                 "moves": [
                   "SURF",
@@ -2201,6 +2259,7 @@
             "pokemon": [
               {
                 "species": "HYPNO",
+                "nickname": "HYPNO",
                 "item": "SALAC_BERRY",
                 "moves": [
                   "THUNDER_PUNCH",
@@ -2231,6 +2290,7 @@
               },
               {
                 "species": "GENGAR",
+                "nickname": "GENGAR",
                 "item": "LEFTOVERS",
                 "moves": [
                   "THUNDERBOLT",
@@ -2273,6 +2333,7 @@
             "pokemon": [
               {
                 "species": "JOLTEON",
+                "nickname": "JOLTEON",
                 "item": "BRIGHT_POWDER",
                 "moves": [
                   "THUNDER_WAVE",
@@ -2303,6 +2364,7 @@
               },
               {
                 "species": "PORYGON2",
+                "nickname": "PORYGON2",
                 "item": "SALAC_BERRY",
                 "moves": [
                   "THUNDER_WAVE",
@@ -2344,6 +2406,7 @@
             "pokemon": [
               {
                 "species": "NIDOQUEEN",
+                "nickname": "NIDOQUEEN",
                 "item": "FOCUS_BAND",
                 "moves": [
                   "SURF",
@@ -2380,6 +2443,7 @@
             "pokemon": [
               {
                 "species": "NIDOKING",
+                "nickname": "NIDOKING",
                 "item": "FOCUS_BAND",
                 "moves": [
                   "SURF",
@@ -2422,6 +2486,7 @@
             "pokemon": [
               {
                 "species": "CORSOLA",
+                "nickname": "CORSOLA",
                 "item": "QUICK_CLAW",
                 "moves": [
                   "DIG",
@@ -2458,6 +2523,7 @@
             "pokemon": [
               {
                 "species": "KINGLER",
+                "nickname": "KINGLER",
                 "item": "QUICK_CLAW",
                 "moves": [
                   "DIVE",
@@ -2500,6 +2566,7 @@
             "pokemon": [
               {
                 "species": "LEDIAN",
+                "nickname": "LEDIAN",
                 "item": "LIECHI_BERRY",
                 "moves": [
                   "SILVER_WIND",
@@ -2536,6 +2603,7 @@
             "pokemon": [
               {
                 "species": "GYARADOS",
+                "nickname": "GYARADOS",
                 "item": "SITRUS_BERRY",
                 "moves": [
                   "EARTHQUAKE",
@@ -2572,6 +2640,7 @@
             "pokemon": [
               {
                 "species": "TYRANITAR",
+                "nickname": "TYRANITAR",
                 "item": "SALAC_BERRY",
                 "moves": [
                   "EARTHQUAKE",
@@ -2614,6 +2683,7 @@
             "pokemon": [
               {
                 "species": "HITMONLEE",
+                "nickname": "HITMONLEE",
                 "item": "SCOPE_LENS",
                 "moves": [
                   "ROCK_TOMB",
@@ -2650,6 +2720,7 @@
             "pokemon": [
               {
                 "species": "HITMONCHAN",
+                "nickname": "HITMONCHAN",
                 "item": "SCOPE_LENS",
                 "moves": [
                   "MACH_PUNCH",
@@ -2692,6 +2763,7 @@
             "pokemon": [
               {
                 "species": "CHARIZARD",
+                "nickname": "CHARIZARD",
                 "item": "SCOPE_LENS",
                 "moves": [
                   "DRAGON_CLAW",
@@ -2728,6 +2800,7 @@
             "pokemon": [
               {
                 "species": "NIDOQUEEN",
+                "nickname": "NIDOQUEEN",
                 "item": "SILK_SCARF",
                 "moves": [
                   "SUPERPOWER",
@@ -2764,6 +2837,7 @@
             "pokemon": [
               {
                 "species": "POLIWRATH",
+                "nickname": "POLIWRATH",
                 "item": "KINGS_ROCK",
                 "moves": [
                   "BODY_SLAM",

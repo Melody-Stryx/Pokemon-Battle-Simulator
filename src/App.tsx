@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Dex } from "@pkmn/dex";
 import { BattleStreams, TeamValidator, Teams } from "@pkmn/sim";
 import { TacticalPlayerAI, chooseTacticalChoice } from "./pve-ai";
-import { loadCompleteOpponentPool, loadMetaPokemonPool, runExhaustiveBenchmark, type BenchmarkProgress, type BenchmarkOpponent } from "./benchmark";
+import { loadCompleteOpponentPool, loadFacilityOpponentPool, loadMetaPokemonPool, runExhaustiveBenchmark, type BenchmarkProgress, type BenchmarkOpponent } from "./benchmark";
 
 declare const __BUILD_NUMBER__: string;
 type BattleType = "PvP" | "PvE";
@@ -537,7 +537,10 @@ export default function App() {
       if (singleMode) {
         const dataset = await loadMetaPokemonPool(tierFormat);
         opponents = dataset.opponents; sourceCount = dataset.sourceCount; rejected = dataset.rejected; sourceUrl = dataset.sourceUrl;
-      } else if (opponentSource === "Auto Teams" && settings.battleType === "PvP") {
+      } else if (settings.battleType === "PvE") {
+        const dataset = await loadFacilityOpponentPool(settings.generation, settings.gameVersion, settings.facility);
+        opponents = dataset.opponents; sourceCount = dataset.sourceCount; rejected = dataset.rejected; sourceUrl = dataset.sourceUrl;
+      } else if (opponentSource === "Auto Teams") {
         const dataset = await loadCompleteOpponentPool(format);
         opponents = dataset.opponents; sourceCount = dataset.sourceCount; rejected = dataset.rejected; sourceUrl = dataset.sourceUrl;
       } else {
@@ -546,16 +549,14 @@ export default function App() {
         for (const team of otherTeams) {
           if (team.slots.length < 1 || team.slots.length > 6 || !team.slots.every(slot => { const build = activeBuild(slot); return Boolean(build?.name.trim() && build.moves.some(move => move.trim())); })) { rejected++; continue; }
           const sets = makeBattleSets(team, settings.generation);
-          if (settings.battleType === "PvP") {
-            try { if ((TeamValidator.get(format).validateTeam(sets as any) || []).length) { rejected++; continue; } }
-            catch { rejected++; continue; }
-          }
+          try { if ((TeamValidator.get(format).validateTeam(sets as any) || []).length) { rejected++; continue; } }
+          catch { rejected++; continue; }
           opponents.push({ id: team.id, name: team.name, sets });
         }
       }
       if (!opponents.length) throw new Error(singleMode
         ? `No individual Pokémon sets were found in the published ${settings.tier} archive for Generation ${settings.generation}.`
-        : "No other complete, usable teams were found. Add another team with 1 to 6 Pokémon or load the online Auto Teams pool.");
+        : settings.battleType === "PvE" ? "No valid facility trainers were loaded. Check the selected game's supported facility dataset." : "No other complete, usable teams were found. Add another team with 1 to 6 Pokémon or load the online Auto Teams pool.");
       const coverage = { sourceCount, validCount: opponents.length, rejected, sourceUrl };
       setBenchmarkCoverage(coverage);
       const meta = {
@@ -563,7 +564,7 @@ export default function App() {
         playerTeamName: singleMode ? `${selected!.build.nickname || selected!.build.name} · 1 vs Meta` : playerTeam!.name,
         generation: settings.generation, gameVersion: settings.gameVersion, battleType: settings.battleType,
         tier: settings.tier, facility: settings.facility,
-        opponentSource: singleMode ? "Published meta Pokémon sets" : opponentSource === "Auto Teams" && settings.battleType === "PvP" ? "Published sample teams" : "Saved teams",
+        opponentSource: singleMode ? "Published meta Pokémon sets" : settings.battleType === "PvE" ? "In-game facility trainer pools" : opponentSource === "Auto Teams" ? "Published sample teams" : "Saved teams",
         benchmarkMode, ...coverage,
       };
       const result = await runExhaustiveBenchmark({
@@ -852,14 +853,14 @@ export default function App() {
               <label className="field"><span>Game version</span><select value={settings.gameVersion} onChange={e => updateSetting("gameVersion", e.target.value)}>{(gameVersions[settings.generation] || []).map(version => <option key={version} value={version}>{version}</option>)}</select></label>
               {settings.battleType === "PvP" ? <label className="field"><span>Format / tier</span><select value={settings.tier} onChange={e => updateSetting("tier", e.target.value)}>{tiers.map(tier => <option key={tier}>{tier}</option>)}</select></label> : <label className="field"><span>Battle facility</span><select value={settings.facility} onChange={e => updateSetting("facility", e.target.value)}>{facilitiesFor(settings.generation, settings.gameVersion).map(facility => <option key={facility}>{facility}</option>)}</select></label>}
               {benchmarkMode === "Teams" && <label className="field"><span>Your team</span><select value={battlePlayerTeamId || activeTeam?.id || ""} onChange={e => setBattlePlayerTeamId(e.target.value)}><option value="">Select team</option>{teams.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>}
-              {benchmarkMode === "Teams" && (settings.battleType === "PvP" ? <label className="field"><span>Opponent source</span><select value={opponentSource} onChange={e => { setOpponentSource(e.target.value as "Saved teams" | "Auto Teams"); setBattleError(""); }}><option>Saved teams</option><option>Auto Teams</option></select></label> : <div className="field"><span>Opponent source</span><div className="derived-value">Saved teams</div></div>)}
-              {opponentSource === "Saved teams" ? <label className="field"><span>Single-battle opponent</span><select value={battleOpponentTeamId || teams.find(team => team.id !== (battlePlayerTeamId || activeTeam?.id))?.id || ""} onChange={e => setBattleOpponentTeamId(e.target.value)}><option value="">Select opponent</option>{teams.filter(team => team.id !== (battlePlayerTeamId || activeTeam?.id)).map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label> : <div className="field"><span>Auto Teams pool</span><div className="derived-value">{settings.battleType === "PvP" ? onlineOpponentPool.filter(team => team.format === battleFormat()).length + " verified " + settings.tier + " teams loaded" : "No verified facility pool connected yet"}</div></div>}
+              {benchmarkMode === "Teams" && (settings.battleType === "PvP" ? <label className="field"><span>Opponent source</span><select value={opponentSource} onChange={e => { setOpponentSource(e.target.value as "Saved teams" | "Auto Teams"); setBattleError(""); }}><option>Saved teams</option><option>Auto Teams</option></select></label> : <div className="field"><span>Opponent source</span><div className="derived-value">In-game facility trainers</div></div>)}
+              {settings.battleType === "PvP" && opponentSource === "Saved teams" ? <label className="field"><span>Single-battle opponent</span><select value={battleOpponentTeamId || teams.find(team => team.id !== (battlePlayerTeamId || activeTeam?.id))?.id || ""} onChange={e => setBattleOpponentTeamId(e.target.value)}><option value="">Select opponent</option>{teams.filter(team => team.id !== (battlePlayerTeamId || activeTeam?.id)).map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label> : <div className="field"><span>Auto Teams pool</span><div className="derived-value">{settings.battleType === "PvP" ? onlineOpponentPool.filter(team => team.format === battleFormat()).length + " verified " + settings.tier + " teams loaded" : "Authentic NPC trainer dataset"}</div></div>}
               <div className="field"><span>Ruleset</span><div className="derived-value">Gen {settings.generation} · {settings.battleType === "PvP" ? settings.tier : `${settings.gameVersion} · ${settings.facility}`}</div></div>
             </div>
             {settings.battleType === "PvP" && opponentSource === "Auto Teams" && <div className="battle-actions"><button type="button" className="secondary-button" onClick={fetchOnlineOpponent} disabled={fetchingOpponent}>{fetchingOpponent ? "Loading team pool…" : onlineOpponentPool.length ? "Refresh Auto Teams pool" : "Load Auto Teams pool"}</button><span className="hint">{onlineOpponent ? "Example: " + onlineOpponent.name + " · " + onlineOpponent.source + (onlineOpponent.author ? " · " + onlineOpponent.author : "") : "Loads the published sample archive. The all-team run tests every distinct valid team 100 times."}</span></div>}
             
             {opponentSourceError && <p className="battle-error">{opponentSourceError}</p>}
-            {(settings.battleType === "PvE" || settings.tier === "VGC" || settings.tier === "Custom") && <p className="battle-warning">This selection runs in the generation's Custom Game sandbox. Facility-specific, VGC regulation and custom tier rules are not enforced.</p>}
+            {(settings.tier === "VGC" || settings.tier === "Custom") && <p className="battle-warning">This selection runs in the generation's Custom Game sandbox. VGC regulation and custom tier rules are not enforced.</p>}
             <section className="benchmark-panel">
               <div className="editor-section-title">Simulation analysis <small>100 battles per matchup</small></div>
               <label className="field"><span>Benchmark type</span><select value={benchmarkMode} onChange={e => { const next = e.target.value as BenchmarkMode; setBenchmarkMode(next); if (next === "Single Pokémon") setOpponentSource("Auto Teams"); setBenchmarkError(""); }}><option value="Teams">Full team vs full team</option><option value="Single Pokémon">Single Pokémon vs all meta Pokémon</option></select></label>
@@ -867,7 +868,7 @@ export default function App() {
                 <label className="field"><span>Pokémon build</span><select value={selectedSinglePokemon?.key || ""} onChange={e => setSelectedSinglePokemonKey(e.target.value)}>{singlePokemonOptions.map(option => <option key={option.key} value={option.key}>{option.team.name} · {option.build.nickname || option.build.name} ({option.build.name})</option>)}</select></label>
                 <p className="hint">Runs one saved Pokémon against every distinct individual set found in valid published {settings.tier} sample teams for Generation {settings.generation}. Each matchup is a separate 1v1 with no teammates or switching. 100 battles per opposing set.</p>
                 {settings.battleType !== "PvP" && <p className="battle-warning">Switch to PvP to use the published meta Pokémon dataset.</p>}
-              </> : <p className="hint">Runs 100 battles per opponent and records every matchup in Matchup Analysis. PvP Auto Teams uses the published sample archive. Saved teams tests every other complete team in your local team library. PvE uses Saved teams until facility trainer data is connected.</p>}
+              </> : <p className="hint">Runs 100 battles per opponent and records every matchup in Matchup Analysis. PvP Auto Teams uses the published sample archive. Saved teams tests every other complete team in your local team library. PvE draws opponents from the selected game's in-game facility trainer pool. Unsupported facilities stop with an explicit error.</p>}
               <div className="battle-actions">
                 <button type="button" className="primary-button" onClick={runFullBenchmark} disabled={benchmarkBusy || battleActive || (benchmarkMode === "Single Pokémon" && settings.battleType !== "PvP")}>{benchmarkBusy ? "Simulation running…" : benchmarkMode === "Single Pokémon" ? "Run 1 vs Meta · 100 per matchup" : "Run simulator · 100 per team"}</button>
                 {benchmarkBusy && <button type="button" className="secondary-button" onClick={() => { benchmarkCancel.current = true; }}>Cancel simulation</button>}

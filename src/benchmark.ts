@@ -392,7 +392,7 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
         }
       }
       if (outcome === "tie" && (!turnCount || !moveCount)) {
-        throw new Error("Showdown ended a benchmark battle in a tie before any turns or moves. The result is invalid and was not counted.");
+        throw new Error(INVALID_PRE_TURN_TIE);
       }
       if (outcome) return { outcome, analysis };
     }
@@ -447,6 +447,29 @@ function createFacilityTeam(pool: Record<string, unknown>[], teamSize = 3): Reco
   return selected;
 }
 
+const INVALID_PRE_TURN_TIE = "Showdown ended a benchmark battle in a tie before any turns or moves. The result is invalid and was not counted.";
+
+export async function playBenchmarkBattleWithRetries<T>(
+  playBattle: () => Promise<T>,
+  format: string,
+  playerTeam: Record<string, unknown>[],
+  opponentTeam: Record<string, unknown>[],
+): Promise<T> {
+  let lastInvalidTie: unknown;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      return await playBattle();
+    } catch (error) {
+      if (!(error instanceof Error) || !error.message.includes(INVALID_PRE_TURN_TIE)) throw error;
+      lastInvalidTie = error;
+      if (attempt < 3) await new Promise<void>(resolve => setTimeout(resolve, attempt * 50));
+    }
+  }
+  const playerNames = playerTeam.map(set => String(set.species || set.name || "Unknown")).join(", ");
+  const opponentNames = opponentTeam.map(set => String(set.species || set.name || "Unknown")).join(", ");
+  throw new Error(`Showdown produced three invalid pre-turn ties for ${format}. No result was counted. Player: [${playerNames}]. Opponent: [${opponentNames}]. Last error: ${lastInvalidTie instanceof Error ? lastInvalidTie.message : "unknown"}`);
+}
+
 export async function runExhaustiveBenchmark(args: {
   format: string;
   playerSets: Record<string, unknown>[];
@@ -468,26 +491,12 @@ export async function runExhaustiveBenchmark(args: {
       const playerTeam = args.playerSelectionSize
         ? createFacilityTeam(args.playerSets, Math.min(args.playerSelectionSize, args.playerSets.length))
         : args.playerSets;
-      // A Showdown tie before the first turn/move is not a completed battle. It can
-      // occur when the simulator stream initializes abnormally; retry with a fresh
-      // BattleStream instead of aborting the entire benchmark or counting the tie.
-      let battle: Awaited<ReturnType<typeof playOneBattle>> | undefined;
-      let lastInvalidTie: unknown;
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          battle = await playOneBattle(args.format, playerTeam, battleTeam);
-          break;
-        } catch (error) {
-          if (!(error instanceof Error) || !error.message.includes("ended a benchmark battle in a tie before any turns or moves")) throw error;
-          lastInvalidTie = error;
-          if (attempt < 3) await new Promise<void>(resolve => setTimeout(resolve, attempt * 50));
-        }
-      }
-      if (!battle) {
-        const playerNames = playerTeam.map(set => String(set.species || set.name || "Unknown")).join(", ");
-        const opponentNames = battleTeam.map(set => String(set.species || set.name || "Unknown")).join(", ");
-        throw new Error(`Showdown produced three invalid pre-turn ties for ${args.format}. No result was counted. Player: [${playerNames}]. Opponent: [${opponentNames}]. Last error: ${lastInvalidTie instanceof Error ? lastInvalidTie.message : "unknown"}`);
-      }
+      const battle = await playBenchmarkBattleWithRetries(
+        () => playOneBattle(args.format, playerTeam, battleTeam),
+        args.format,
+        playerTeam,
+        battleTeam,
+      );
       const outcome = battle.outcome;
       result[outcome === "win" ? "wins" : outcome === "loss" ? "losses" : "ties"]++;
       result.games++;

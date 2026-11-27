@@ -19,7 +19,13 @@ export type PokemonDamageSummary = {
   moveDamage: MoveDamageSummary[];
 };
 export type SideDamageSummary = { pokemon: PokemonDamageSummary[]; moveDamage: MoveDamageSummary[] };
-export type BattleAnalysis = { player: SideDamageSummary; opponent: SideDamageSummary; unattributedDamage: number };
+export type DamageSourceSummary = { source: string; damage: number; hits: number };
+export type BattleAnalysis = {
+  player: SideDamageSummary;
+  opponent: SideDamageSummary;
+  unattributedDamage: number;
+  passiveDamage: { player: DamageSourceSummary[]; opponent: DamageSourceSummary[] };
+};
 
 export type BenchmarkResult = {
   opponentId: string;
@@ -45,7 +51,15 @@ export type BenchmarkProgress = {
 type SampleTeam = { name?: string; author?: string; data?: Record<string, unknown>[] };
 
 function emptySide(): SideDamageSummary { return { pokemon: [], moveDamage: [] }; }
-function emptyAnalysis(): BattleAnalysis { return { player: emptySide(), opponent: emptySide(), unattributedDamage: 0 }; }
+function emptyAnalysis(): BattleAnalysis { return { player: emptySide(), opponent: emptySide(), unattributedDamage: 0, passiveDamage: { player: [], opponent: [] } }; }
+function addPassiveDamage(analysis: BattleAnalysis, side: "player" | "opponent", source: string, damage: number) {
+  const normalized = ({ psn: "Poison", tox: "Bad poison", brn: "Burn", par: "Paralysis", sandstorm: "Sandstorm", hail: "Hail", snow: "Snow" } as Record<string, string>)[source.toLowerCase()] || source;
+  const entries = analysis.passiveDamage[side];
+  let entry = entries.find(item => item.source === normalized);
+  if (!entry) { entry = { source: normalized, damage: 0, hits: 0 }; entries.push(entry); }
+  entry.damage += damage;
+  entry.hits++;
+}
 function canonicalSet(set: Record<string, unknown>[]) {
   const normalize = (value: unknown): unknown => {
     if (Array.isArray(value)) return value.map(normalize);
@@ -249,6 +263,13 @@ function mergeAnalysis(target: BattleAnalysis, source: BattleAnalysis) {
   mergeSide(target.player, source.player);
   mergeSide(target.opponent, source.opponent);
   target.unattributedDamage += source.unattributedDamage;
+  for (const side of ["player", "opponent"] as const) {
+    for (const item of source.passiveDamage?.[side] || []) addPassiveDamage(target, side, item.source, item.damage);
+    for (const item of source.passiveDamage?.[side] || []) {
+      const merged = target.passiveDamage[side].find(entry => entry.source === item.source);
+      if (merged) merged.hits += item.hits - 1;
+    }
+  }
 }
 function parseCondition(value: string): { hp: number; maxHp: number } | null {
   const match = value.match(/^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)/);
@@ -383,7 +404,10 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
             const sourceSummary = source.ident.slice(0, 2) === "p1" ? analysis.player : analysis.opponent;
             addPokemonDamage(sourceSummary, sourceName, damage, 0, moveName || undefined);
             if (moveName) addMoveDamage(sourceSummary, moveName, damage);
-          } else {
+          } else if (sourceMarker && !sourceMarker.startsWith("[from] move:")) {
+            const sourceLabel = sourceMarker.slice("[from] ".length).replace(/^ability: /, "Ability: ").replace(/^item: /, "Item: ");
+            addPassiveDamage(analysis, targetSide === "p1" ? "player" : "opponent", sourceLabel, damage);
+          } else if (!source) {
             analysis.unattributedDamage += damage;
           }
           continue;

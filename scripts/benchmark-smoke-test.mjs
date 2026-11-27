@@ -101,6 +101,14 @@ globalThis.fetch = async input => {
       { species: "Heatran", ability: "Flash Fire", item: "Air Balloon", nature: "Timid", moves: ["Magma Storm", "Earth Power", "Taunt", "Toxic"] },
       { species: "Toxapex", ability: "Regenerator", item: "Black Sludge", nature: "Bold", moves: ["Scald", "Recover", "Haze", "Knock Off"] },
     ] },
+    { name: "GO-origin-only legendary must be rejected", author: "Test", data: [
+      { species: "Blacephalon", ability: "Beast Boost", item: "Choice Specs", nature: "Timid", moves: ["Shadow Ball", "Flamethrower", "Mind Blown", "Trick"], ivs: { hp: 21, atk: 21, def: 21, spa: 21, spd: 21, spe: 31 }, evs: { spa: 252, spe: 252 } },
+      { species: "Dragapult", ability: "Infiltrator", item: "Heavy-Duty Boots", nature: "Timid", moves: ["Draco Meteor", "Shadow Ball", "U-turn", "Flamethrower"] },
+      { species: "Ferrothorn", ability: "Iron Barbs", item: "Leftovers", nature: "Relaxed", moves: ["Power Whip", "Knock Off", "Leech Seed", "Spikes"] },
+      { species: "Landorus-Therian", ability: "Intimidate", item: "Rocky Helmet", nature: "Impish", moves: ["Earthquake", "U-turn", "Stealth Rock", "Knock Off"] },
+      { species: "Heatran", ability: "Flash Fire", item: "Air Balloon", nature: "Timid", moves: ["Magma Storm", "Earth Power", "Taunt", "Toxic"] },
+      { species: "Toxapex", ability: "Regenerator", item: "Black Sludge", nature: "Bold", moves: ["Scald", "Recover", "Haze", "Knock Off"] },
+    ] },
   ]), { status: 200 });
   if (url.endsWith("/gen9ou.json")) return new Response(JSON.stringify([
     { name: "Legal Gen 9 OU sample", author: "Test", data: legalSampleTeam },
@@ -136,7 +144,13 @@ try {
     throw new Error("Partial EV overrides were not expanded with Showdown defaults.");
   }
   console.log("Published-team diagnostics test passed: legal teams retained; banned, duplicate and malformed teams explained.");
+  const goOrigin = partialIvArchive.skippedTeams.find(item => item.name === "GO-origin-only legendary must be rejected");
+  if (!goOrigin || !goOrigin.reasons.some(reason => reason.includes("three perfect IVs")) ||
+      goOrigin.reasons.some(reason => reason.toLowerCase().includes("pokemon go"))) {
+    throw new Error("A Pokémon GO-only origin was not excluded cleanly: " + JSON.stringify(goOrigin));
+  }
   console.log("Showdown stat-default test passed: partial IV/EV blocks expanded without overwriting explicit values.");
+  console.log("Pokémon GO exclusion test passed: GO-compatible legendary origin cannot legalize a sample team.");
 } finally {
   globalThis.fetch = originalArchiveFetch;
 }

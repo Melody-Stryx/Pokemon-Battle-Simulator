@@ -125,7 +125,6 @@ export async function loadFacilityOpponentPool(generation: number, gameVersion: 
   for (const trainer of dataset.trainers) {
     const pool = trainer.pokemon.map(name => setsByName.get(name.toLowerCase())).filter((set): set is FacilityDataset["pokemon"][number] => Boolean(set));
     if (pool.length < 3) { rejected++; continue; }
-    const teamPool: Record<string, unknown>[][] = [];
     // Store the trainer's real selectable Pokémon pool. A fresh legal three-Pokémon
     // roster is drawn for each battle, rather than treating the entire pool as a team.
     const uniqueSpecies = new Set(pool.map(set => String(set.species).toLowerCase()));

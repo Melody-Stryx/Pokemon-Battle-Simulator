@@ -234,6 +234,9 @@ export default function App() {
   const [authError, setAuthError] = useState("");
   const [activeTeamId, setActiveTeamId] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState("");
+  const [dexSearch, setDexSearch] = useState("");
+  const [dexTypeFilter, setDexTypeFilter] = useState("All types");
+  const [dexSort, setDexSort] = useState("Name");
   const [teamSearch, setTeamSearch] = useState("");
   const [folderFilter, setFolderFilter] = useState("All teams");
   const [newFolderName, setNewFolderName] = useState("");
@@ -364,6 +367,8 @@ export default function App() {
   const abilityOptions = useMemo(() => generationDex.abilities.all().filter(a => a.exists && !a.isNonstandard).sort((a,b) => a.name.localeCompare(b.name)), [generationDex]);
   const itemOptions = useMemo(() => generationDex.items.all().filter(i => i.exists && !i.isNonstandard).sort((a,b) => a.name.localeCompare(b.name)), [generationDex]);
   const selectedSpecies = selectedBuild ? speciesOptions.find(p => p.name.toLowerCase() === selectedBuild.name.trim().toLowerCase()) : undefined;
+  const dexTypes = useMemo(() => ["All types", ...Array.from(new Set(speciesOptions.flatMap(p => p.types))).sort()], [speciesOptions]);
+  const filteredDexSpecies = useMemo(() => speciesOptions.filter(p => (!dexSearch.trim() || p.name.toLowerCase().includes(dexSearch.trim().toLowerCase()) || String(p.num).includes(dexSearch.trim())) && (dexTypeFilter === "All types" || p.types.includes(dexTypeFilter))).sort((a,b) => dexSort === "Number" ? a.num-b.num : a.name.localeCompare(b.name)).slice(0,160), [speciesOptions,dexSearch,dexTypeFilter,dexSort]);
   const legality = useMemo(() => {
     if (!activeTeam) return { status: "No team", messages: [] as string[] };
 
@@ -977,7 +982,7 @@ export default function App() {
             <section className="panel team-editor-panel">
               {!activeTeam ? <div className="empty-state"><strong>Select or create a team</strong><p>Your team editor will appear here.</p></div> : <>
                 <div className="team-room-header">
-                  <div className="team-room-title"><span className="team-room-section">TEAM</span><span className="room-separator">/</span><input className="team-name-input" aria-label="Team name" value={activeTeam.name} onChange={e => renameTeam(e.target.value)} /></div>
+                  <div className="team-room-title"><span className="team-room-section">TEAM</span><span className="room-separator">/</span><select aria-label="Select team" className="builder-team-select" value={activeTeam.id} onChange={e => { setActiveTeamId(e.target.value); const next=teams.find(t=>t.id===e.target.value); setSelectedSlotId(next?.slots[0]?.id || ""); }}>{teams.map(team=><option key={team.id} value={team.id}>{team.name || "Untitled team"}</option>)}</select><input className="team-name-input" aria-label="Team name" value={activeTeam.name} onChange={e => renameTeam(e.target.value)} /></div>
                   <div className="team-room-format">
                     <label><span>Generation</span><select value={settings.generation} onChange={e => updateSetting("generation", Number(e.target.value))}>{generations.map(g => <option key={g} value={g}>Gen {g}</option>)}</select></label>
                     <label><span>Battle type</span><select value={settings.battleType} onChange={e => updateSetting("battleType", e.target.value as BattleType)}><option value="PvP">PvP</option><option value="PvE">PvE</option></select></label>
@@ -1046,6 +1051,12 @@ export default function App() {
               </>}
             </section>
           </div>
+
+                <section className="showdown-dex-browser" aria-label="Pokédex browser">
+                  <div className="showdown-dex-heading"><div><span className="eyebrow">POKÉDEX</span><strong>Choose a Pokémon</strong><small>{filteredDexSpecies.length} results · Generation {settings.generation}</small></div><div className="showdown-dex-controls"><input aria-label="Search Pokédex" value={dexSearch} onChange={e=>setDexSearch(e.target.value)} placeholder="Search Pokémon or number…" /><select aria-label="Filter by type" value={dexTypeFilter} onChange={e=>setDexTypeFilter(e.target.value)}>{dexTypes.map(type=><option key={type}>{type}</option>)}</select><select aria-label="Sort Pokédex" value={dexSort} onChange={e=>setDexSort(e.target.value)}><option>Name</option><option>Number</option></select></div></div>
+                  <div className="showdown-dex-list">{filteredDexSpecies.map(species=><button type="button" key={species.name} className={selectedBuild?.name===species.name?"dex-entry selected": "dex-entry"} onClick={()=>{ if(selectedSlot) patchBuild({name:species.name,gender:species.gender==="N"||species.gender==="M"||species.gender==="F"?species.gender:""}); else addPokemon(); }}><span className="dex-entry-number">{String(species.num).padStart(3,"0")}</span><strong>{species.name}</strong><span className="type-tags">{species.types.map(type=><em key={type} className={"type-tag type-"+type.toLowerCase()}>{type}</em>)}</span><span className="dex-entry-abilities">{Object.values(species.abilities).filter(Boolean).join(" · ")}</span><span className="dex-entry-stats">{species.baseStats.hp}/{species.baseStats.atk}/{species.baseStats.def}/{species.baseStats.spa}/{species.baseStats.spd}/{species.baseStats.spe} · {Object.values(species.baseStats).reduce((a,b)=>a+b,0)}</span></button>)}</div>
+                  {filteredDexSpecies.length===0 && <p className="search-no-results">No Pokémon match those filters.</p>}
+                </section>
           <p className="hint team-storage-hint">{user ? `Signed in as ${user.email || "Google account"} · ${cloudSyncStatus === "loading" ? "Syncing…" : cloudSyncStatus === "error" ? "Sync error" : "Cloud sync active"}` : "Local storage is active. Sign in with Google to sync teams and folders across devices."}</p>
         </>}
         {activePage === "Legality analysis" && <>

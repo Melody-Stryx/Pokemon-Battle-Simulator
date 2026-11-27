@@ -187,7 +187,7 @@ export function chooseTacticalChoice(request: RequestView, log: string[], side: 
   const choices: string[] = [];
   for (let i = 0; i < request.active.length; i++) {
     const active = request.active[i];
-    const own = team.find(p => p.active) || team[i];
+    const own = team.filter(p => p.active)[i] || team[i] || team.find(p => p.active);
     const ownName = speciesName(own);
     const moves = (active.moves || []).map((option, index) => ({ option, slot: index + 1 }))
       .filter(x => !x.option.disabled)

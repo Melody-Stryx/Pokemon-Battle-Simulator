@@ -112,9 +112,10 @@ export async function loadFacilityOpponentPool(generation: number, gameVersion: 
     4: { version: "HeartGold / SoulSilver", facility: "Battle Frontier", url: "/data/facilities/gen4.json" },
     5: { version: "Black / White", facility: "Battle Subway", url: "/data/facilities/gen5.json" },
     6: { version: "X / Y", facility: "Battle Maison", url: "/data/facilities/gen6.json" },
-    "6oras": { version: "Omega Ruby / Alpha Sapphire", facility: "Battle Maison", url: "/data/facilities/gen6.json" },
   };
-  const source = generation === 6 && gameVersion === "Omega Ruby / Alpha Sapphire" ? supported["6oras"] : supported[generation];
+  const source = generation === 6 && gameVersion === "Omega Ruby / Alpha Sapphire"
+    ? { version: "Omega Ruby / Alpha Sapphire", facility: "Battle Maison", url: "/data/facilities/gen6.json" }
+    : supported[generation];
   if (!source || source.version !== gameVersion || source.facility !== facility) {
     throw new Error(`Authentic trainer data is not yet available for Generation ${generation} ${gameVersion} ${facility}. The simulator will not substitute saved teams or fabricate opponents.`);
   }

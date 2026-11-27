@@ -118,7 +118,7 @@ const tacticalMoveRequest = {
   active: [{ moves: [{ move: "Thunderbolt", disabled: false }, { move: "Ice Beam", disabled: false }] }],
 };
 const tacticalMove = chooseTacticalChoice(tacticalMoveRequest, ["|switch|p2a: Garchomp|Garchomp, L100|100/100"], "p1", 9);
-if (tacticalMove !== "move 2") throw new Error(`Tactical AI failed to select the super-effective move: ${tacticalMove}`);
+if (tacticalMove !== "move 2 1") throw new Error(`Tactical AI failed to select the super-effective move: ${tacticalMove}`);
 
 const luxrayRequest = {
   side: { pokemon: [{ details: "Luxray, L100", condition: "364/364", active: true, stats: { atk: 372, spa: 176, spe: 176 }, moves: ["Double Kick", "Spark", "Crunch", "Ice Fang"] }] },
@@ -155,7 +155,7 @@ const abilityAwareChoice = chooseTacticalChoice(
   "p1",
   9,
 );
-if (abilityAwareChoice !== "move 2") throw new Error("Tactical AI ignored the revealed Levitate ability and selected Earthquake.");
+if (abilityAwareChoice !== "move 2 1") throw new Error("Tactical AI ignored the revealed Levitate ability and selected Earthquake.");
 
 const inferredAbilityChoice = chooseTacticalChoice(
   {
@@ -166,7 +166,7 @@ const inferredAbilityChoice = chooseTacticalChoice(
   "p1",
   3,
 );
-if (inferredAbilityChoice !== "move 2") throw new Error("Tactical AI failed to infer Gengar's only Generation 3 ability, Levitate.");
+if (inferredAbilityChoice !== "move 2 1") throw new Error("Tactical AI failed to infer Gengar's only Generation 3 ability, Levitate.");
 
 const hazardAwareRequest = {
   side: { pokemon: [{ details: "Skarmory, L100", condition: "334/334", active: true, stats: { atk: 196, spa: 176, spe: 196 }, moves: ["Spikes", "Toxic Spikes"] }] },
@@ -191,7 +191,7 @@ const statusAwareChoice = chooseTacticalChoice(
   "p1",
   9,
 );
-if (statusAwareChoice !== "move 2") throw new Error("Tactical AI tried to inflict a second major status condition on an already-poisoned target.");
+if (statusAwareChoice !== "move 2 1") throw new Error("Tactical AI tried to inflict a second major status condition on an already-poisoned target.");
 
 const typeImmuneStatusChoice = chooseTacticalChoice(
   statusAwareRequest,
@@ -199,7 +199,7 @@ const typeImmuneStatusChoice = chooseTacticalChoice(
   "p1",
   9,
 );
-if (typeImmuneStatusChoice !== "move 2") throw new Error("Tactical AI selected Toxic against a Steel-type target.");
+if (typeImmuneStatusChoice !== "move 2 1") throw new Error("Tactical AI selected Toxic against a Steel-type target.");
 
 console.log("Tactical AI mechanic-awareness tests passed: Levitate, hazard layers, status duplication and type immunity.");
 

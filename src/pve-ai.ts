@@ -27,14 +27,15 @@ function effectiveness(attackType: string, defendingTypes: string[], generation:
   }
   return result;
 }
-type Foe = { species: string; teraType?: string; ability?: string; status?: string; sideConditions: Record<string, number>; hp: number } | null;
+type Foe = { species: string; teraType?: string; ability?: string; status?: string; sideConditions?: Record<string, number>; hp: number } | null;
 function getFoe(log: string[], ownSide: SideID): Foe {
   const foeSide = ownSide === "p1" ? "p2" : "p1";
   let foe: Foe = null;
+  const foeSideConditions: Record<string, number> = {};
   for (const line of log) {
     const p = line.split("|");
     if (["switch", "drag", "replace"].includes(p[1]) && p[2]?.startsWith(foeSide)) {
-      foe = { species: speciesName({ details: p[3], ident: p[2] }), hp: hpRatio({ condition: p[4] }), sideConditions: {} };
+      foe = { species: speciesName({ details: p[3], ident: p[2] }), hp: hpRatio({ condition: p[4] }), sideConditions: foeSideConditions };
     } else if (p[1] === "detailschange" && p[2]?.startsWith(foeSide) && foe) {
       foe.species = speciesName({ details: p[3] });
     } else if (p[1] === "-terastallize" && p[2]?.startsWith(foeSide) && foe) {
@@ -45,12 +46,12 @@ function getFoe(log: string[], ownSide: SideID): Foe {
       foe.status = p[3];
     } else if (p[1] === "-curestatus" && p[2]?.startsWith(foeSide) && foe) {
       foe.status = undefined;
-    } else if (p[1] === "-sidestart" && p[2]?.startsWith(foeSide) && foe) {
+    } else if (p[1] === "-sidestart" && p[2]?.startsWith(foeSide)) {
       const condition = toID((p[3] || "").replace(/^move: /, ""));
-      if (condition) foe.sideConditions[condition] = (foe.sideConditions[condition] || 0) + 1;
-    } else if (p[1] === "-sideend" && p[2]?.startsWith(foeSide) && foe) {
+      if (condition) foeSideConditions[condition] = (foeSideConditions[condition] || 0) + 1;
+    } else if (p[1] === "-sideend" && p[2]?.startsWith(foeSide)) {
       const condition = toID((p[3] || "").replace(/^move: /, ""));
-      delete foe.sideConditions[condition];
+      delete foeSideConditions[condition];
     } else if (p[1] === "faint" && p[2]?.startsWith(foeSide)) {
       foe = null;
     }
@@ -74,7 +75,7 @@ function moveScore(moveName: string, attackerName: string, defender: Foe, genera
     }
     if (data.sideCondition) {
       const condition = toID(String(data.sideCondition));
-      const layers = defender?.sideConditions[condition] || 0;
+      const layers = defender?.sideConditions?.[condition] || 0;
       const maximum = condition === "spikes" ? 3 : condition === "toxicspikes" ? 2 : 1;
       if (layers >= maximum) return 0;
       score += 25 - layers * 5;

@@ -861,7 +861,7 @@ export default function App() {
           <div className="team-builder-layout">
             <section className="panel team-list-panel">
               <div className="panel-heading"><div><span className="eyebrow">TEAM LIBRARY</span><h3>Your teams</h3></div><button className="primary-button" onClick={createTeam}>+ New</button></div>
-              {teams.length === 0 ? <div className="empty-state"><strong>No teams yet</strong><p>Create a team to start adding Pokémon.</p></div> : <label className="team-library-search"><span>Search teams</span><input value={teamSearch} onChange={event => setTeamSearch(event.target.value)} placeholder="Search by team name" /></label>
+              <label className="team-library-search"><span>Search teams</span><input value={teamSearch} onChange={event => setTeamSearch(event.target.value)} placeholder="Search by team name" /></label>
               {teams.length === 0 ? <div className="empty-state"><strong>No teams yet</strong><p>Create a team to start adding Pokémon.</p></div> : <div className="team-list">{teams.filter(team => team.name.toLowerCase().includes(teamSearch.trim().toLowerCase())).map(team => <button key={team.id} className={activeTeam?.id === team.id ? "team-list-item current" : "team-list-item"} onClick={() => { setActiveTeamId(team.id); setSelectedSlotId(team.slots[0]?.id || ""); }}><span><strong>{team.name || "Untitled team"}</strong><small>{team.slots.length}/6 Pokémon</small></span><span className="team-arrow">›</span></button>)}</div>}
             </section>
             <section className="panel team-editor-panel">

@@ -271,29 +271,83 @@ export default function App() {
     return localStorage.getItem("battle-lab-music-enabled") === "false" ? "off" : "pokecenter";
   });
   const battleMusicUrl = battleMusicTracks.find(track => track.id === battleMusicTrack)?.url || "";
-  const battleMusicRef = useRef<HTMLAudioElement | null>(null);
   const battleController = useRef<BattleController | null>(null);
   const battleModeRef = useRef(settings.mode);
   useEffect(() => { localStorage.setItem("battle-lab-settings", JSON.stringify(settings)); }, [settings]);
   useEffect(() => { battleModeRef.current = settings.mode; }, [settings.mode]);
   useEffect(() => { localStorage.setItem("battle-lab-music-track", battleMusicTrack); localStorage.setItem("battle-lab-music-enabled", String(battleMusicTrack !== "off")); }, [battleMusicTrack]);
   useEffect(() => {
-    const audio = battleMusicRef.current;
-    if (!audio) return;
-    if (!battleMusicUrl) { audio.pause(); audio.removeAttribute("src"); audio.load(); return; }
-    audio.src = battleMusicUrl;
-    audio.loop = true;
-    audio.volume = 0.28;
-    void audio.play().catch(() => {});
+    if (!battleMusicUrl) return;
+    let cancelled = false;
+    let context: AudioContext | null = null;
+    let timer: number | undefined;
+    const sources = new Set<AudioBufferSourceNode>();
+    const gains = new Set<GainNode>();
+    const crossfadeSeconds = 2.5;
+    let buffer: AudioBuffer | null = null;
+
+    const startLoop = () => {
+      if (cancelled || !context || !buffer) return;
+      const scheduleTrack = (startAt: number, crossfadeIn: boolean) => {
+        if (cancelled || !context || !buffer) return;
+        const source = context.createBufferSource();
+        const gain = context.createGain();
+        source.buffer = buffer;
+        source.connect(gain);
+        gain.connect(context.destination);
+        const fadeDuration = Math.min(crossfadeSeconds, buffer.duration / 4);
+        gain.gain.setValueAtTime(crossfadeIn ? 0 : 1, startAt);
+        if (crossfadeIn) gain.gain.linearRampToValueAtTime(1, startAt + fadeDuration);
+        gain.gain.setValueAtTime(1, startAt + buffer.duration - fadeDuration);
+        gain.gain.linearRampToValueAtTime(0, startAt + buffer.duration);
+        sources.add(source);
+        gains.add(gain);
+        source.onended = () => {
+          sources.delete(source);
+          gains.delete(gain);
+          source.disconnect();
+          gain.disconnect();
+        };
+        source.start(startAt);
+        const nextStart = startAt + buffer.duration - fadeDuration;
+        const delay = Math.max(0, (nextStart - context.currentTime) * 1000);
+        timer = window.setTimeout(() => scheduleTrack(nextStart, true), delay);
+      };
+      scheduleTrack(context.currentTime + 0.05, false);
+    };
+
+    const initialize = async () => {
+      try {
+        context = new AudioContext();
+        const response = await fetch(battleMusicUrl, { mode: "cors" });
+        if (!response.ok) throw new Error(`Music request failed: ${response.status}`);
+        const data = await response.arrayBuffer();
+        buffer = await context.decodeAudioData(data);
+        if (cancelled) return;
+        startLoop();
+        await context.resume().catch(() => {});
+      } catch (error) {
+        console.error("Background music could not be loaded for seamless playback.", error);
+      }
+    };
+    void initialize();
+
     const resumeAfterGesture = () => {
-      if (battleMusicTrack !== "off" && audio.paused) void audio.play().catch(() => {});
+      if (context?.state === "suspended") void context.resume().catch(() => {});
     };
     window.addEventListener("pointerdown", resumeAfterGesture);
     window.addEventListener("keydown", resumeAfterGesture);
     return () => {
+      cancelled = true;
+      if (timer !== undefined) window.clearTimeout(timer);
       window.removeEventListener("pointerdown", resumeAfterGesture);
       window.removeEventListener("keydown", resumeAfterGesture);
-      audio.pause();
+      for (const source of sources) {
+        try { source.stop(); } catch {}
+        source.disconnect();
+      }
+      for (const gain of gains) gain.disconnect();
+      if (context && context.state !== "closed") void context.close();
     };
   }, [battleMusicTrack, battleMusicUrl]);
   useEffect(() => { localStorage.setItem("battle-lab-teams", JSON.stringify(teams)); }, [teams]);
@@ -942,7 +996,6 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <audio ref={battleMusicRef} preload="auto" autoPlay loop />
       <aside className="sidebar">
         <div className="brand"><div className="brand-mark">P</div><div><strong>Pokémon Battle Lab</strong><span>TEAM TESTING SUITE</span></div></div>
         <nav aria-label="Main navigation">

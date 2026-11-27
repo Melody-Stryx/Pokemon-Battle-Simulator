@@ -799,3 +799,75 @@ button.roadmap-row:hover { background: rgba(255,255,255,.025); }
   .set-type-tags { display:none; }
   .set-edit-label { font-size:8px; }
 }
+
+
+/* Room-based team editor: team library, six-set rail, focused set editor */
+.team-builder-intro { display:none; }
+.team-builder-layout { grid-template-columns:minmax(205px,245px) minmax(0,1fr); gap:10px; align-items:start; }
+.team-list-panel { position:sticky; top:12px; max-height:calc(100vh - 24px); overflow:auto; padding:12px; border-radius:4px; background:#20252c; }
+.team-list-panel .panel-heading h3 { font-size:14px; }
+.team-library-search { display:grid; gap:5px; margin:12px 0 8px; color:#aeb8c7; font-size:10px; }
+.team-library-search input { width:100%; min-width:0; height:32px; padding:0 9px; border:1px solid #46505e; border-radius:3px; color:#e8edf5; background:#171b21; font-size:11px; }
+.team-list { display:grid; gap:3px; max-height:calc(100vh - 210px); overflow:auto; }
+.team-list-item { min-height:44px; padding:7px 8px; border:1px solid transparent; border-radius:3px; background:#292e37; }
+.team-list-item.current { border-color:#83a9d7; background:#303b4a; }
+.team-room-header { display:flex; align-items:center; flex-wrap:wrap; gap:12px; padding:10px 12px; border-bottom:1px solid #3a404a; background:#20252c; }
+.team-room-title { display:flex; align-items:center; min-width:170px; flex:1 1 190px; gap:8px; }
+.team-room-title .team-name-input { width:100%; min-width:0; }
+.back-to-teams { padding:5px 8px; border:1px solid #465363; border-radius:3px; color:#c8d4e4; background:#293440; font-size:10px; }
+.room-separator { color:#6f7d8f; }
+.team-room-format { display:flex; flex-wrap:wrap; gap:7px; }
+.team-room-format label { display:grid; gap:3px; color:#9eabbc; font-size:9px; }
+.team-room-format select { min-width:88px; height:30px; padding:0 7px; border:1px solid #46505e; border-radius:3px; color:#e8edf5; background:#171b21; font-size:10px; }
+.team-editor-panel { padding:0; overflow:hidden; border-radius:4px; }
+.team-editor-panel > .team-room-header { border:0; }
+.team-editor-panel > .showdown-import-panel { margin:10px; }
+.showdown-workspace { display:grid; grid-template-columns:minmax(230px, .72fr) minmax(0,1.28fr); min-height:620px; border-top:1px solid #3a404a; }
+.showdown-set-pane { min-width:0; padding:10px; border-right:1px solid #3a404a; background:#1b2027; }
+.showdown-set-overview { margin:0; padding:0; border:0; }
+.showdown-set-overview-heading { align-items:center; margin-bottom:8px; }
+.showdown-set-overview-heading > div { display:grid; gap:3px; }
+.showdown-set-overview-heading .eyebrow { font-size:9px; }
+.showdown-set-list { grid-template-columns:minmax(0,1fr); gap:4px; }
+.showdown-set-card { min-height:68px; border-radius:3px; background:#252b34; }
+.showdown-set-card.selected { border-color:#83a9d7; background:#303b4a; box-shadow:inset 3px 0 #83a9d7; }
+.showdown-set-card.empty { min-height:52px; }
+.showdown-set-main { gap:7px; padding:7px; }
+.showdown-set-number { flex-basis:22px; width:22px; height:22px; font-size:10px; }
+.showdown-set-copy { gap:3px; }
+.showdown-set-copy strong { font-size:10px; }
+.showdown-set-copy small { font-size:8px; }
+.showdown-set-copy .set-moves { white-space:normal; line-height:1.35; }
+.set-edit-label { font-size:8px; }
+.showdown-set-tools { flex-basis:21px; }
+.showdown-set-tools button { font-size:9px; }
+.pokemon-editor-pane { min-width:0; padding:14px; background:#20252c; }
+.pokemon-editor { margin:0; padding:0; border:0; }
+.editor-heading { position:sticky; top:0; z-index:5; padding:0 0 10px; background:#20252c; }
+.editor-heading h3 { font-size:17px; }
+.pokemon-fields { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.move-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.team-storage-hint { margin-top:10px; }
+@media(max-width:1050px) {
+  .team-builder-layout { grid-template-columns:190px minmax(0,1fr); }
+  .showdown-workspace { grid-template-columns:220px minmax(0,1fr); }
+  .team-room-header { align-items:flex-start; }
+}
+@media(max-width:760px) {
+  .team-builder-layout { grid-template-columns:1fr; }
+  .team-list-panel { position:static; max-height:none; }
+  .team-list { grid-template-columns:repeat(2,minmax(0,1fr)); max-height:190px; }
+  .showdown-workspace { grid-template-columns:minmax(0,1fr); }
+  .showdown-set-pane { border-right:0; border-bottom:1px solid #3a404a; }
+  .showdown-set-list { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .pokemon-editor-pane { padding:12px; }
+}
+@media(max-width:480px) {
+  .team-list { grid-template-columns:1fr; }
+  .showdown-set-list { grid-template-columns:1fr; }
+  .team-room-format { width:100%; }
+  .team-room-format label { flex:1 1 30%; }
+  .team-room-format select { width:100%; min-width:0; }
+  .team-room-header > .team-actions { width:100%; }
+  .pokemon-fields,.move-grid { grid-template-columns:1fr; }
+}

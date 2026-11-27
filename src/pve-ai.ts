@@ -224,12 +224,12 @@ export function chooseTacticalChoice(request: RequestView, log: string[], side: 
       "raindance", "sunnyday", "sandstorm", "hail", "snowscape", "electricterrain", "grassyterrain", "mistyterrain", "psychicterrain",
       "wideguard", "quickguard", "craftyshield", "matblock",
     ]);
-    const moveId = toID(bestMove.option.move);
+    const moveId = toID(String((bestMove.option as any).id || bestMove.option.move));
     const isFieldOrSideCondition = Boolean(moveData?.sideCondition || moveData?.pseudoWeather || moveData?.weather || moveData?.terrain) || targetlessEffects.has(moveId);
     if (moveId === "reflect") console.log("[TacticalPlayerAI] Reflect target debug", { moveTarget, sideCondition: moveData?.sideCondition, targetless: targetlessEffects.has(moveId), activeCount: request.active.length });
     const needsExplicitTarget = request.active.length > 1 && !isFieldOrSideCondition && ["normal", "adjacentFoe", "any", "adjacentAlly", "adjacentAllyOrSelf"].includes(moveTarget);
     const targetLocation = moveTarget === "adjacentAlly" || moveTarget === "adjacentAllyOrSelf" ? (i === 0 ? -2 : -1) : 1;
-    let choice = `move ${bestMove.slot}${needsExplicitTarget ? ` ${targetLocation}` : ""}`;
+    let choice = `move ${bestMove.slot}${needsExplicitTarget && moveId !== "reflect" ? ` ${targetLocation}` : ""}`;
     if (needsExplicitTarget) console.log("[TacticalPlayerAI] explicit target", { move: bestMove.option.move, moveId, moveTarget, choice });
     if (moveId === "reflect") console.log("[TacticalPlayerAI] Reflect choice", choice);
     if (active.canMegaEvo) choice += " mega";

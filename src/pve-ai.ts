@@ -247,7 +247,20 @@ export class TacticalPlayerAI extends RandomPlayerAI {
   override receiveRequest(request: any) {
     if (request.wait) return;
     const choice = chooseTacticalChoice(request as RequestView, this.log, this.side, this.generation);
-    console.log("[TacticalPlayerAI] request choice", this.side, choice);
+    if (request.active?.length > 1) {
+      console.log("[TacticalPlayerAI] doubles request mapping", {
+        side: this.side,
+        active: request.active.map((active: any, index: number) => ({
+          index,
+          moves: active.moves?.map((option: any) => ({ move: option.move, target: option.target })),
+        })),
+        activeRoster: request.side?.pokemon?.filter((pokemon: any) => pokemon.active).map((pokemon: any) => ({
+          ident: pokemon.ident, details: pokemon.details, moves: pokemon.moves,
+        })),
+        recentSwitches: this.log.filter((line: string) => line.startsWith("|switch|") || line.startsWith("|drag|")).slice(-4),
+        choice,
+      });
+    }
     this.choose(choice);
   }
 }

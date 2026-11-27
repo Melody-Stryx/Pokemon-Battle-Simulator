@@ -407,8 +407,17 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
   }
 }
 
+function shuffledCopy<T>(items: T[]): T[] {
+  const shuffled = [...items];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 function createFacilityTeam(pool: Record<string, unknown>[]): Record<string, unknown>[] {
-  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  const shuffled = shuffledCopy(pool);
   const selected: Record<string, unknown>[] = [];
   const species = new Set<string>();
   const items = new Set<string>();
@@ -430,6 +439,7 @@ export async function runExhaustiveBenchmark(args: {
   playerSets: Record<string, unknown>[];
   opponents: BenchmarkOpponent[];
   repetitions: number;
+  playerSelectionSize?: number;
   onProgress: (progress: BenchmarkProgress) => void;
   shouldCancel: () => boolean;
 }): Promise<BenchmarkProgress> {
@@ -442,7 +452,10 @@ export async function runExhaustiveBenchmark(args: {
     for (let repetition = 0; repetition < args.repetitions; repetition++) {
       if (args.shouldCancel()) return { completed, total, wins, losses, ties, currentOpponent: opponent.name, results, analysis };
       const battleTeam = opponent.teamPool?.length ? createFacilityTeam(opponent.teamPool[0]) : opponent.sets;
-      const battle = await playOneBattle(args.format, args.playerSets, battleTeam);
+      const playerTeam = args.playerSelectionSize && args.playerSets.length > args.playerSelectionSize
+        ? shuffledCopy(args.playerSets).slice(0, args.playerSelectionSize)
+        : args.playerSets;
+      const battle = await playOneBattle(args.format, playerTeam, battleTeam);
       const outcome = battle.outcome;
       result[outcome === "win" ? "wins" : outcome === "loss" ? "losses" : "ties"]++;
       result.games++;

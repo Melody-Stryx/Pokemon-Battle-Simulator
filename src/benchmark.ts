@@ -97,7 +97,7 @@ export async function loadCompleteOpponentPool(format: string): Promise<{
 
 type FacilityDataset = {
   generation: number;
-  trainers: Array<{ name: string; trainerClass: string; pokemon: string[]; ivs?: Record<string, number> }>;
+  trainers: Array<{ name: string; trainerClass: string; orasName?: string; pokemon: string[]; ivs?: Record<string, number> }>;
   pokemon: Array<Record<string, unknown> & { name: string; species: string }>;
 };
 
@@ -143,7 +143,7 @@ export async function loadFacilityOpponentPool(generation: number, gameVersion: 
     }));
     opponents.push({
       id: `facility-${generation}-${trainer.name}-${opponents.length}`,
-      name: `${trainer.trainerClass} ${trainer.name}`,
+      name: `${trainer.trainerClass} ${gameVersion === "Omega Ruby / Alpha Sapphire" ? (trainer.orasName || trainer.name) : trainer.name}`,
       sets: converted.slice(0, 3),
       teamPool: [converted],
     });

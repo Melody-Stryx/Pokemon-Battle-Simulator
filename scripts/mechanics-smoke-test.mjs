@@ -43,7 +43,7 @@ async function runUntilEvent({ player, opponent, choosePlayer, chooseOpponent, e
             return line;
           }
           if (line.startsWith("|win|") || line.startsWith("|tie|")) {
-            throw new Error(label + " battle ended before the expected mechanic triggered. Events: " + observedEvents.slice(-50).join(" || "));
+            throw new Error(label + " battle ended before the expected mechanic triggered. Initial events: " + observedEvents.slice(0, 40).join(" || ") + " || Recent events: " + observedEvents.slice(-20).join(" || "));
           }
         }
       }

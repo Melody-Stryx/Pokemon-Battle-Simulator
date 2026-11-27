@@ -74,7 +74,7 @@ await runUntilEvent({
   opponent: [makeSet("Magikarp", "Swift Swim", ["Splash"])],
   choosePlayer: request => moveOne(request),
   chooseOpponent: request => moveOne(request),
-  expected: line => line.includes("|-unboost|p2a: Magikarp|atk|1|[from] ability: Intimidate"),
+  expected: line => line.startsWith("|-ability|p1a: Arcanine|Intimidate|boost"),
 });
 
 await runUntilEvent({

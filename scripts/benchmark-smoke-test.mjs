@@ -213,14 +213,14 @@ const doublesAIChoice = chooseTacticalChoice({
     { moves: [{ move: "Ice Beam", target: "normal" }, { move: "Dragon Claw", target: "normal" }] },
   ],
 }, ["|switch|p2a: Gengar|Gengar, L100|261/261", "|switch|p2b: Magikarp|Magikarp, L100|181/181"], "p1", 9);
-if (doublesAIChoice !== "move 2, move 2") throw new Error("Doubles AI did not score each active Pokémon independently and choose a legal move for each slot.");
+if (doublesAIChoice !== "move 2 1, move 2 1") throw new Error("Doubles AI did not score each active Pokémon independently and select legal explicit targets.");
 
 const doublesReflectChoice = chooseTacticalChoice({
   side: { pokemon: [
     { details: "Gardevoir, L100", condition: "251/251", active: true, stats: { atk: 150, spa: 300, spe: 100 }, moves: ["Reflect"] },
     { details: "Garchomp, L100", condition: "357/357", active: true, stats: { atk: 350, spa: 100, spe: 333 }, moves: ["Reflect"] },
   ] },
-  active: [{ moves: [{ move: "Reflect" }] }, { moves: [{ move: "Reflect" }] }],
+  active: [{ moves: [{ move: "Reflect", target: "allySide" }] }, { moves: [{ move: "Reflect", target: "allySide" }] }],
 }, ["|switch|p2a: Gengar|Gengar, L100|261/261", "|switch|p2b: Magikarp|Magikarp, L100|181/181"], "p1", 9);
 if (doublesReflectChoice !== "move 1, move 1") throw new Error("Doubles AI added an invalid target to a side-condition move.");
 

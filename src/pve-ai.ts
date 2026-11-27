@@ -235,7 +235,7 @@ export function chooseTacticalChoice(request: RequestView, log: string[], side: 
     else if (active.canTerastallize && foe && bestMove.score >= 95) choice += " terastallize";
     choices.push(choice);
   }
-  return choices.join(", ");
+  return (request.active.length > 1 ? choices.reverse() : choices).join(", ");
 }
 export class TacticalPlayerAI extends RandomPlayerAI {
   private readonly side: SideID;

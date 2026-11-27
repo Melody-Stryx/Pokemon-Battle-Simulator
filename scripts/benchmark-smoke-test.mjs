@@ -16,12 +16,12 @@ const compiledBenchmark = ts.transpileModule(benchmarkSource, {
 const benchmarkModuleUrl = new URL("../src/.benchmark-smoke-runtime.mjs", import.meta.url);
 await writeFile(benchmarkModuleUrl, compiledBenchmark);
 let runExhaustiveBenchmark;
-let playBenchmarkBattleWithRetries;
 let loadFacilityOpponentPool;
+let normalizeBenchmarkOutcome;
 let chooseTacticalChoice;
 try {
   ({ chooseTacticalChoice } = await import(aiModuleUrl.href));
-  ({ runExhaustiveBenchmark, loadFacilityOpponentPool, playBenchmarkBattleWithRetries } = await import(benchmarkModuleUrl.href));
+  ({ runExhaustiveBenchmark, loadFacilityOpponentPool, normalizeBenchmarkOutcome } = await import(benchmarkModuleUrl.href));
 } finally {
   await unlink(benchmarkModuleUrl);
   await unlink(aiModuleUrl);
@@ -109,35 +109,10 @@ const tacticalSwitch = chooseTacticalChoice(tacticalSwitchRequest, ["|switch|p2a
 if (tacticalSwitch !== "switch 2") throw new Error(`Tactical AI failed to switch to a favourable counter: ${tacticalSwitch}`);
 console.log("Tactical AI decision tests passed: super-effective move selection and matchup-aware switching.");
 
-const invalidTie = new Error("Showdown ended a benchmark battle in a tie before any turns or moves. The result is invalid and was not counted.");
-const testPlayer = [{ species: "Pikachu" }];
-const testOpponent = [{ species: "Magikarp" }];
-let attempts = 0;
-const recoveredBattle = await playBenchmarkBattleWithRetries(async () => {
-  attempts++;
-  if (attempts === 1) throw invalidTie;
-  return { outcome: "win" };
-}, "gen9customgame", testPlayer, testOpponent);
-if (attempts !== 2 || recoveredBattle.outcome !== "win") {
-  throw new Error(`Invalid pre-turn tie was not retried correctly: attempts=${attempts}, outcome=${recoveredBattle?.outcome}.`);
+if (normalizeBenchmarkOutcome("tie") !== "loss" || normalizeBenchmarkOutcome("loss") !== "loss" || normalizeBenchmarkOutcome("win") !== "win") {
+  throw new Error("Benchmark outcome normalization must count ties as player losses.");
 }
-console.log("Invalid pre-turn tie recovery test passed: first attempt discarded, second attempt counted.");
-
-attempts = 0;
-let exhaustedError = "";
-try {
-  await playBenchmarkBattleWithRetries(async () => {
-    attempts++;
-    throw invalidTie;
-  }, "gen9customgame", testPlayer, testOpponent);
-} catch (error) {
-  exhaustedError = error instanceof Error ? error.message : String(error);
-}
-if (attempts !== 3 || !exhaustedError.includes("three invalid pre-turn ties") || !exhaustedError.includes("Pikachu") || !exhaustedError.includes("Magikarp")) {
-  throw new Error(`Three invalid ties were not rejected with matchup context: attempts=${attempts}, error=${exhaustedError}.`);
-}
-console.log("Invalid pre-turn tie exhaustion test passed: three failures abort without a counted result.");
-
+console.log("Tie-scoring regression test passed: every tie is counted as a player loss.");
 
 const streams = BattleStreams.getPlayerStreams(new BattleStreams.BattleStream());
 const p1 = new RandomPlayerAI(streams.p1);

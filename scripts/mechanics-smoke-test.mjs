@@ -11,10 +11,10 @@ class ScriptedPlayer extends RandomPlayerAI {
   }
 }
 
-const makeSet = (species, ability, moves) => ({
+const makeSet = (species, ability, moves, level = 100) => ({
   name: species,
   species,
-  level: 100,
+  level,
   ability,
   moves,
   evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
@@ -204,4 +204,52 @@ await runUntilEvent({
     return "move 1";
   },
   expected: line => line.startsWith("|-status|p2a: Rattata|psn"),
+});
+
+await runUntilEvent({
+  label: "Weak Armor lowers Defense and raises Speed after a physical hit",
+  format: "gen7customgame",
+  player: [makeSet("Rattata", "Run Away", ["Tackle", "Splash"], 1)],
+  opponent: [makeSet("Skarmory", "Weak Armor", ["Splash"], 100)],
+  choosePlayer: request => moveOne(request),
+  chooseOpponent: request => moveOne(request),
+  expected: line => line.startsWith("|-boost|p2a: Skarmory|spe|2") || line.startsWith("|-unboost|p2a: Skarmory|def|1"),
+});
+
+await runUntilEvent({
+  label: "Poison Touch activates on a contact move",
+  format: "gen5customgame",
+  player: [makeSet("Toxicroak", "Poison Touch", ["Tackle"], 1)],
+  opponent: [makeSet("Magikarp", "Swift Swim", ["Splash"], 100)],
+  choosePlayer: request => moveOne(request),
+  chooseOpponent: request => moveOne(request),
+  expected: line => line.startsWith("|-status|p2a: Magikarp|psn") && line.includes("Poison Touch"),
+});
+
+
+await runUntilEvent({
+  label: "Flame Body can burn a contact attacker",
+  player: [makeSet("Rattata", "Run Away", ["Tackle"], 1)],
+  opponent: [makeSet("Magmar", "Flame Body", ["Splash"], 100)],
+  choosePlayer: request => moveOne(request),
+  chooseOpponent: request => moveOne(request),
+  expected: line => line.startsWith("|-status|p1a: Rattata|brn") && line.includes("Flame Body"),
+});
+
+await runUntilEvent({
+  label: "Scald secondary effect can burn",
+  player: [makeSet("Magikarp", "Swift Swim", ["Splash"], 100)],
+  opponent: [makeSet("Vaporeon", "Water Absorb", ["Scald"], 1)],
+  choosePlayer: request => moveOne(request),
+  chooseOpponent: request => moveOne(request),
+  expected: line => line.startsWith("|-status|p1a: Magikarp|brn") && line.includes("Scald"),
+});
+
+await runUntilEvent({
+  label: "Shadow Ball secondary effect can lower Special Defense",
+  player: [makeSet("Magikarp", "Swift Swim", ["Splash"], 100)],
+  opponent: [makeSet("Gengar", "Cursed Body", ["Shadow Ball"], 1)],
+  choosePlayer: request => moveOne(request),
+  chooseOpponent: request => moveOne(request),
+  expected: line => line.startsWith("|-unboost|p1a: Magikarp|spd|1") && line.includes("Shadow Ball"),
 });

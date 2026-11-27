@@ -147,7 +147,7 @@ await runUntilEvent({
 
 await runUntilEvent({
   label: "Mold Breaker bypasses Levitate",
-  format: "gen3customgame",
+  format: "gen5customgame",
   player: [makeSet("Excadrill", "Mold Breaker", ["Earthquake"])],
   opponent: [makeSet("Gengar", "Levitate", ["Splash"])],
   choosePlayer: request => moveOne(request),

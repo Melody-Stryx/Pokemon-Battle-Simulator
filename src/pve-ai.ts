@@ -3,7 +3,7 @@ import { RandomPlayerAI } from "@pkmn/sim";
 
 type SideID = "p1" | "p2";
 type PokemonView = { ident?: string; details?: string; condition?: string; active?: boolean; stats?: Record<string, number>; moves?: string[]; reviving?: boolean; [key: string]: unknown };
-type MoveView = { move: string; disabled?: boolean; [key: string]: unknown };
+type MoveView = { move: string; target?: string; disabled?: boolean; [key: string]: unknown };
 type RequestView = { wait?: boolean; teamPreview?: boolean; maxTeamSize?: number; forceSwitch?: boolean[]; active?: Array<{ moves?: MoveView[]; trapped?: boolean; canMegaEvo?: boolean; canDynamax?: boolean; canTerastallize?: boolean }>; side?: { pokemon: PokemonView[] } };
 
 const toID = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -216,10 +216,19 @@ export function chooseTacticalChoice(request: RequestView, log: string[], side: 
         continue;
       }
     }
-    // Let the battle engine resolve the default legal target. The active request
-    // order can change after switches in doubles, so appending a positional target
-    // can accidentally target a different move slot and invalidate side-condition moves.
-    let choice = `move ${bestMove.slot}`;
+    const moveData = move(bestMove.option.move, generation) as any;
+    const moveTarget = String(bestMove.option.target || moveData?.target || "");
+    const targetlessEffects = new Set([
+      "reflect", "lightscreen", "safeguard", "mist", "tailwind", "auroraveil", "luckychant",
+      "stealthrock", "spikes", "toxicspikes", "stickyweb", "trickroom", "gravity", "wonderroom", "magicroom",
+      "raindance", "sunnyday", "sandstorm", "hail", "snowscape", "electricterrain", "grassyterrain", "mistyterrain", "psychicterrain",
+      "wideguard", "quickguard", "craftyshield", "matblock",
+    ]);
+    const moveId = toID(String((bestMove.option as any).id || bestMove.option.move));
+    const isFieldOrSideCondition = Boolean(moveData?.sideCondition || moveData?.pseudoWeather || moveData?.weather || moveData?.terrain) || targetlessEffects.has(moveId);
+    const needsExplicitTarget = !isFieldOrSideCondition && ["normal", "adjacentFoe", "any", "adjacentAlly", "adjacentAllyOrSelf"].includes(moveTarget);
+    const targetLocation = moveTarget === "adjacentAlly" || moveTarget === "adjacentAllyOrSelf" ? (i === 0 ? -2 : -1) : 1;
+    let choice = `move ${bestMove.slot}${needsExplicitTarget ? ` ${targetLocation}` : ""}`;
     if (active.canMegaEvo) choice += " mega";
     else if (active.canDynamax && (hpRatio(own) < 0.65 || bestMove.score >= 100)) choice += " dynamax";
     else if (active.canTerastallize && foe && bestMove.score >= 95) choice += " terastallize";

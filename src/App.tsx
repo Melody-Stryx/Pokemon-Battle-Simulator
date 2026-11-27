@@ -948,6 +948,16 @@ export default function App() {
               </div>
               <div className="damage-analysis-grid damage-moves-grid">
                 <div>
+                  <h4>Status conditions on your team</h4>
+                  <div className="damage-move-list">{(matchupRun.analysis.statusConditions?.player || []).map(item => <div key={item.pokemon + item.condition}><strong>{item.pokemon} · {item.condition}</strong><span>{item.applications.toLocaleString()} applied · {item.cures.toLocaleString()} cured</span></div>)}{!(matchupRun.analysis.statusConditions?.player || []).length && <p className="hint">No status conditions were recorded.</p>}</div>
+                </div>
+                <div>
+                  <h4>Status conditions on opponents</h4>
+                  <div className="damage-move-list">{(matchupRun.analysis.statusConditions?.opponent || []).map(item => <div key={item.pokemon + item.condition}><strong>{item.pokemon} · {item.condition}</strong><span>{item.applications.toLocaleString()} applied · {item.cures.toLocaleString()} cured</span></div>)}{!(matchupRun.analysis.statusConditions?.opponent || []).length && <p className="hint">No status conditions were recorded.</p>}</div>
+                </div>
+              </div>
+              <div className="damage-analysis-grid damage-moves-grid">
+                <div>
                   <h4>Passive damage to your team</h4>
                   <div className="damage-move-list">{(matchupRun.analysis.passiveDamage?.player || []).slice().sort((a,b) => b.damage-a.damage).map(item => <div key={item.source}><strong>{item.source}</strong><span>{item.damage.toLocaleString()} damage · {item.hits.toLocaleString()} damage events</span></div>)}{!(matchupRun.analysis.passiveDamage?.player || []).length && <p className="hint">No classified passive damage was recorded.</p>}</div>
                 </div>

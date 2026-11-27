@@ -867,7 +867,7 @@ export default function App() {
             <section className="panel team-editor-panel">
               {!activeTeam ? <div className="empty-state"><strong>Select or create a team</strong><p>Your team editor will appear here.</p></div> : <>
                 <div className="team-room-header">
-                  <div className="team-room-title"><button type="button" className="back-to-teams" onClick={() => setActivePage("Team Builder")}>Teams</button><span className="room-separator">/</span><input className="team-name-input" aria-label="Team name" value={activeTeam.name} onChange={e => renameTeam(e.target.value)} /></div>
+                  <div className="team-room-title"><span className="team-room-section">TEAM</span><span className="room-separator">/</span><input className="team-name-input" aria-label="Team name" value={activeTeam.name} onChange={e => renameTeam(e.target.value)} /></div>
                   <div className="team-room-format">
                     <label><span>Generation</span><select value={settings.generation} onChange={e => updateSetting("generation", Number(e.target.value))}>{generations.map(g => <option key={g} value={g}>Gen {g}</option>)}</select></label>
                     <label><span>Battle type</span><select value={settings.battleType} onChange={e => updateSetting("battleType", e.target.value as BattleType)}><option value="PvP">PvP</option><option value="PvE">PvE</option></select></label>

@@ -29,6 +29,7 @@ async function runUntilEvent({ player, opponent, choosePlayer, chooseOpponent, e
   void p2.start();
 
   let timeoutId;
+  const observedEvents = [];
   const observed = new Promise((resolve, reject) => {
     const timeout = new Promise((_, fail) => {
       timeoutId = setTimeout(() => fail(new Error(label + " did not trigger within 15 seconds.")), 15000);
@@ -36,12 +37,13 @@ async function runUntilEvent({ player, opponent, choosePlayer, chooseOpponent, e
     const read = (async () => {
       for await (const chunk of streams.omniscient) {
         for (const line of String(chunk).split("\n")) {
+          if (line.startsWith("|")) observedEvents.push(line);
           if (expected(line)) {
             void streams.omniscient.write(">forcetie");
             return line;
           }
           if (line.startsWith("|win|") || line.startsWith("|tie|")) {
-            throw new Error(label + " battle ended before the expected mechanic triggered.");
+            throw new Error(label + " battle ended before the expected mechanic triggered. Events: " + observedEvents.slice(-50).join(" || "));
           }
         }
       }

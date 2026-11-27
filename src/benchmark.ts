@@ -454,8 +454,8 @@ export async function runExhaustiveBenchmark(args: {
     for (let repetition = 0; repetition < args.repetitions; repetition++) {
       if (args.shouldCancel()) return { completed, total, wins, losses, ties, currentOpponent: opponent.name, results, analysis };
       const battleTeam = opponent.teamPool?.length ? createFacilityTeam(opponent.teamPool[0]) : opponent.sets;
-      const playerTeam = args.playerSelectionSize && args.playerSets.length > args.playerSelectionSize
-        ? createFacilityTeam(args.playerSets, args.playerSelectionSize)
+      const playerTeam = args.playerSelectionSize
+        ? createFacilityTeam(args.playerSets, Math.min(args.playerSelectionSize, args.playerSets.length))
         : args.playerSets;
       const battle = await playOneBattle(args.format, playerTeam, battleTeam);
       const outcome = battle.outcome;

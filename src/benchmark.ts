@@ -98,7 +98,7 @@ export async function loadCompleteOpponentPool(format: string): Promise<{
 
 type FacilityDataset = {
   generation: number;
-  trainers: Array<{ name: string; trainerClass?: string; displayName?: string; pokemon: string[]; ivs?: Record<string, number>; level?: number; fixedTeam?: boolean; teamSize?: number }>;
+  trainers: Array<{ name: string; trainerClass?: string; displayName?: string; orasName?: string; pokemon: string[]; ivs?: Record<string, number>; level?: number; fixedTeam?: boolean; teamSize?: number }>;
   pokemon: Array<Record<string, unknown> & { name: string; species: string; moves?: string[] }>;
 };
 

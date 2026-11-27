@@ -301,7 +301,39 @@ try {
   if (!passiveSources.some(item => item.source === "Bad poison") || passiveSources.reduce((sum, item) => sum + item.damage, 0) <= 0) {
     throw new Error("Status residual damage must be classified in benchmark telemetry instead of disappearing into unattributed damage.");
   }
-  console.log("Residual damage telemetry test passed: poison damage is tracked by source.");
+  if (!residualTelemetry.analysis.statusConditions?.opponent.some(item => item.condition === "Bad poison" && item.applications > 0)) {
+    throw new Error("Status telemetry must record Toxic being applied to the opposing Pokémon.");
+  }
+  console.log("Residual damage telemetry test passed: Toxic application and bad-poison damage are tracked separately.");
+
+  const burnTelemetry = await runExhaustiveBenchmark({
+    format: "gen9customgame",
+    playerSets: [makeTeam("Gengar", "Will-O-Wisp", "Cursed Body")[0]],
+    opponents: [{ id: "burn-magikarp", name: "Magikarp · Splash", sets: [makeTeam("Magikarp", "Splash", "Swift Swim")[0]] }],
+    repetitions: 1,
+    shouldCancel: () => false,
+    onProgress: () => {},
+  });
+  if (!burnTelemetry.analysis.passiveDamage?.opponent.some(item => item.source === "Burn" && item.damage > 0)) {
+    throw new Error("Burn residual damage must be classified in benchmark telemetry.");
+  }
+  if (!burnTelemetry.analysis.statusConditions?.opponent.some(item => item.condition === "Burn" && item.applications > 0)) {
+    throw new Error("Status telemetry must record burn being applied to the opposing Pokémon.");
+  }
+  console.log("Burn telemetry test passed: burn application and residual damage are recorded.");
+
+  const hazardTelemetry = await runExhaustiveBenchmark({
+    format: "gen9customgame",
+    playerSets: [makeTeam("Aerodactyl", "Stealth Rock", "Pressure")[0], makeTeam("Skarmory", "Roar", "Keen Eye")[0]],
+    opponents: [{ id: "hazard-pidgey", name: "Switching targets", sets: [makeTeam("Magikarp", "Splash", "Swift Swim")[0], makeTeam("Pidgey", "Splash", "Keen Eye")[0]] }],
+    repetitions: 1,
+    shouldCancel: () => false,
+    onProgress: () => {},
+  });
+  if (!hazardTelemetry.analysis.passiveDamage?.opponent.some(item => item.source === "Stealth Rock" && item.damage > 0)) {
+    throw new Error("Stealth Rock switch-in damage must be attributed as passive damage in benchmark telemetry.");
+  }
+  console.log("Entry-hazard telemetry test passed: Stealth Rock switch-in damage is attributed.");
 
   const solo = await runExhaustiveBenchmark({
     format: "gen9customgame",

@@ -97,7 +97,7 @@ export async function loadCompleteOpponentPool(format: string): Promise<{
 
 type FacilityDataset = {
   generation: number;
-  trainers: Array<{ name: string; trainerClass: string; pokemon: string[] }>;
+  trainers: Array<{ name: string; trainerClass: string; pokemon: string[]; ivs?: Record<string, number> }>;
   pokemon: Array<Record<string, unknown> & { name: string; species: string }>;
 };
 
@@ -111,8 +111,10 @@ export async function loadFacilityOpponentPool(generation: number, gameVersion: 
     3: { version: "Emerald", facility: "Battle Frontier", url: "/data/facilities/gen3.json" },
     4: { version: "HeartGold / SoulSilver", facility: "Battle Frontier", url: "/data/facilities/gen4.json" },
     5: { version: "Black / White", facility: "Battle Subway", url: "/data/facilities/gen5.json" },
+    6: { version: "X / Y", facility: "Battle Maison", url: "/data/facilities/gen6.json" },
+    "6oras": { version: "Omega Ruby / Alpha Sapphire", facility: "Battle Maison", url: "/data/facilities/gen6.json" },
   };
-  const source = supported[generation];
+  const source = generation === 6 && gameVersion === "Omega Ruby / Alpha Sapphire" ? supported["6oras"] : supported[generation];
   if (!source || source.version !== gameVersion || source.facility !== facility) {
     throw new Error(`Authentic trainer data is not yet available for Generation ${generation} ${gameVersion} ${facility}. The simulator will not substitute saved teams or fabricate opponents.`);
   }
@@ -135,9 +137,9 @@ export async function loadFacilityOpponentPool(generation: number, gameVersion: 
       level: 50,
       nature: String(set.nature || "Serious"),
       item: String(set.item || ""),
-      moves: [set.move1, set.move2, set.move3, set.move4].filter(value => typeof value === "string" && value.trim()).map(String),
-      ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-      evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+      moves: Array.isArray(set.moves) ? set.moves.map(String) : [set.move1, set.move2, set.move3, set.move4].filter(value => typeof value === "string" && value.trim()).map(String),
+      ivs: trainer.ivs || { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+      evs: (set.evs as Record<string, number> | undefined) || { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
     }));
     opponents.push({
       id: `facility-${generation}-${trainer.name}-${opponents.length}`,

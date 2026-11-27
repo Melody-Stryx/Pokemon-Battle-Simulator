@@ -70,7 +70,21 @@ function moveScore(moveName: string, attackerName: string, defender: Foe, genera
     if (data.heal) score += 20 + (1 - ownHP) * 95;
     if (data.boosts) score += Object.values(data.boosts as Record<string, number>).reduce((sum, n) => sum + Math.max(0, n) * 18, 0);
     if (data.status || data.volatileStatus) {
-      if (data.status && defender?.status) return 0;
+      if (data.status && defender) {
+        if (defender.status) return 0;
+        const status = toID(String(data.status));
+        const types = foeTypes(defender, generation);
+        if ((status === "psn" || status === "tox") && types.some(type => type === "Poison" || type === "Steel")) return 0;
+        if (status === "brn" && types.includes("Fire")) return 0;
+        if (status === "par" && generation >= 6 && types.includes("Electric")) return 0;
+        const abilityStatusImmunities: Record<string, string[]> = {
+          immunity: ["psn", "tox"], waterveil: ["brn"], waterbubble: ["brn"],
+          limber: ["par"], insomnia: ["slp"], vitalspirit: ["slp"],
+          purifyingsalt: ["psn", "tox", "brn", "par", "slp", "frz"],
+          comatose: ["psn", "tox", "brn", "par", "slp", "frz"],
+        };
+        if ((abilityStatusImmunities[toID(defender.ability || "")] || []).includes(status)) return 0;
+      }
       score += 27;
     }
     if (data.sideCondition) {

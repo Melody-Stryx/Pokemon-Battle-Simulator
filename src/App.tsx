@@ -135,6 +135,7 @@ function newBuild(name = ""): PokemonBuild {
   return { id: uid(), name, label: "", nickname: "", level: 100, gender: "", ability: "", nature: "Hardy", item: "", moves: ["","","",""], evs: { HP:0, Atk:0, Def:0, SpA:0, SpD:0, Spe:0 }, ivs: { HP:31, Atk:31, Def:31, SpA:31, SpD:31, Spe:31 }, shiny: false, happiness: 255, teraType: "" };
 }
 function readTeams(): Team[] { try { return JSON.parse(localStorage.getItem("battle-lab-teams") || "[]"); } catch { return []; } }
+function readFolders(): string[] { try { const folders = JSON.parse(localStorage.getItem("battle-lab-team-folders") || "[]"); return Array.isArray(folders) ? folders.filter((folder): folder is string => typeof folder === "string") : []; } catch { return []; } }
 function activeBuild(slot: TeamSlot) { return slot.builds.find(b => b.id === slot.activeBuildId) || slot.builds[0]; }
 function formatBattleLine(line: string): string {
   const parts = line.split("|");
@@ -204,7 +205,7 @@ function SearchableField(props: { label: string; value: string; options: SearchO
           if (event.key === "Enter" && open && filtered.length) { event.preventDefault(); choose(filtered[0]); }
         }} />
       {open && <div className="search-field-results" role="listbox">
-        {props.filters && props.filters.length > 0 && <div className="search-filter-row">{props.filters.map(group => <label key={group.label}><span>{group.label}</span><select value={activeFilters[group.label] || ""} onChange={event => setActiveFilters(current => ({...current,[group.label]:event.target.value}))}><option value="">All</option>{group.values.map(value => <option key={value}>{value}</option>)}</select></label>)}</div>}
+        {props.filters && props.filters.length > 0 && <div className="search-filter-row">{props.filters.map(group => <div key={group.label}><span>{group.label}</span><select value={activeFilters[group.label] || ""} onChange={event => setActiveFilters(current => ({...current,[group.label]:event.target.value}))}><option value="">All</option>{group.values.map(value => <option key={value}>{value}</option>)}</select></div>)}</div>}
         {filtered.length === 0 ? <p className="search-no-results">No matching entries</p> : filtered.map(option => <button type="button" role="option" aria-selected={option.name === query} key={option.name}
           onMouseDown={event => event.preventDefault()} onClick={() => choose(option)}>
           <strong>{option.name}</strong>{option.detail && <small>{option.detail}</small>}
@@ -218,6 +219,7 @@ export default function App() {
   const [settings, setSettings] = useState<Settings>(readSettings);
   const [activePage, setActivePage] = useState<Page>("Overview");
   const [teams, setTeams] = useState<Team[]>(readTeams);
+  const [folders, setFolders] = useState<string[]>(readFolders);
   const [activeTeamId, setActiveTeamId] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState("");
   const [teamSearch, setTeamSearch] = useState("");
@@ -276,6 +278,7 @@ export default function App() {
     };
   }, [battleMusicEnabled, battleMusicUrl]);
   useEffect(() => { localStorage.setItem("battle-lab-teams", JSON.stringify(teams)); }, [teams]);
+  useEffect(() => { localStorage.setItem("battle-lab-team-folders", JSON.stringify(folders)); }, [folders]);
   useEffect(() => {
     if (!matchupRun) return;
     try {
@@ -287,7 +290,7 @@ export default function App() {
   const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => setSettings(s => normalizeSettings({ ...s, [key]: value }));
   const activeTeam = teams.find(t => t.id === activeTeamId) || teams[0];
   const selectedSlot = activeTeam?.slots.find(s => s.id === selectedSlotId) || activeTeam?.slots[0];
-  const teamFolders = useMemo(() => Array.from(new Set(teams.map(team => team.folder?.trim()).filter((folder): folder is string => Boolean(folder)))).sort((a,b) => a.localeCompare(b)), [teams]);
+  const teamFolders = useMemo(() => Array.from(new Set([...folders,...teams.map(team => team.folder?.trim()).filter((folder): folder is string => Boolean(folder))])).sort((a,b) => a.localeCompare(b)), [folders,teams]);
   const selectedBuild = selectedSlot ? activeBuild(selectedSlot) : undefined;
   const singlePokemonOptions = teams.flatMap(team => team.slots.map(slot => ({ key: team.id + ":" + slot.id, team, slot, build: activeBuild(slot) }))).filter(option => option.build?.name.trim() && option.build.moves.some(move => move.trim()));
   const selectedSinglePokemon = singlePokemonOptions.find(option => option.key === selectedSinglePokemonKey) || singlePokemonOptions[0];
@@ -505,8 +508,27 @@ export default function App() {
   const createFolder = () => {
     const name = newFolderName.trim();
     if (!name) return;
-    if (!teamFolders.some(folder => folder.toLowerCase() === name.toLowerCase())) setTeams(all => all.map(team => team));
-    setFolderFilter(name); setNewFolderName("");
+    const existing = teamFolders.find(folder => folder.toLowerCase() === name.toLowerCase());
+    const folder = existing || name;
+    if (!existing) setFolders(all => [...all, folder]);
+    setFolderFilter(folder); setNewFolderName("");
+  };
+  const renameFolder = () => {
+    const next = newFolderName.trim();
+    if (!next || !folderFilter || folderFilter === "All teams") return;
+    const duplicate = teamFolders.some(folder => folder.toLowerCase() === next.toLowerCase() && folder !== folderFilter);
+    if (duplicate) return;
+    const previous = folderFilter;
+    setFolders(all => Array.from(new Set(all.map(folder => folder === previous ? next : folder))));
+    setTeams(all => all.map(team => team.folder === previous ? {...team,folder:next,updatedAt:new Date().toISOString()} : team));
+    setFolderFilter(next); setNewFolderName("");
+  };
+  const deleteFolder = () => {
+    if (!folderFilter || folderFilter === "All teams") return;
+    const removed = folderFilter;
+    setFolders(all => all.filter(folder => folder !== removed));
+    setTeams(all => all.map(team => team.folder === removed ? {...team,folder:"",updatedAt:new Date().toISOString()} : team));
+    setFolderFilter("All teams");
   };
   const moveTeamToFolder = (teamId: string, folder: string) => patchTeam(teamId, team => ({...team, folder}));
   const deleteTeam = () => {
@@ -882,7 +904,7 @@ export default function App() {
           <div className="team-builder-layout">
             <section className="panel team-list-panel">
               <div className="panel-heading"><div><span className="eyebrow">TEAM LIBRARY</span><h3>Your teams</h3></div><button className="primary-button" onClick={createTeam}>+ New</button></div>
-              <div className="team-folder-tools"><label><span>Folder</span><select value={folderFilter} onChange={event => setFolderFilter(event.target.value)}><option>All teams</option><option value="">Unfiled</option>{teamFolders.map(folder => <option key={folder}>{folder}</option>)}</select></label><div className="new-folder-control"><input aria-label="New folder name" value={newFolderName} onChange={event => setNewFolderName(event.target.value)} onKeyDown={event => {if(event.key === "Enter") createFolder();}} placeholder="New folder name" /><button type="button" className="secondary-button" onClick={createFolder} disabled={!newFolderName.trim()}>+ Folder</button></div></div>
+              <div className="team-folder-tools"><label><span>Folder</span><select value={folderFilter} onChange={event => setFolderFilter(event.target.value)}><option>All teams</option><option value="">Unfiled</option>{teamFolders.map(folder => <option key={folder}>{folder}</option>)}</select></label><div className="new-folder-control"><input aria-label="New folder name" value={newFolderName} onChange={event => setNewFolderName(event.target.value)} onKeyDown={event => {if(event.key === "Enter") createFolder();}} placeholder="New folder name" /><button type="button" className="secondary-button" onClick={createFolder} disabled={!newFolderName.trim()}>+ Folder</button>{folderFilter !== "All teams" && folderFilter !== "" && <><button type="button" className="secondary-button" onClick={renameFolder} disabled={!newFolderName.trim()}>Rename</button><button type="button" className="danger-button" onClick={deleteFolder}>Delete folder</button></>}</div></div>
               <label className="team-library-search"><span>Search teams</span><input value={teamSearch} onChange={event => setTeamSearch(event.target.value)} placeholder="Search by team name" /></label>
               {teams.length === 0 ? <div className="empty-state"><strong>No teams yet</strong><p>Create a team to start adding Pokémon.</p></div> : <div className="team-list">{teams.filter(team => (folderFilter === "All teams" || (folderFilter === "" ? !team.folder : team.folder === folderFilter)) && team.name.toLowerCase().includes(teamSearch.trim().toLowerCase())).map(team => <div key={team.id} className="team-library-row"><button className={activeTeam?.id === team.id ? "team-list-item current" : "team-list-item"} onClick={() => { setActiveTeamId(team.id); setSelectedSlotId(team.slots[0]?.id || ""); }}><span><strong>{team.name || "Untitled team"}</strong><small>{team.slots.length}/6 Pokémon</small></span><span className="team-arrow">›</span></button><select aria-label={"Move " + team.name + " to folder"} value={team.folder || ""} onChange={event => moveTeamToFolder(team.id,event.target.value)}><option value="">Unfiled</option>{teamFolders.map(folder => <option key={folder}>{folder}</option>)}</select></div>)}</div>}
             </section>

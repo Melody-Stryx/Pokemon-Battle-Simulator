@@ -17,4 +17,5 @@ jobs:
       - run: npm install
       - run: npm run build
       - run: npm run test:battle
+      - run: npm run test:mechanics
       - run: npm run test:benchmark

@@ -177,7 +177,7 @@ export async function loadFacilityOpponentPool(generation: number, gameVersion: 
       });
       const item = raw.item ? dex.items.get(idOf(raw.item)) : null;
       if (item && !item.exists) throw new Error("Unknown Trainer Tower item macro: " + raw.item);
-      const ability = species.abilities[String(raw.abilityNum)] || species.abilities["0"];
+      const ability = Object.entries(species.abilities).find(([key]) => key === String(raw.abilityNum))?.[1] || species.abilities["0"];
       if (!ability) throw new Error("No Generation 3 ability found for " + species.name + ".");
       return {
         name: species.name, species: species.name, ability, item: item?.name || "",

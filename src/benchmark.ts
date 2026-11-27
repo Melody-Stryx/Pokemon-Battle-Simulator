@@ -97,7 +97,7 @@ export async function loadCompleteOpponentPool(format: string): Promise<{
 
 type FacilityDataset = {
   generation: number;
-  trainers: Array<{ name: string; trainerClass: string; orasName?: string; pokemon: string[]; ivs?: Record<string, number> }>;
+  trainers: Array<{ name: string; trainerClass: string; orasName?: string; number?: number; pokemon: string[]; ivs?: Record<string, number> }>;
   pokemon: Array<Record<string, unknown> & { name: string; species: string }>;
 };
 
@@ -124,8 +124,9 @@ export async function loadFacilityOpponentPool(generation: number, gameVersion: 
   const dataset = await response.json() as FacilityDataset;
   const setsByName = new Map(dataset.pokemon.map(set => [String(set.name).toLowerCase(), set]));
   const opponents: BenchmarkOpponent[] = [];
+  const eligibleTrainers = generation === 6 ? dataset.trainers.filter(trainer => (trainer.number || 0) >= 111) : dataset.trainers;
   let rejected = 0;
-  for (const trainer of dataset.trainers) {
+  for (const trainer of eligibleTrainers) {
     const pool = trainer.pokemon.map(name => setsByName.get(name.toLowerCase())).filter((set): set is FacilityDataset["pokemon"][number] => Boolean(set));
     if (pool.length < 3) { rejected++; continue; }
     // Store the trainer's real selectable Pokémon pool. A fresh legal three-Pokémon
@@ -149,7 +150,7 @@ export async function loadFacilityOpponentPool(generation: number, gameVersion: 
       teamPool: [converted],
     });
   }
-  return { opponents, sourceCount: dataset.trainers.length, rejected, sourceUrl: source.url };
+  return { opponents, sourceCount: eligibleTrainers.length, rejected, sourceUrl: source.url };
 }
 
 export async function loadMetaPokemonPool(format: string): Promise<{

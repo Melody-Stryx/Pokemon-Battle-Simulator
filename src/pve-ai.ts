@@ -216,7 +216,10 @@ export function chooseTacticalChoice(request: RequestView, log: string[], side: 
         continue;
       }
     }
-    let choice = `move ${bestMove.slot}`;
+    const moveTarget = String((bestMove.option as any).target || "");
+    const needsExplicitTarget = request.active.length > 1 && ["normal", "adjacentFoe", "any", "adjacentAlly", "adjacentAllyOrSelf"].includes(moveTarget);
+    const targetLocation = moveTarget === "adjacentAlly" || moveTarget === "adjacentAllyOrSelf" ? (i === 0 ? -2 : -1) : 1;
+    let choice = `move ${bestMove.slot}${needsExplicitTarget ? ` ${targetLocation}` : ""}`;
     if (active.canMegaEvo) choice += " mega";
     else if (active.canDynamax && (hpRatio(own) < 0.65 || bestMove.score >= 100)) choice += " dynamax";
     else if (active.canTerastallize && foe && bestMove.score >= 95) choice += " terastallize";

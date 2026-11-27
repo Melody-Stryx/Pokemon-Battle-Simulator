@@ -14,8 +14,8 @@ An independent, responsive Pokémon team-building and battle-testing workspace b
 - Legality analysis using Pokémon Showdown's team validator, including Generation 7 Battle Tree Super Singles roster restrictions.
 - Battle execution using `@pkmn/sim`, with generation-specific ability, type, status, weather, residual-damage and entry-hazard mechanics handled by the battle engine.
 - Ability compatibility warnings when a selected ability is unavailable to that species in the chosen generation.
-- Exhaustive PvP benchmark against every distinct, complete, currently valid team in the published sample-team archive for the selected generation and tier, with 100 randomized baseline battles per team.
-- Auto mode with random legal-choice control and Manual mode with move/switch selection.
+- Exhaustive PvP benchmark against every distinct, complete, currently valid team in the published sample-team archive for the selected generation and tier, with 100 battles per team.
+- Auto mode with tactical singles decisions and Showdown-managed doubles choices; Manual mode with move/switch selection.
 - Switch between Auto and Manual during a battle without restarting it.
 - Battle event log and battle-engine smoke test in CI.
 - Responsive PWA foundation.
@@ -51,11 +51,11 @@ GitHub Actions runs the production build, battle-engine smoke test, ability/stat
 - The archive is a curated sample-team collection, not an exhaustive record of all ladder teams. The UI reports source record count, accepted distinct teams and rejected records.
 - Replay logs and usage statistics are not silently converted into complete teams: they may omit unrevealed Pokémon or set details. Such partial evidence is not counted as a tested team.
 - PvE facility pools are game-version-specific and are connected to live battles and the exhaustive benchmark. Supported sources include Ruby/Sapphire Battle Tower, Emerald Battle Frontier, FireRed/LeafGreen Trainer Tower, the Generation IV Battle Tower/Frontier, Generation V Battle Subway, Generation VI Battle Maison, Generation VII Battle Tree, Generation VIII Battle Tower, and the Generation IX Academy Ace Tournament.
-- 100 battles are run per published team. Both sides use the rules-based TacticalPlayerAI described below; results are useful for comparing teams against a consistent heuristic, not as a substitute for human play or a tournament-grade competitive AI.
+- 100 battles are run per published team. Singles use the rules-based TacticalPlayerAI; doubles use Showdown's built-in legal-choice AI. Results are useful for comparing teams against these consistent automated opponents, not as a substitute for human play or a tournament-grade competitive AI.
 
 ### Tactical battle AI
 
-Automatic singles battles and exhaustive benchmarks use a rules-based tactical AI instead of random move selection. Multi-active doubles battles use Showdown's built-in legal-choice AI. It evaluates move power, accuracy, STAB, type effectiveness, approximate offensive stats, useful status and setup effects, recovery, and matchup-aware switching. It also ranks the team preview order. The AI only uses its own team data and information visible in its battle log.
+Automatic singles battles and singles benchmarks use a rules-based tactical AI instead of random move selection. Multi-active doubles battles and benchmarks use Showdown's built-in legal-choice AI. It evaluates move power, accuracy, STAB, type effectiveness, approximate offensive stats, useful status and setup effects, recovery, and matchup-aware switching. It also ranks the team preview order. The AI only uses its own team data and information visible in its battle log.
 
 The singles AI accounts for revealed ability immunities, status already present, and existing hazard layers, but remains heuristic rather than an expert competitive player. The battle engine, not the AI, resolves abilities, type interactions, entry hazards, weather, status and residual damage. Matchup win rates are results against this specific AI, not guaranteed human-versus-human outcomes.
 

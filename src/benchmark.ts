@@ -2,6 +2,13 @@ import { Dex } from "@pkmn/dex";
 import { BattleStreams, TeamValidator, Teams } from "@pkmn/sim";
 import { TacticalPlayerAI } from "./pve-ai";
 
+export type BenchmarkSkipDiagnostic = {
+  name: string;
+  author?: string;
+  category: "Invalid structure" | "Duplicate" | "Illegal for format" | "Validator failure";
+  reasons: string[];
+};
+
 export type BenchmarkOpponent = {
   id: string;
   name: string;
@@ -89,6 +96,7 @@ export async function loadCompleteOpponentPool(format: string): Promise<{
   opponents: BenchmarkOpponent[];
   sourceCount: number;
   rejected: number;
+  skippedTeams: BenchmarkSkipDiagnostic[];
   sourceUrl: string;
 }> {
   const base = "https://pkmn.github.io/smogon/data/teams";
@@ -100,28 +108,47 @@ export async function loadCompleteOpponentPool(format: string): Promise<{
   if (!response.ok) throw new Error(`Could not load ${format} team archive (HTTP ${response.status}).`);
   const samples = await response.json() as SampleTeam[];
   const validator = TeamValidator.get(format);
-  const seen = new Set<string>();
+  const seen = new Map<string, string>();
   const opponents: BenchmarkOpponent[] = [];
-  let rejected = 0;
-  for (const sample of samples) {
-    if (!Array.isArray(sample.data) || sample.data.length !== 6) { rejected++; continue; }
-    const key = canonicalSet(sample.data);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    try {
-      if ((validator.validateTeam(sample.data as any) || []).length) { rejected++; continue; }
-    } catch {
-      rejected++;
+  const skippedTeams: BenchmarkSkipDiagnostic[] = [];
+  for (let index = 0; index < samples.length; index++) {
+    const sample = samples[index];
+    const name = sample.name?.trim() || `Unnamed ${format.toUpperCase()} team #${index + 1}`;
+    if (!Array.isArray(sample.data) || sample.data.length !== 6) {
+      skippedTeams.push({ name, author: sample.author, category: "Invalid structure", reasons: [`Expected exactly 6 Pokémon sets; received ${Array.isArray(sample.data) ? sample.data.length : "no valid team data"}.`] });
       continue;
     }
-    opponents.push({
-      id: key,
-      name: sample.name?.trim() || `Published ${format.toUpperCase()} team ${opponents.length + 1}`,
-      author: sample.author,
-      sets: sample.data,
-    });
+    const key = canonicalSet(sample.data);
+    const duplicateOf = seen.get(key);
+    if (duplicateOf) {
+      skippedTeams.push({ name, author: sample.author, category: "Duplicate", reasons: [`Identical team data was already included as "${duplicateOf}".`] });
+      continue;
+    }
+    seen.set(key, name);
+    try {
+      const problems = validator.validateTeam(sample.data as any) || [];
+      if (problems.length) {
+        skippedTeams.push({ name, author: sample.author, category: "Illegal for format", reasons: problems });
+        continue;
+      }
+    } catch (error) {
+      skippedTeams.push({
+        name,
+        author: sample.author,
+        category: "Validator failure",
+        reasons: [error instanceof Error ? error.message : String(error)],
+      });
+      continue;
+    }
+    opponents.push({ id: key, name, author: sample.author, sets: sample.data });
   }
-  return { opponents, sourceCount: samples.length, rejected, sourceUrl: `${base}/${format}.json` };
+  return {
+    opponents,
+    sourceCount: samples.length,
+    rejected: skippedTeams.length,
+    skippedTeams,
+    sourceUrl: `${base}/${format}.json`,
+  };
 }
 
 type FacilityDataset = {

@@ -12,7 +12,7 @@ type Page = "Overview" | "Team Builder" | "Legality analysis" | "Simulator" | "M
 const generations = Array.from({ length: 9 }, (_, i) => i + 1);
 const tiers = ["Anything Goes", "Ubers", "OU", "UU", "RU", "NU", "PU", "ZU", "Little Cup", "Battle Spot Singles", "VGC", "Custom"];
 const facilityOptionsByGame: Record<number, Record<string, string[]>> = {
-  3: { "Ruby / Sapphire": ["Battle Tower"], "Emerald": ["Battle Frontier"], "FireRed / LeafGreen": ["Trainer Tower"] },
+  3: { "Ruby / Sapphire": ["Battle Tower"], "Emerald": ["Battle Frontier"] },
   4: { "Diamond / Pearl": ["Battle Tower"], "Platinum": ["Battle Frontier"], "HeartGold / SoulSilver": ["Battle Frontier"] },
   5: { "Black / White": ["Battle Subway"], "Black 2 / White 2": ["Battle Subway"] },
   6: { "X / Y": ["Battle Maison"], "Omega Ruby / Alpha Sapphire": ["Battle Maison"] },

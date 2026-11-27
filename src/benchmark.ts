@@ -125,6 +125,10 @@ export async function loadCompleteOpponentPool(format: string): Promise<{
   if (!response.ok) throw new Error(`Could not load ${format} team archive (HTTP ${response.status}).`);
   const samples = await response.json() as SampleTeam[];
   const validator = TeamValidator.get(format);
+  // Published competitive sample teams are main-series game sets. Do not let
+  // Showdown's optional Pokémon GO origin fallback legalize otherwise
+  // unobtainable sets; standard game-origin IV/source rules still apply.
+  validator.validatePokemonGo = () => null;
   const seen = new Map<string, string>();
   const opponents: BenchmarkOpponent[] = [];
   const skippedTeams: BenchmarkSkipDiagnostic[] = [];

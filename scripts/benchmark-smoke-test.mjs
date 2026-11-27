@@ -148,6 +148,17 @@ const abilityAwareChoice = chooseTacticalChoice(
 );
 if (abilityAwareChoice !== "move 2") throw new Error("Tactical AI ignored the revealed Levitate ability and selected Earthquake.");
 
+const inferredAbilityChoice = chooseTacticalChoice(
+  {
+    side: { pokemon: [{ details: "Nidoking, L100", condition: "303/303", active: true, stats: { atk: 260, spa: 240, spe: 200 }, moves: ["Earthquake", "Ice Beam"] }] },
+    active: [{ moves: [{ move: "Earthquake", disabled: false }, { move: "Ice Beam", disabled: false }] }],
+  },
+  ["|switch|p2a: Gengar|Gengar, L100|261/261"],
+  "p1",
+  3,
+);
+if (inferredAbilityChoice !== "move 2") throw new Error("Tactical AI failed to infer Gengar's only Generation 3 ability, Levitate.");
+
 const hazardAwareRequest = {
   side: { pokemon: [{ details: "Skarmory, L100", condition: "334/334", active: true, stats: { atk: 196, spa: 176, spe: 196 }, moves: ["Spikes", "Toxic Spikes"] }] },
   active: [{ moves: [{ move: "Spikes", disabled: false }, { move: "Toxic Spikes", disabled: false }] }],

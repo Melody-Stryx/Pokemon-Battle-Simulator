@@ -53,7 +53,7 @@ type PokemonBuild = {
   moves: string[]; evs: Record<string, number>; ivs: Record<string, number>; shiny: boolean; happiness: number; teraType: string;
 };
 type TeamSlot = { id: string; builds: PokemonBuild[]; activeBuildId: string };
-type Team = { id: string; name: string; slots: TeamSlot[]; updatedAt: string };
+type Team = { id: string; name: string; folder?: string; slots: TeamSlot[]; updatedAt: string };
 type BattleRequest = { active?: Array<{ moves: Array<{ move: string; id?: string; disabled?: boolean; pp?: number; maxpp?: number }> }>; side?: { pokemon: Array<{ ident: string; details: string; condition: string; active?: boolean }> }; forceSwitch?: boolean[]; teamPreview?: boolean; maxTeamSize?: number; wait?: boolean };
 type BattleController = { streams: any; stopped: boolean };
 type OnlineOpponent = { name: string; author?: string; format: string; source: string; sets: Record<string, unknown>[] };
@@ -179,12 +179,19 @@ function submitBattleChoiceFromController(controller: BattleController, choice: 
 
 
 
-type SearchOption = { name: string; detail?: string };
-function SearchableField(props: { label: string; value: string; options: SearchOption[]; placeholder: string; onChange: (value: string) => void }) {
+type SearchOption = { name: string; detail?: string; tags?: string[] };
+type SearchFilterGroup = { label: string; values: string[] };
+function SearchableField(props: { label: string; value: string; options: SearchOption[]; placeholder: string; onChange: (value: string) => void; filters?: SearchFilterGroup[] }) {
   const [query, setQuery] = useState(props.value);
   const [open, setOpen] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
   useEffect(() => setQuery(props.value), [props.value]);
-  const filtered = props.options.filter(option => option.name.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 9);
+  const filtered = props.options.filter(option => {
+    const search = query.trim().toLowerCase();
+    const matchesText = !search || [option.name, option.detail || "", ...(option.tags || [])].join(" ").toLowerCase().includes(search);
+    const matchesFilters = (props.filters || []).every(group => !activeFilters[group.label] || (option.tags || []).includes(activeFilters[group.label]));
+    return matchesText && matchesFilters;
+  }).slice(0, 30);
   const choose = (option: SearchOption) => { setQuery(option.name); props.onChange(option.name); setOpen(false); };
   return <label className="field search-field">
     <span>{props.label}</span>
@@ -196,8 +203,9 @@ function SearchableField(props: { label: string; value: string; options: SearchO
           if (event.key === "Escape") setOpen(false);
           if (event.key === "Enter" && open && filtered.length) { event.preventDefault(); choose(filtered[0]); }
         }} />
-      {open && filtered.length > 0 && <div className="search-field-results" role="listbox">
-        {filtered.map(option => <button type="button" role="option" aria-selected={option.name === query} key={option.name}
+      {open && <div className="search-field-results" role="listbox">
+        {props.filters && props.filters.length > 0 && <div className="search-filter-row">{props.filters.map(group => <label key={group.label}><span>{group.label}</span><select value={activeFilters[group.label] || ""} onChange={event => setActiveFilters(current => ({...current,[group.label]:event.target.value}))}><option value="">All</option>{group.values.map(value => <option key={value}>{value}</option>)}</select></label>)}</div>}
+        {filtered.length === 0 ? <p className="search-no-results">No matching entries</p> : filtered.map(option => <button type="button" role="option" aria-selected={option.name === query} key={option.name}
           onMouseDown={event => event.preventDefault()} onClick={() => choose(option)}>
           <strong>{option.name}</strong>{option.detail && <small>{option.detail}</small>}
         </button>)}
@@ -213,6 +221,8 @@ export default function App() {
   const [activeTeamId, setActiveTeamId] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState("");
   const [teamSearch, setTeamSearch] = useState("");
+  const [folderFilter, setFolderFilter] = useState("All teams");
+  const [newFolderName, setNewFolderName] = useState("");
   const [battlePlayerTeamId, setBattlePlayerTeamId] = useState("");
   const [battleOpponentTeamId, setBattleOpponentTeamId] = useState("");
   const [onlineOpponent, setOnlineOpponent] = useState<OnlineOpponent | null>(null);
@@ -277,6 +287,7 @@ export default function App() {
   const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => setSettings(s => normalizeSettings({ ...s, [key]: value }));
   const activeTeam = teams.find(t => t.id === activeTeamId) || teams[0];
   const selectedSlot = activeTeam?.slots.find(s => s.id === selectedSlotId) || activeTeam?.slots[0];
+  const teamFolders = useMemo(() => Array.from(new Set(teams.map(team => team.folder?.trim()).filter((folder): folder is string => Boolean(folder)))).sort((a,b) => a.localeCompare(b)), [teams]);
   const selectedBuild = selectedSlot ? activeBuild(selectedSlot) : undefined;
   const singlePokemonOptions = teams.flatMap(team => team.slots.map(slot => ({ key: team.id + ":" + slot.id, team, slot, build: activeBuild(slot) }))).filter(option => option.build?.name.trim() && option.build.moves.some(move => move.trim()));
   const selectedSinglePokemon = singlePokemonOptions.find(option => option.key === selectedSinglePokemonKey) || singlePokemonOptions[0];
@@ -441,14 +452,17 @@ export default function App() {
     }
   }, [activeTeam, settings.generation, settings.battleType, settings.tier]);
   const speciesAbilities = selectedSpecies ? Object.values(selectedSpecies.abilities).filter(Boolean) : [];
-  const speciesSearchOptions = speciesOptions.map(p => ({ name: p.name, detail: p.types.join(" / ") + " · BST " + Object.values(p.baseStats).reduce((sum, value) => sum + value, 0) }));
-  const moveSearchOptions = moveOptions.map(move => ({ name: move.name, detail: [move.type, move.category, move.basePower ? move.basePower + " BP" : "", (move as any).shortDesc || ""].filter(Boolean).join(" · ") }));
+  const speciesSearchOptions = speciesOptions.map(p => ({ name: p.name, detail: p.types.join(" / ") + " · BST " + Object.values(p.baseStats).reduce((sum, value) => sum + value, 0), tags: p.types }));
+  const speciesTypeFilter: SearchFilterGroup[] = [{label:"Type",values:Array.from(new Set(speciesOptions.flatMap(p => p.types))).sort()}];
+  const moveTypeFilter: SearchFilterGroup[] = [{label:"Type",values:Array.from(new Set(moveOptions.map(move => move.type))).sort()},{label:"Category",values:Array.from(new Set(moveOptions.map(move => move.category))).sort()}];
+  const itemCategoryFilter: SearchFilterGroup[] = [{label:"Category",values:Array.from(new Set(itemOptions.map(item => String((item as any).category || "Other")))).sort()}];
+  const moveSearchOptions = moveOptions.map(move => ({ name: move.name, detail: [move.type, move.category, move.basePower ? move.basePower + " BP" : "", (move as any).shortDesc || ""].filter(Boolean).join(" · "), tags:[move.type,move.category] }));
   const abilitySearchOptions = abilityOptions.map(ability => ({ name: ability.name, detail: String((ability as any).shortDesc || (ability as any).desc || "") }));
-  const itemSearchOptions = itemOptions.map(item => ({ name: item.name, detail: String((item as any).shortDesc || (item as any).desc || "") }));
+  const itemSearchOptions = itemOptions.map(item => ({ name: item.name, detail: [String((item as any).category || ""),String((item as any).shortDesc || (item as any).desc || "")].filter(Boolean).join(" · "), tags:[String((item as any).category || "Other")] }));
 
   const patchTeam = (teamId: string, updater: (team: Team) => Team) => setTeams(all => all.map(t => t.id === teamId ? { ...updater(t), updatedAt: new Date().toISOString() } : t));
   const createTeam = () => {
-    const team: Team = { id: uid(), name: "New Team", slots: [], updatedAt: new Date().toISOString() };
+    const team: Team = { id: uid(), name: "New Team", folder: folderFilter === "All teams" ? "" : folderFilter, slots: [], updatedAt: new Date().toISOString() };
     setTeams(all => [...all, team]); setActiveTeamId(team.id); setSelectedSlotId("");
   };
   const addPokemon = () => {
@@ -488,6 +502,13 @@ export default function App() {
     if (selectedSlotId === slotId) setSelectedSlotId("");
   };
   const renameTeam = (name: string) => { if (activeTeam) patchTeam(activeTeam.id, t => ({ ...t, name })); };
+  const createFolder = () => {
+    const name = newFolderName.trim();
+    if (!name) return;
+    if (!teamFolders.some(folder => folder.toLowerCase() === name.toLowerCase())) setTeams(all => all.map(team => team));
+    setFolderFilter(name); setNewFolderName("");
+  };
+  const moveTeamToFolder = (teamId: string, folder: string) => patchTeam(teamId, team => ({...team, folder}));
   const deleteTeam = () => {
     if (!activeTeam || !window.confirm("Delete this team and all its builds?")) return;
     const remaining = teams.filter(t => t.id !== activeTeam.id);
@@ -861,8 +882,9 @@ export default function App() {
           <div className="team-builder-layout">
             <section className="panel team-list-panel">
               <div className="panel-heading"><div><span className="eyebrow">TEAM LIBRARY</span><h3>Your teams</h3></div><button className="primary-button" onClick={createTeam}>+ New</button></div>
+              <div className="team-folder-tools"><label><span>Folder</span><select value={folderFilter} onChange={event => setFolderFilter(event.target.value)}><option>All teams</option><option value="">Unfiled</option>{teamFolders.map(folder => <option key={folder}>{folder}</option>)}</select></label><div className="new-folder-control"><input aria-label="New folder name" value={newFolderName} onChange={event => setNewFolderName(event.target.value)} onKeyDown={event => {if(event.key === "Enter") createFolder();}} placeholder="New folder name" /><button type="button" className="secondary-button" onClick={createFolder} disabled={!newFolderName.trim()}>+ Folder</button></div></div>
               <label className="team-library-search"><span>Search teams</span><input value={teamSearch} onChange={event => setTeamSearch(event.target.value)} placeholder="Search by team name" /></label>
-              {teams.length === 0 ? <div className="empty-state"><strong>No teams yet</strong><p>Create a team to start adding Pokémon.</p></div> : <div className="team-list">{teams.filter(team => team.name.toLowerCase().includes(teamSearch.trim().toLowerCase())).map(team => <button key={team.id} className={activeTeam?.id === team.id ? "team-list-item current" : "team-list-item"} onClick={() => { setActiveTeamId(team.id); setSelectedSlotId(team.slots[0]?.id || ""); }}><span><strong>{team.name || "Untitled team"}</strong><small>{team.slots.length}/6 Pokémon</small></span><span className="team-arrow">›</span></button>)}</div>}
+              {teams.length === 0 ? <div className="empty-state"><strong>No teams yet</strong><p>Create a team to start adding Pokémon.</p></div> : <div className="team-list">{teams.filter(team => (folderFilter === "All teams" || (folderFilter === "" ? !team.folder : team.folder === folderFilter)) && team.name.toLowerCase().includes(teamSearch.trim().toLowerCase())).map(team => <div key={team.id} className="team-library-row"><button className={activeTeam?.id === team.id ? "team-list-item current" : "team-list-item"} onClick={() => { setActiveTeamId(team.id); setSelectedSlotId(team.slots[0]?.id || ""); }}><span><strong>{team.name || "Untitled team"}</strong><small>{team.slots.length}/6 Pokémon</small></span><span className="team-arrow">›</span></button><select aria-label={"Move " + team.name + " to folder"} value={team.folder || ""} onChange={event => moveTeamToFolder(team.id,event.target.value)}><option value="">Unfiled</option>{teamFolders.map(folder => <option key={folder}>{folder}</option>)}</select></div>)}</div>}
             </section>
             <section className="panel team-editor-panel">
               {!activeTeam ? <div className="empty-state"><strong>Select or create a team</strong><p>Your team editor will appear here.</p></div> : <>
@@ -914,20 +936,20 @@ export default function App() {
                     <div className="species-abilities"><small>Species abilities</small>{speciesAbilities.map(ability => <span key={ability}>{ability}</span>)}</div>
                   </div> : selectedBuild.name.trim() ? <div className="species-summary species-unmatched">No exact species match in Generation {settings.generation}. You can keep custom text for experimental sets.</div> : null}
                   <div className="pokemon-fields">
-                    <SearchableField label="Pokémon species" value={selectedBuild.name} options={speciesSearchOptions} placeholder="Search species or type…" onChange={name => { const match=speciesOptions.find(p => p.name.toLowerCase() === name.toLowerCase()); patchBuild({name,gender:match?.gender === "N" || match?.gender === "M" || match?.gender === "F" ? match.gender : ""}); }} />
+                    <SearchableField label="Pokémon species" value={selectedBuild.name} options={speciesSearchOptions} filters={speciesTypeFilter} placeholder="Search by name or filter by type…" onChange={name => { const match=speciesOptions.find(p => p.name.toLowerCase() === name.toLowerCase()); patchBuild({name,gender:match?.gender === "N" || match?.gender === "M" || match?.gender === "F" ? match.gender : ""}); }} />
                     <label className="field"><span>Nickname</span><input value={selectedBuild.nickname} placeholder="Optional" onChange={e => patchBuild({nickname:e.target.value})} /></label>
                     <label className="field"><span>Level</span><input type="number" min="1" max="100" value={selectedBuild.level} onChange={e => patchBuild({level:Math.max(1,Math.min(100,Number(e.target.value)||1))})} /></label>
                     <label className="field"><span>Gender</span><select value={selectedSpecies?.gender === "N" ? "N" : selectedSpecies?.gender === "M" || selectedSpecies?.gender === "F" ? selectedSpecies.gender : selectedBuild.gender} disabled={selectedSpecies?.gender === "N" || selectedSpecies?.gender === "M" || selectedSpecies?.gender === "F"} onChange={e => patchBuild({gender:e.target.value})}><option value="">Auto / unspecified</option><option value="M">Male</option><option value="F">Female</option><option value="N">Genderless</option></select></label>
                     <div className="field-search-wrap"><SearchableField label="Ability" value={selectedBuild.ability} options={selectedSpecies ? speciesAbilities.map(name => { const ability = generationDex.abilities.get(name); return {name, detail:String((ability as any).shortDesc || (ability as any).desc || "")}; }) : abilitySearchOptions} placeholder="Search available abilities…" onChange={value => patchBuild({ability:value})} />{selectedBuild.ability.trim() && selectedSpecies && !speciesAbilities.some(ability => ability.toLowerCase().replace(/[^a-z0-9]/g,"") === selectedBuild.ability.toLowerCase().replace(/[^a-z0-9]/g,"")) && <small className="hint">Unavailable to {selectedSpecies.name} in Generation {settings.generation}; it will not activate.</small>}</div>
                     <label className="field"><span>Nature</span><select value={selectedBuild.nature} onChange={e => patchBuild({nature:e.target.value})}>{natures.map(n => <option key={n}>{n}</option>)}</select></label>
-                    <SearchableField label="Held item" value={selectedBuild.item} options={itemSearchOptions} placeholder="Search items…" onChange={value => patchBuild({item:value})} />
+                    <SearchableField label="Held item" value={selectedBuild.item} options={itemSearchOptions} filters={itemCategoryFilter} placeholder="Search items or filter category…" onChange={value => patchBuild({item:value})} />
                     <label className="field"><span>Happiness</span><input type="number" min="0" max="255" value={selectedBuild.happiness} onChange={e => patchBuild({happiness:Math.max(0,Math.min(255,Number(e.target.value)||0))})} /></label>
                     <label className="field"><span>Shiny</span><select value={selectedBuild.shiny ? "yes" : "no"} onChange={e => patchBuild({shiny:e.target.value === "yes"})}><option value="no">No</option><option value="yes">Yes</option></select></label>
                     {settings.generation >= 9 && <label className="field"><span>Tera type</span><select value={selectedBuild.teraType} onChange={e => patchBuild({teraType:e.target.value})}><option value="">Default</option>{["Normal","Fire","Water","Electric","Grass","Ice","Fighting","Poison","Ground","Flying","Psychic","Bug","Rock","Ghost","Dragon","Dark","Steel","Fairy","Stellar"].map(type => <option key={type}>{type}</option>)}</select></label>}
                     
                   </div>
                   {selectedSpecies && <div className="editor-section final-stats-section"><div className="editor-section-title">Final stats <small>Level {selectedBuild.level} · {selectedBuild.nature} · Calculated stats before in-battle modifiers</small></div><div className="base-stat-row">{statNames.map((label, index) => { const stat = (["hp","atk","def","spa","spd","spe"] as const)[index]; const baseValue = calculateFinalStat(selectedSpecies.baseStats[stat], selectedBuild.ivs[label], selectedBuild.evs[label], selectedBuild.level, stat, selectedBuild.nature); const value = baseValue; return <div key={stat}><small>{label}</small><strong>{value}</strong></div>; })}<div className="bst-total"><small>Total</small><strong>{statNames.reduce((sum, label, index) => { const stat = (["hp","atk","def","spa","spd","spe"] as const)[index]; const baseValue = calculateFinalStat(selectedSpecies.baseStats[stat], selectedBuild.ivs[label], selectedBuild.evs[label], selectedBuild.level, stat, selectedBuild.nature); return sum + baseValue; }, 0)}</strong></div></div>{["wise glasses", "muscle band"].includes(selectedBuild.item.toLowerCase()) && <p className="stat-total">Damage modifiers: {selectedBuild.item.toLowerCase() === "wise glasses" ? "Wise Glasses: special-move damage ×1.1." : "Muscle Band: physical-move damage ×1.1."} These boost move damage, not the displayed offensive stat.</p>}</div>}
-                  <div className="editor-section"><div className="editor-section-title">Moves <small>{moveOptions.length} moves in Gen {settings.generation} data</small></div><div className="move-grid">{selectedBuild.moves.map((move,i) => <SearchableField key={i} label={"Move " + (i+1)} value={move} options={moveSearchOptions} placeholder="Search moves or type…" onChange={value => { const moves = selectedBuild.moves.map((m,j) => j===i ? value : m); const hiddenPowerType = settings.generation >= 3 && settings.generation <= 7 ? hiddenPowerTypeFromMove(value) : undefined; patchBuild({moves, ...(hiddenPowerType ? {ivs:ivsForHiddenPowerType(hiddenPowerType, selectedBuild.ivs)} : {})}); }} />)}</div></div>
+                  <div className="editor-section"><div className="editor-section-title">Moves <small>{moveOptions.length} moves in Gen {settings.generation} data</small></div><div className="move-grid">{selectedBuild.moves.map((move,i) => <SearchableField key={i} label={"Move " + (i+1)} value={move} options={moveSearchOptions} filters={moveTypeFilter} placeholder="Search moves or filter type/category…" onChange={value => { const moves = selectedBuild.moves.map((m,j) => j===i ? value : m); const hiddenPowerType = settings.generation >= 3 && settings.generation <= 7 ? hiddenPowerTypeFromMove(value) : undefined; patchBuild({moves, ...(hiddenPowerType ? {ivs:ivsForHiddenPowerType(hiddenPowerType, selectedBuild.ivs)} : {})}); }} />)}</div></div>
                   <div className="editor-section"><div className="editor-section-title">Effort values (EVs) <small>510 total maximum</small></div><div className="stat-grid">{statNames.map(stat => <label className="field" key={stat}><span>{stat}</span><div className="stat-input-pair"><input className="stat-range" aria-label={`${stat} EV slider`} type="range" min="0" max="252" step="1" value={selectedBuild.evs[stat]} onChange={e => patchBuild({evs:{...selectedBuild.evs,[stat]:Number(e.target.value)}})} /><input className="stat-number" aria-label={`${stat} EV`} type="number" min="0" max="252" value={selectedBuild.evs[stat]} onChange={e => patchBuild({evs:{...selectedBuild.evs,[stat]:Math.max(0,Math.min(252,Number(e.target.value)||0))}})} /></div></label>)}</div><p className="stat-total">Total EVs: {Object.values(selectedBuild.evs).reduce((a,b)=>a+b,0)} / 510</p></div>
                   <div className="editor-section"><div className="editor-section-title">Individual values (IVs) <small>Hidden Power helper available in Generations 3-7</small></div>{settings.generation >= 3 && settings.generation <= 7 && <label className="field hidden-power-field"><span>Hidden Power type · auto-set IVs</span><select value={hiddenPowerTypeFromIvs(selectedBuild.ivs)} onChange={e => patchBuild({ivs:ivsForHiddenPowerType(e.target.value, selectedBuild.ivs)})}>{hiddenPowerTypes.map(type => <option key={type} value={type}>{type}</option>)}</select><small>Chooses the closest IV combination that produces the selected type, preserving your current IVs where possible.</small></label>}<div className="stat-grid">{statNames.map(stat => <label className="field" key={stat}><span>{stat}</span><div className="stat-input-pair"><input className="stat-range" aria-label={`${stat} IV slider`} type="range" min="0" max="31" step="1" value={selectedBuild.ivs[stat]} onChange={e => patchBuild({ivs:{...selectedBuild.ivs,[stat]:Number(e.target.value)}})} /><input className="stat-number" aria-label={`${stat} IV`} type="number" min="0" max="31" value={selectedBuild.ivs[stat]} onChange={e => patchBuild({ivs:{...selectedBuild.ivs,[stat]:Math.max(0,Math.min(31,Number(e.target.value)||0))}})} /></div></label>)}</div></div>
                   <label className="field build-label-field"><span>Build label</span><input value={selectedBuild.label} placeholder="e.g. Choice Scarf, Defensive, Setup" onChange={e => patchBuild({label:e.target.value})} /></label>

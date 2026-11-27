@@ -28,14 +28,21 @@ function effectiveness(attackType: string, defendingTypes: string[], generation:
   return result;
 }
 type Foe = { species: string; teraType?: string; ability?: string; status?: string; sideConditions?: Record<string, number>; hp: number } | null;
-function getFoe(log: string[], ownSide: SideID): Foe {
+function getFoe(log: string[], ownSide: SideID, generationForAbilityInference: number): Foe {
   const foeSide = ownSide === "p1" ? "p2" : "p1";
   let foe: Foe = null;
   const foeSideConditions: Record<string, number> = {};
   for (const line of log) {
     const p = line.split("|");
     if (["switch", "drag", "replace"].includes(p[1]) && p[2]?.startsWith(foeSide)) {
-      foe = { species: speciesName({ details: p[3], ident: p[2] }), hp: hpRatio({ condition: p[4] }), sideConditions: foeSideConditions };
+      const foeSpecies = species(speciesName({ details: p[3], ident: p[2] }), generationForAbilityInference);
+      const abilityOptions = foeSpecies?.abilities ? [...new Set(Object.values(foeSpecies.abilities).filter(Boolean))] : [];
+      foe = {
+        species: speciesName({ details: p[3], ident: p[2] }),
+        hp: hpRatio({ condition: p[4] }),
+        sideConditions: foeSideConditions,
+        ability: abilityOptions.length === 1 ? abilityOptions[0] : undefined,
+      };
     } else if (p[1] === "detailschange" && p[2]?.startsWith(foeSide) && foe) {
       foe.species = speciesName({ details: p[3] });
     } else if (p[1] === "-terastallize" && p[2]?.startsWith(foeSide) && foe) {
@@ -170,7 +177,7 @@ export function chooseTacticalChoice(request: RequestView, log: string[], side: 
   const team = request.side?.pokemon || [];
   if (request.wait) return "pass";
   if (request.teamPreview) return `team ${previewOrder(team, log, side, generation).slice(0, request.maxTeamSize || team.length)}`;
-  const foe = getFoe(log, side);
+  const foe = getFoe(log, side, generation);
   if (request.forceSwitch?.length) {
     const used: number[] = [];
     return request.forceSwitch.map(mustSwitch => {

@@ -8,7 +8,8 @@
     "build": "tsc --noEmit -p tsconfig.app.json && vite build",
     "preview": "vite preview",
     "test:battle": "node scripts/battle-smoke-test.mjs",
-    "test:benchmark": "node scripts/benchmark-smoke-test.mjs"
+    "test:benchmark": "node scripts/benchmark-smoke-test.mjs",
+    "test:mechanics": "node scripts/mechanics-smoke-test.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",

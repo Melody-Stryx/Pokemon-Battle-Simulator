@@ -143,7 +143,16 @@ const statusAwareChoice = chooseTacticalChoice(
   9,
 );
 if (statusAwareChoice !== "move 2") throw new Error("Tactical AI tried to inflict a second major status condition on an already-poisoned target.");
-console.log("Tactical AI mechanic-awareness tests passed: Levitate, hazard layer limits and existing status conditions.");
+
+const typeImmuneStatusChoice = chooseTacticalChoice(
+  statusAwareRequest,
+  ["|switch|p2a: Heatran|Heatran, L100|386/386"],
+  "p1",
+  9,
+);
+if (typeImmuneStatusChoice !== "move 2") throw new Error("Tactical AI selected Toxic against a Steel-type target.");
+
+console.log("Tactical AI mechanic-awareness tests passed: Levitate, hazard layers, status duplication and type immunity.");
 
 console.log("Tactical AI decision tests passed: super-effective move selection and matchup-aware switching.");
 

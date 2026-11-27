@@ -568,7 +568,7 @@ export default function App() {
         benchmarkMode, ...coverage,
       };
       const result = await runExhaustiveBenchmark({
-        format, playerSets, opponents, repetitions: 100, shouldCancel: () => benchmarkCancel.current,
+        format, playerSets, opponents, repetitions: 100, playerSelectionSize: settings.battleType === "PvE" ? 3 : undefined, shouldCancel: () => benchmarkCancel.current,
         onProgress: progress => { setBenchmarkProgress(progress); setMatchupRun({ ...meta, ...progress }); },
       });
       setBenchmarkProgress(result); setMatchupRun({ ...meta, ...result });

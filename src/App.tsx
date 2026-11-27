@@ -870,7 +870,7 @@ export default function App() {
           </section>
         </>}
         {activePage === "Simulator" && <>
-          <section className="intro"><div><div className="eyebrow">BATTLE ENGINE</div><h2>Run the simulator.</h2><p>Execute a Generation {settings.generation} battle using the selected game rules and a saved opponent team.</p></div></section>
+          <section className="intro"><div><div className="eyebrow">BATTLE ENGINE</div><h2>Run the simulator.</h2><p>Execute a Generation {settings.generation} battle using the selected game rules and {settings.battleType === "PvE" ? "the selected facility's in-game trainer data." : "a saved or published opponent team."}</p></div></section>
           <section className="panel battle-setup-panel">
             <div className="panel-heading"><div><span className="eyebrow">BATTLE SETUP</span><h3>Choose teams</h3></div><span className="build-version">{settings.mode} mode</span></div>
             <div className="field-grid simulator-rules-grid">

@@ -183,7 +183,19 @@ if (typeImmuneStatusChoice !== "move 2") throw new Error("Tactical AI selected T
 
 console.log("Tactical AI mechanic-awareness tests passed: Levitate, hazard layers, status duplication and type immunity.");
 
-console.log("Tactical AI decision tests passed: super-effective move selection and matchup-aware switching.");
+const doublesAIChoice = chooseTacticalChoice({
+  side: { pokemon: [
+    { details: "Gardevoir, L100", condition: "251/251", active: true, stats: { atk: 150, spa: 300, spe: 100 }, moves: ["Psychic", "Moonblast"] },
+    { details: "Garchomp, L100", condition: "357/357", active: true, stats: { atk: 350, spa: 100, spe: 333 }, moves: ["Earthquake", "Dragon Claw"] },
+  ] },
+  active: [
+    { moves: [{ move: "Psychic" }, { move: "Moonblast" }] },
+    { moves: [{ move: "Earthquake" }, { move: "Dragon Claw" }] },
+  ],
+}, ["|switch|p2a: Gengar|Gengar, L100|261/261", "|switch|p2b: Magikarp|Magikarp, L100|181/181"], "p1", 9);
+if (doublesAIChoice !== "move 2, move 2") throw new Error("Doubles AI did not score each active Pokémon with its own stats and STAB.");
+
+console.log("Tactical AI decision tests passed: super-effective move selection, doubles slot evaluation and matchup-aware switching.");
 
 if (normalizeBenchmarkOutcome("tie") !== "loss" || normalizeBenchmarkOutcome("loss") !== "loss" || normalizeBenchmarkOutcome("win") !== "win") {
   throw new Error("Benchmark outcome normalization must count ties as player losses.");

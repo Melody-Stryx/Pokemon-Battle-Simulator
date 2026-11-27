@@ -215,7 +215,16 @@ const doublesAIChoice = chooseTacticalChoice({
 }, ["|switch|p2a: Gengar|Gengar, L100|261/261", "|switch|p2b: Magikarp|Magikarp, L100|181/181"], "p1", 9);
 if (doublesAIChoice !== "move 2 1, move 2 1") throw new Error("Doubles AI did not score each active Pokémon independently and select explicit targets.");
 
-console.log("Tactical AI decision tests passed: super-effective move selection, doubles slot evaluation and matchup-aware switching.");
+const doublesReflectChoice = chooseTacticalChoice({
+  side: { pokemon: [
+    { details: "Gardevoir, L100", condition: "251/251", active: true, stats: { atk: 150, spa: 300, spe: 100 }, moves: ["Reflect"] },
+    { details: "Garchomp, L100", condition: "357/357", active: true, stats: { atk: 350, spa: 100, spe: 333 }, moves: ["Reflect"] },
+  ] },
+  active: [{ moves: [{ move: "Reflect" }] }, { moves: [{ move: "Reflect" }] }],
+}, ["|switch|p2a: Gengar|Gengar, L100|261/261", "|switch|p2b: Magikarp|Magikarp, L100|181/181"], "p1", 9);
+if (doublesReflectChoice !== "move 1, move 1") throw new Error("Doubles AI added an invalid target to a side-condition move.");
+
+console.log("Tactical AI decision tests passed: super-effective move selection, doubles targeting, and matchup-aware switching.");
 
 if (normalizeBenchmarkOutcome("tie") !== "loss" || normalizeBenchmarkOutcome("loss") !== "loss" || normalizeBenchmarkOutcome("win") !== "win") {
   throw new Error("Benchmark outcome normalization must count ties as player losses.");

@@ -1,0 +1,2656 @@
+{
+  "generation": 3,
+  "source": "https://github.com/pret/pokefirered/blob/master/src/trainer_tower_sets.c",
+  "modes": {
+    "Trainer Tower - Single Mode": [
+      {
+        "floor": 1,
+        "challengeType": "SINGLE",
+        "trainers": [
+          {
+            "name": "ALBERTO",
+            "trainerClass": "SAILOR",
+            "pokemon": [
+              {
+                "species": "FERALIGATR",
+                "item": "FOCUS_BAND",
+                "moves": [
+                  "SURF",
+                  "EARTHQUAKE",
+                  "CRUNCH",
+                  "DRAGON_CLAW"
+                ],
+                "abilityNum": 0,
+                "nature": "HARDY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              },
+              {
+                "species": "KANGASKHAN",
+                "item": "QUICK_CLAW",
+                "moves": [
+                  "CRUSH_CLAW",
+                  "EARTHQUAKE",
+                  "ROCK_TOMB",
+                  "AERIAL_ACE"
+                ],
+                "abilityNum": 0,
+                "nature": "ADAMANT",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 2,
+        "challengeType": "SINGLE",
+        "trainers": [
+          {
+            "name": "BRANDON",
+            "trainerClass": "BUG_CATCHER",
+            "pokemon": [
+              {
+                "species": "BEEDRILL",
+                "item": "BRIGHT_POWDER",
+                "moves": [
+                  "SLUDGE_BOMB",
+                  "TWINEEDLE",
+                  "DOUBLE_TEAM",
+                  "AERIAL_ACE"
+                ],
+                "abilityNum": 0,
+                "nature": "JOLLY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              },
+              {
+                "species": "YANMA",
+                "item": "BRIGHT_POWDER",
+                "moves": [
+                  "HYPNOSIS",
+                  "SONIC_BOOM",
+                  "QUICK_ATTACK",
+                  "AERIAL_ACE"
+                ],
+                "abilityNum": 0,
+                "nature": "JOLLY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 3,
+        "challengeType": "SINGLE",
+        "trainers": [
+          {
+            "name": "JARRETT",
+            "trainerClass": "JUGGLER",
+            "pokemon": [
+              {
+                "species": "WEEZING",
+                "item": "SALAC_BERRY",
+                "moves": [
+                  "EXPLOSION",
+                  "SLUDGE_BOMB",
+                  "DESTINY_BOND",
+                  "THUNDERBOLT"
+                ],
+                "abilityNum": 0,
+                "nature": "RELAXED",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              },
+              {
+                "species": "EXEGGCUTE",
+                "item": "QUICK_CLAW",
+                "moves": [
+                  "EXPLOSION",
+                  "STUN_SPORE",
+                  "HYPNOSIS",
+                  "GIGA_DRAIN"
+                ],
+                "abilityNum": 0,
+                "nature": "RELAXED",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 4,
+        "challengeType": "SINGLE",
+        "trainers": [
+          {
+            "name": "COLE",
+            "trainerClass": "YOUNGSTER",
+            "pokemon": [
+              {
+                "species": "PRIMEAPE",
+                "item": "SITRUS_BERRY",
+                "moves": [
+                  "OVERHEAT",
+                  "SEISMIC_TOSS",
+                  "SWAGGER",
+                  "KARATE_CHOP"
+                ],
+                "abilityNum": 0,
+                "nature": "TIMID",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              },
+              {
+                "species": "SLOWBRO",
+                "item": "SITRUS_BERRY",
+                "moves": [
+                  "SUNNY_DAY",
+                  "YAWN",
+                  "FLAMETHROWER",
+                  "CONFUSION"
+                ],
+                "abilityNum": 0,
+                "nature": "QUIET",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 5,
+        "challengeType": "SINGLE",
+        "trainers": [
+          {
+            "name": "JOEY",
+            "trainerClass": "CAMPER",
+            "pokemon": [
+              {
+                "species": "NIDOKING",
+                "item": "SOFT_SAND",
+                "moves": [
+                  "EARTHQUAKE",
+                  "MEGAHORN",
+                  "SLUDGE_BOMB",
+                  "ROCK_SLIDE"
+                ],
+                "abilityNum": 0,
+                "nature": "SERIOUS",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              },
+              {
+                "species": "TAUROS",
+                "item": "SILK_SCARF",
+                "moves": [
+                  "EARTHQUAKE",
+                  "BODY_SLAM",
+                  "ROCK_TOMB",
+                  "PURSUIT"
+                ],
+                "abilityNum": 0,
+                "nature": "SERIOUS",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 6,
+        "challengeType": "SINGLE",
+        "trainers": [
+          {
+            "name": "BRADEN",
+            "trainerClass": "SWIMMER_M",
+            "pokemon": [
+              {
+                "species": "DUNSPARCE",
+                "item": "PERSIM_BERRY",
+                "moves": [
+                  "WATER_PULSE",
+                  "EARTHQUAKE",
+                  "ROCK_SLIDE",
+                  "YAWN"
+                ],
+                "abilityNum": 0,
+                "nature": "BRAVE",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              },
+              {
+                "species": "POLITOED",
+                "item": "CHESTO_BERRY",
+                "moves": [
+                  "SURF",
+                  "EARTHQUAKE",
+                  "HYPNOSIS",
+                  "SWAGGER"
+                ],
+                "abilityNum": 0,
+                "nature": "HARDY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 7,
+        "challengeType": "SINGLE",
+        "trainers": [
+          {
+            "name": "JAC",
+            "trainerClass": "BURGLAR",
+            "pokemon": [
+              {
+                "species": "MEOWTH",
+                "item": "LIECHI_BERRY",
+                "moves": [
+                  "SWAGGER",
+                  "SUBSTITUTE",
+                  "FAKE_OUT",
+                  "SLASH"
+                ],
+                "abilityNum": 0,
+                "nature": "JOLLY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              },
+              {
+                "species": "CHANSEY",
+                "item": "LUCKY_PUNCH",
+                "moves": [
+                  "FLAMETHROWER",
+                  "LIGHT_SCREEN",
+                  "BODY_SLAM",
+                  "MINIMIZE"
+                ],
+                "abilityNum": 0,
+                "nature": "MILD",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 8,
+        "challengeType": "SINGLE",
+        "trainers": [
+          {
+            "name": "LILY",
+            "trainerClass": "PKMN_BREEDER",
+            "pokemon": [
+              {
+                "species": "TOGEPI",
+                "item": "SITRUS_BERRY",
+                "moves": [
+                  "CHARM",
+                  "METRONOME",
+                  "RETURN",
+                  "REST"
+                ],
+                "abilityNum": 0,
+                "nature": "SERIOUS",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              },
+              {
+                "species": "SNORLAX",
+                "item": "LEFTOVERS",
+                "moves": [
+                  "CHARM",
+                  "ROLLOUT",
+                  "RETURN",
+                  "REST"
+                ],
+                "abilityNum": 0,
+                "nature": "SERIOUS",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "Trainer Tower - Double Mode": [
+      {
+        "floor": 1,
+        "challengeType": "DOUBLE",
+        "trainers": [
+          {
+            "name": "JEN & KIRA",
+            "trainerClass": "TWINS",
+            "pokemon": [
+              {
+                "species": "JOLTEON",
+                "item": "QUICK_CLAW",
+                "moves": [
+                  "QUICK_ATTACK",
+                  "THUNDERBOLT",
+                  "DOUBLE_KICK",
+                  "PIN_MISSILE"
+                ],
+                "abilityNum": 0,
+                "nature": "MILD",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "JEN & KIRA",
+            "trainerClass": "TWINS",
+            "pokemon": [
+              {
+                "species": "ESPEON",
+                "item": "BRIGHT_POWDER",
+                "moves": [
+                  "LIGHT_SCREEN",
+                  "REFLECT",
+                  "HELPING_HAND",
+                  "PSYCHIC"
+                ],
+                "abilityNum": 0,
+                "nature": "TIMID",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 2,
+        "challengeType": "DOUBLE",
+        "trainers": [
+          {
+            "name": "JO & HALEY",
+            "trainerClass": "CRUSH_KIN",
+            "pokemon": [
+              {
+                "species": "ALAKAZAM",
+                "item": "SALAC_BERRY",
+                "moves": [
+                  "FIRE_PUNCH",
+                  "RECOVER",
+                  "PSYCHIC",
+                  "SUNNY_DAY"
+                ],
+                "abilityNum": 0,
+                "nature": "BOLD",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "JO & HALEY",
+            "trainerClass": "CRUSH_KIN",
+            "pokemon": [
+              {
+                "species": "HOUNDOOM",
+                "item": "FOCUS_BAND",
+                "moves": [
+                  "ROAR",
+                  "FLAMETHROWER",
+                  "BITE",
+                  "PROTECT"
+                ],
+                "abilityNum": 0,
+                "nature": "TIMID",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 3,
+        "challengeType": "DOUBLE",
+        "trainers": [
+          {
+            "name": "RIC & RENE",
+            "trainerClass": "CRUSH_KIN",
+            "pokemon": [
+              {
+                "species": "GOLEM",
+                "item": "SCOPE_LENS",
+                "moves": [
+                  "BRICK_BREAK",
+                  "ROCK_BLAST",
+                  "DIG",
+                  "PROTECT"
+                ],
+                "abilityNum": 0,
+                "nature": "BRAVE",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "RIC & RENE",
+            "trainerClass": "CRUSH_KIN",
+            "pokemon": [
+              {
+                "species": "MACHAMP",
+                "item": "SCOPE_LENS",
+                "moves": [
+                  "CROSS_CHOP",
+                  "SEISMIC_TOSS",
+                  "ROCK_TOMB",
+                  "PROTECT"
+                ],
+                "abilityNum": 0,
+                "nature": "ADAMANT",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 4,
+        "challengeType": "DOUBLE",
+        "trainers": [
+          {
+            "name": "ISAC & MAG",
+            "trainerClass": "COOL_COUPLE",
+            "pokemon": [
+              {
+                "species": "PILOSWINE",
+                "item": "SOFT_SAND",
+                "moves": [
+                  "EARTHQUAKE",
+                  "BLIZZARD",
+                  "ANCIENT_POWER",
+                  "BODY_SLAM"
+                ],
+                "abilityNum": 0,
+                "nature": "ADAMANT",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "ISAC & MAG",
+            "trainerClass": "COOL_COUPLE",
+            "pokemon": [
+              {
+                "species": "CROBAT",
+                "item": "KINGS_ROCK",
+                "moves": [
+                  "GIGA_DRAIN",
+                  "POISON_FANG",
+                  "FLY",
+                  "STEEL_WING"
+                ],
+                "abilityNum": 0,
+                "nature": "HASTY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 5,
+        "challengeType": "DOUBLE",
+        "trainers": [
+          {
+            "name": "JOS & ANNE",
+            "trainerClass": "COOL_COUPLE",
+            "pokemon": [
+              {
+                "species": "BLISSEY",
+                "item": "LEFTOVERS",
+                "moves": [
+                  "LIGHT_SCREEN",
+                  "ATTRACT",
+                  "RETURN",
+                  "PSYCHIC"
+                ],
+                "abilityNum": 0,
+                "nature": "SASSY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "JOS & ANNE",
+            "trainerClass": "COOL_COUPLE",
+            "pokemon": [
+              {
+                "species": "ARCANINE",
+                "item": "CHARCOAL",
+                "moves": [
+                  "HEAT_WAVE",
+                  "EXTREME_SPEED",
+                  "ROAR",
+                  "DIG"
+                ],
+                "abilityNum": 0,
+                "nature": "HASTY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 6,
+        "challengeType": "DOUBLE",
+        "trainers": [
+          {
+            "name": "EMY & ALEK",
+            "trainerClass": "YOUNG_COUPLE",
+            "pokemon": [
+              {
+                "species": "URSARING",
+                "item": "LUM_BERRY",
+                "moves": [
+                  "REST",
+                  "SNORE",
+                  "DIG",
+                  "SLASH"
+                ],
+                "abilityNum": 0,
+                "nature": "JOLLY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "EMY & ALEK",
+            "trainerClass": "YOUNG_COUPLE",
+            "pokemon": [
+              {
+                "species": "FURRET",
+                "item": "SHELL_BELL",
+                "moves": [
+                  "FLAMETHROWER",
+                  "AMNESIA",
+                  "SHOCK_WAVE",
+                  "SLASH"
+                ],
+                "abilityNum": 0,
+                "nature": "NAIVE",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 7,
+        "challengeType": "DOUBLE",
+        "trainers": [
+          {
+            "name": "AXE & REN",
+            "trainerClass": "SIS_AND_BRO",
+            "pokemon": [
+              {
+                "species": "LANTURN",
+                "item": "BRIGHT_POWDER",
+                "moves": [
+                  "RAIN_DANCE",
+                  "SURF",
+                  "THUNDER",
+                  "ICE_BEAM"
+                ],
+                "abilityNum": 0,
+                "nature": "TIMID",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "AXE & REN",
+            "trainerClass": "SIS_AND_BRO",
+            "pokemon": [
+              {
+                "species": "DRAGONAIR",
+                "item": "SHELL_BELL",
+                "moves": [
+                  "THUNDER",
+                  "SURF",
+                  "BLIZZARD",
+                  "OUTRAGE"
+                ],
+                "abilityNum": 0,
+                "nature": "TIMID",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 8,
+        "challengeType": "DOUBLE",
+        "trainers": [
+          {
+            "name": "GEB&MEGAN",
+            "trainerClass": "COOL_COUPLE",
+            "pokemon": [
+              {
+                "species": "GYARADOS",
+                "item": "SALAC_BERRY",
+                "moves": [
+                  "HYPER_BEAM",
+                  "DRAGON_DANCE",
+                  "THUNDER_WAVE",
+                  "THUNDERBOLT"
+                ],
+                "abilityNum": 0,
+                "nature": "HARDY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "GEB&MEGAN",
+            "trainerClass": "COOL_COUPLE",
+            "pokemon": [
+              {
+                "species": "RHYDON",
+                "item": "QUICK_CLAW",
+                "moves": [
+                  "EARTHQUAKE",
+                  "PROTECT",
+                  "MEGAHORN",
+                  "ROCK_SLIDE"
+                ],
+                "abilityNum": 0,
+                "nature": "SASSY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "Trainer Tower - Knockout Mode": [
+      {
+        "floor": 1,
+        "challengeType": "KNOCKOUT",
+        "trainers": [
+          {
+            "name": "JORDY",
+            "trainerClass": "BIKER",
+            "pokemon": [
+              {
+                "species": "MAGBY",
+                "item": "LAX_INCENSE",
+                "moves": [
+                  "SMOKESCREEN",
+                  "CONFUSE_RAY",
+                  "FLAMETHROWER",
+                  "SCREECH"
+                ],
+                "abilityNum": 0,
+                "nature": "QUIET",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "ERNEST",
+            "trainerClass": "BIKER",
+            "pokemon": [
+              {
+                "species": "TOGEPI",
+                "item": "QUICK_CLAW",
+                "moves": [
+                  "FRUSTRATION",
+                  "DOUBLE_TEAM",
+                  "TOXIC",
+                  "SWEET_KISS"
+                ],
+                "abilityNum": 0,
+                "nature": "BRAVE",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "GABRIEL",
+            "trainerClass": "CUE_BALL",
+            "pokemon": [
+              {
+                "species": "SMOOCHUM",
+                "item": "BRIGHT_POWDER",
+                "moves": [
+                  "SWEET_KISS",
+                  "PERISH_SONG",
+                  "TOXIC",
+                  "ATTRACT"
+                ],
+                "abilityNum": 0,
+                "nature": "SASSY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 2,
+        "challengeType": "KNOCKOUT",
+        "trainers": [
+          {
+            "name": "MIKE",
+            "trainerClass": "HIKER",
+            "pokemon": [
+              {
+                "species": "CHARIZARD",
+                "item": "SCOPE_LENS",
+                "moves": [
+                  "DRAGON_CLAW",
+                  "METAL_CLAW",
+                  "AERIAL_ACE",
+                  "OUTRAGE"
+                ],
+                "abilityNum": 0,
+                "nature": "ADAMANT",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "REBECCA",
+            "trainerClass": "CRUSH_GIRL",
+            "pokemon": [
+              {
+                "species": "FLAREON",
+                "item": "SILK_SCARF",
+                "moves": [
+                  "IRON_TAIL",
+                  "FLAIL",
+                  "BITE",
+                  "DOUBLE_EDGE"
+                ],
+                "abilityNum": 0,
+                "nature": "IMPISH",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "NICOLAS",
+            "trainerClass": "BLACK_BELT",
+            "pokemon": [
+              {
+                "species": "POLIWRATH",
+                "item": "KINGS_ROCK",
+                "moves": [
+                  "BODY_SLAM",
+                  "DIG",
+                  "MEGA_KICK",
+                  "COUNTER"
+                ],
+                "abilityNum": 0,
+                "nature": "JOLLY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 3,
+        "challengeType": "KNOCKOUT",
+        "trainers": [
+          {
+            "name": "CAMRYN",
+            "trainerClass": "PICNICKER",
+            "pokemon": [
+              {
+                "species": "MILTANK",
+                "item": "SILK_SCARF",
+                "moves": [
+                  "MILK_DRINK",
+                  "BRICK_BREAK",
+                  "BODY_SLAM",
+                  "SHADOW_BALL"
+                ],
+                "abilityNum": 0,
+                "nature": "SERIOUS",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "NATALIA",
+            "trainerClass": "AROMA_LADY",
+            "pokemon": [
+              {
+                "species": "VILEPLUME",
+                "item": "PERSIM_BERRY",
+                "moves": [
+                  "SWEET_SCENT",
+                  "ATTRACT",
+                  "PETAL_DANCE",
+                  "SLUDGE_BOMB"
+                ],
+                "abilityNum": 0,
+                "nature": "SERIOUS",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "KATHLEEN",
+            "trainerClass": "COOLTRAINER_F",
+            "pokemon": [
+              {
+                "species": "LAPRAS",
+                "item": "LUM_BERRY",
+                "moves": [
+                  "SURF",
+                  "BLIZZARD",
+                  "PSYCHIC",
+                  "THUNDER"
+                ],
+                "abilityNum": 0,
+                "nature": "SERIOUS",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 4,
+        "challengeType": "KNOCKOUT",
+        "trainers": [
+          {
+            "name": "BRENNAN",
+            "trainerClass": "SAILOR",
+            "pokemon": [
+              {
+                "species": "CHANSEY",
+                "item": "ORAN_BERRY",
+                "moves": [
+                  "WATER_PULSE",
+                  "SOFT_BOILED",
+                  "MINIMIZE",
+                  "THUNDER_WAVE"
+                ],
+                "abilityNum": 0,
+                "nature": "BOLD",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "KADEN",
+            "trainerClass": "FISHERMAN",
+            "pokemon": [
+              {
+                "species": "SEAKING",
+                "item": "CHERI_BERRY",
+                "moves": [
+                  "HORN_DRILL",
+                  "MEGAHORN",
+                  "SUPERSONIC",
+                  "AGILITY"
+                ],
+                "abilityNum": 0,
+                "nature": "CAREFUL",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "EMANUEL",
+            "trainerClass": "GENTLEMAN",
+            "pokemon": [
+              {
+                "species": "VAPOREON",
+                "item": "SHELL_BELL",
+                "moves": [
+                  "SURF",
+                  "ICE_BEAM",
+                  "ATTRACT",
+                  "BITE"
+                ],
+                "abilityNum": 0,
+                "nature": "CALM",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 5,
+        "challengeType": "KNOCKOUT",
+        "trainers": [
+          {
+            "name": "MAURA",
+            "trainerClass": "BEAUTY",
+            "pokemon": [
+              {
+                "species": "NIDORAN_F",
+                "item": "SITRUS_BERRY",
+                "moves": [
+                  "CRUNCH",
+                  "DIG",
+                  "FLATTER",
+                  "ATTRACT"
+                ],
+                "abilityNum": 0,
+                "nature": "SASSY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "MIKAELA",
+            "trainerClass": "LASS",
+            "pokemon": [
+              {
+                "species": "NIDORINA",
+                "item": "CHOICE_BAND",
+                "moves": [
+                  "SHOCK_WAVE",
+                  "CRUNCH",
+                  "BODY_SLAM",
+                  "COUNTER"
+                ],
+                "abilityNum": 0,
+                "nature": "SASSY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "FLINT",
+            "trainerClass": "ENGINEER",
+            "pokemon": [
+              {
+                "species": "NIDOQUEEN",
+                "item": "CHOICE_BAND",
+                "moves": [
+                  "THUNDERBOLT",
+                  "CRUNCH",
+                  "SUPERPOWER",
+                  "SURF"
+                ],
+                "abilityNum": 0,
+                "nature": "RELAXED",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 6,
+        "challengeType": "KNOCKOUT",
+        "trainers": [
+          {
+            "name": "BEN",
+            "trainerClass": "ROCKER",
+            "pokemon": [
+              {
+                "species": "AMPHAROS",
+                "item": "SHELL_BELL",
+                "moves": [
+                  "THUNDERBOLT",
+                  "MEGA_KICK",
+                  "COUNTER",
+                  "BODY_SLAM"
+                ],
+                "abilityNum": 0,
+                "nature": "RELAXED",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "CAMDEN",
+            "trainerClass": "ENGINEER",
+            "pokemon": [
+              {
+                "species": "GRANBULL",
+                "item": "CHOICE_BAND",
+                "moves": [
+                  "THUNDERBOLT",
+                  "CRUNCH",
+                  "EARTHQUAKE",
+                  "ROCK_TOMB"
+                ],
+                "abilityNum": 0,
+                "nature": "BRAVE",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "ZACKERY",
+            "trainerClass": "SCIENTIST",
+            "pokemon": [
+              {
+                "species": "MISDREAVUS",
+                "item": "SALAC_BERRY",
+                "moves": [
+                  "PSYCHIC",
+                  "GRUDGE",
+                  "CONFUSE_RAY",
+                  "DESTINY_BOND"
+                ],
+                "abilityNum": 0,
+                "nature": "TIMID",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 7,
+        "challengeType": "KNOCKOUT",
+        "trainers": [
+          {
+            "name": "PRISCILLA",
+            "trainerClass": "TUBER",
+            "pokemon": [
+              {
+                "species": "GOLDEEN",
+                "item": "SITRUS_BERRY",
+                "moves": [
+                  "WATER_PULSE",
+                  "MEGAHORN",
+                  "SUPERSONIC",
+                  "ICE_BEAM"
+                ],
+                "abilityNum": 0,
+                "nature": "HARDY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "CHARLOTTE",
+            "trainerClass": "LADY",
+            "pokemon": [
+              {
+                "species": "QWILFISH",
+                "item": "QUICK_CLAW",
+                "moves": [
+                  "HYDRO_PUMP",
+                  "SLUDGE_BOMB",
+                  "SHADOW_BALL",
+                  "DESTINY_BOND"
+                ],
+                "abilityNum": 0,
+                "nature": "HARDY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "SHANIA",
+            "trainerClass": "SWIMMER_F",
+            "pokemon": [
+              {
+                "species": "MANTINE",
+                "item": "MENTAL_HERB",
+                "moves": [
+                  "SURF",
+                  "ICE_BEAM",
+                  "CONFUSE_RAY",
+                  "ATTRACT"
+                ],
+                "abilityNum": 0,
+                "nature": "MODEST",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 8,
+        "challengeType": "KNOCKOUT",
+        "trainers": [
+          {
+            "name": "CHELSEA",
+            "trainerClass": "PKMN_RANGER_F",
+            "pokemon": [
+              {
+                "species": "STARMIE",
+                "item": "PETAYA_BERRY",
+                "moves": [
+                  "PSYCHIC",
+                  "ICE_BEAM",
+                  "WATERFALL",
+                  "RECOVER"
+                ],
+                "abilityNum": 0,
+                "nature": "MILD",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "TRENTON",
+            "trainerClass": "PKMN_RANGER_M",
+            "pokemon": [
+              {
+                "species": "ARCANINE",
+                "item": "SITRUS_BERRY",
+                "moves": [
+                  "EXTREME_SPEED",
+                  "FIRE_BLAST",
+                  "CRUNCH",
+                  "AERIAL_ACE"
+                ],
+                "abilityNum": 0,
+                "nature": "NAUGHTY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "ALBERT",
+            "trainerClass": "COOLTRAINER_M",
+            "pokemon": [
+              {
+                "species": "VENUSAUR",
+                "item": "SALAC_BERRY",
+                "moves": [
+                  "GIGA_DRAIN",
+                  "LEECH_SEED",
+                  "TOXIC",
+                  "BODY_SLAM"
+                ],
+                "abilityNum": 0,
+                "nature": "QUIET",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "Trainer Tower - Mixed Mode": [
+      {
+        "floor": 1,
+        "challengeType": "SINGLE",
+        "trainers": [
+          {
+            "name": "ALLYSON",
+            "trainerClass": "COOLTRAINER_F",
+            "pokemon": [
+              {
+                "species": "STARMIE",
+                "item": "LUM_BERRY",
+                "moves": [
+                  "SURF",
+                  "PSYCHIC",
+                  "THUNDER_WAVE",
+                  "RECOVER"
+                ],
+                "abilityNum": 0,
+                "nature": "MODEST",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              },
+              {
+                "species": "KINGDRA",
+                "item": "CHESTO_BERRY",
+                "moves": [
+                  "SURF",
+                  "ICE_BEAM",
+                  "DRAGON_BREATH",
+                  "REST"
+                ],
+                "abilityNum": 0,
+                "nature": "MODEST",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 2,
+        "challengeType": "SINGLE",
+        "trainers": [
+          {
+            "name": "LORENZO",
+            "trainerClass": "PSYCHIC_M",
+            "pokemon": [
+              {
+                "species": "HYPNO",
+                "item": "SALAC_BERRY",
+                "moves": [
+                  "THUNDER_PUNCH",
+                  "FIRE_PUNCH",
+                  "ICE_PUNCH",
+                  "PSYCHIC"
+                ],
+                "abilityNum": 0,
+                "nature": "MODEST",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              },
+              {
+                "species": "GENGAR",
+                "item": "LEFTOVERS",
+                "moves": [
+                  "THUNDERBOLT",
+                  "SHADOW_BALL",
+                  "HYPNOSIS",
+                  "TOXIC"
+                ],
+                "abilityNum": 0,
+                "nature": "HASTY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 3,
+        "challengeType": "SINGLE",
+        "trainers": [
+          {
+            "name": "OWEN",
+            "trainerClass": "SUPER_NERD",
+            "pokemon": [
+              {
+                "species": "JOLTEON",
+                "item": "BRIGHT_POWDER",
+                "moves": [
+                  "THUNDER_WAVE",
+                  "THUNDERBOLT",
+                  "DOUBLE_TEAM",
+                  "TOXIC"
+                ],
+                "abilityNum": 0,
+                "nature": "BOLD",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              },
+              {
+                "species": "PORYGON2",
+                "item": "SALAC_BERRY",
+                "moves": [
+                  "THUNDER_WAVE",
+                  "ZAP_CANNON",
+                  "PSYCHIC",
+                  "RECOVER"
+                ],
+                "abilityNum": 0,
+                "nature": "BOLD",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 4,
+        "challengeType": "DOUBLE",
+        "trainers": [
+          {
+            "name": "GEB&MEGAN",
+            "trainerClass": "COOL_COUPLE",
+            "pokemon": [
+              {
+                "species": "NIDOQUEEN",
+                "item": "FOCUS_BAND",
+                "moves": [
+                  "SURF",
+                  "EARTHQUAKE",
+                  "SUPERPOWER",
+                  "ROCK_SLIDE"
+                ],
+                "abilityNum": 0,
+                "nature": "HARDY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "GEB&MEGAN",
+            "trainerClass": "COOL_COUPLE",
+            "pokemon": [
+              {
+                "species": "NIDOKING",
+                "item": "FOCUS_BAND",
+                "moves": [
+                  "SURF",
+                  "MEGAHORN",
+                  "THUNDERBOLT",
+                  "ICE_BEAM"
+                ],
+                "abilityNum": 0,
+                "nature": "HARDY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 5,
+        "challengeType": "DOUBLE",
+        "trainers": [
+          {
+            "name": "KAT & KIPP",
+            "trainerClass": "SIS_AND_BRO",
+            "pokemon": [
+              {
+                "species": "CORSOLA",
+                "item": "QUICK_CLAW",
+                "moves": [
+                  "DIG",
+                  "MIRROR_COAT",
+                  "RECOVER",
+                  "CONFUSE_RAY"
+                ],
+                "abilityNum": 0,
+                "nature": "CAREFUL",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "KAT & KIPP",
+            "trainerClass": "SIS_AND_BRO",
+            "pokemon": [
+              {
+                "species": "KINGLER",
+                "item": "QUICK_CLAW",
+                "moves": [
+                  "DIVE",
+                  "HARDEN",
+                  "LEER",
+                  "AMNESIA"
+                ],
+                "abilityNum": 0,
+                "nature": "CALM",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 6,
+        "challengeType": "KNOCKOUT",
+        "trainers": [
+          {
+            "name": "CHELSEA",
+            "trainerClass": "PKMN_RANGER_F",
+            "pokemon": [
+              {
+                "species": "LEDIAN",
+                "item": "LIECHI_BERRY",
+                "moves": [
+                  "SILVER_WIND",
+                  "SWIFT",
+                  "AERIAL_ACE",
+                  "TOXIC"
+                ],
+                "abilityNum": 0,
+                "nature": "LONELY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "TRENTON",
+            "trainerClass": "PKMN_RANGER_M",
+            "pokemon": [
+              {
+                "species": "GYARADOS",
+                "item": "SITRUS_BERRY",
+                "moves": [
+                  "EARTHQUAKE",
+                  "WATERFALL",
+                  "BLIZZARD",
+                  "HYPER_BEAM"
+                ],
+                "abilityNum": 0,
+                "nature": "HASTY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "ALBERT",
+            "trainerClass": "COOLTRAINER_M",
+            "pokemon": [
+              {
+                "species": "TYRANITAR",
+                "item": "SALAC_BERRY",
+                "moves": [
+                  "EARTHQUAKE",
+                  "CRUNCH",
+                  "THUNDER",
+                  "FIRE_BLAST"
+                ],
+                "abilityNum": 0,
+                "nature": "LONELY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 7,
+        "challengeType": "DOUBLE",
+        "trainers": [
+          {
+            "name": "RIC & RENE",
+            "trainerClass": "CRUSH_KIN",
+            "pokemon": [
+              {
+                "species": "HITMONLEE",
+                "item": "SCOPE_LENS",
+                "moves": [
+                  "ROCK_TOMB",
+                  "HI_JUMP_KICK",
+                  "BULK_UP",
+                  "PROTECT"
+                ],
+                "abilityNum": 0,
+                "nature": "BRAVE",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "RIC & RENE",
+            "trainerClass": "CRUSH_KIN",
+            "pokemon": [
+              {
+                "species": "HITMONCHAN",
+                "item": "SCOPE_LENS",
+                "moves": [
+                  "MACH_PUNCH",
+                  "THUNDER_PUNCH",
+                  "DOUBLE_TEAM",
+                  "PROTECT"
+                ],
+                "abilityNum": 0,
+                "nature": "ADAMANT",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "floor": 8,
+        "challengeType": "KNOCKOUT",
+        "trainers": [
+          {
+            "name": "MIKE",
+            "trainerClass": "HIKER",
+            "pokemon": [
+              {
+                "species": "CHARIZARD",
+                "item": "SCOPE_LENS",
+                "moves": [
+                  "DRAGON_CLAW",
+                  "METAL_CLAW",
+                  "AERIAL_ACE",
+                  "OUTRAGE"
+                ],
+                "abilityNum": 0,
+                "nature": "ADAMANT",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "REBECCA",
+            "trainerClass": "CRUSH_GIRL",
+            "pokemon": [
+              {
+                "species": "NIDOQUEEN",
+                "item": "SILK_SCARF",
+                "moves": [
+                  "SUPERPOWER",
+                  "AERIAL_ACE",
+                  "BRICK_BREAK",
+                  "COUNTER"
+                ],
+                "abilityNum": 0,
+                "nature": "CAREFUL",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "NICOLAS",
+            "trainerClass": "BLACK_BELT",
+            "pokemon": [
+              {
+                "species": "POLIWRATH",
+                "item": "KINGS_ROCK",
+                "moves": [
+                  "BODY_SLAM",
+                  "DIG",
+                  "MEGA_KICK",
+                  "COUNTER"
+                ],
+                "abilityNum": 0,
+                "nature": "JOLLY",
+                "ivs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                },
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spe": 0,
+                  "spa": 0,
+                  "spd": 0
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

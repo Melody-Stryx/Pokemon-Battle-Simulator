@@ -17,11 +17,12 @@ const benchmarkModuleUrl = new URL("../src/.benchmark-smoke-runtime.mjs", import
 await writeFile(benchmarkModuleUrl, compiledBenchmark);
 let runExhaustiveBenchmark;
 let loadFacilityOpponentPool;
+let loadCompleteOpponentPool;
 let normalizeBenchmarkOutcome;
 let chooseTacticalChoice;
 try {
   ({ chooseTacticalChoice } = await import(aiModuleUrl.href));
-  ({ runExhaustiveBenchmark, loadFacilityOpponentPool, normalizeBenchmarkOutcome } = await import(benchmarkModuleUrl.href));
+  ({ runExhaustiveBenchmark, loadFacilityOpponentPool, loadCompleteOpponentPool, normalizeBenchmarkOutcome } = await import(benchmarkModuleUrl.href));
 } finally {
   await unlink(benchmarkModuleUrl);
   await unlink(aiModuleUrl);
@@ -74,6 +75,48 @@ try {
   }
 } finally {
   globalThis.fetch = originalFetch;
+}
+
+const legalSampleTeam = [
+  ["Garchomp", "Rough Skin", "Leftovers", ["Earthquake", "Dragon Claw", "Stealth Rock", "Swords Dance"]],
+  ["Great Tusk", "Protosynthesis", "Heavy-Duty Boots", ["Headlong Rush", "Close Combat", "Rapid Spin", "Knock Off"]],
+  ["Kingambit", "Supreme Overlord", "Black Glasses", ["Kowtow Cleave", "Sucker Punch", "Iron Head", "Swords Dance"]],
+  ["Dragapult", "Infiltrator", "Choice Specs", ["Draco Meteor", "Shadow Ball", "U-turn", "Flamethrower"]],
+  ["Clodsire", "Unaware", "Leftovers", ["Earthquake", "Toxic", "Recover", "Stealth Rock"]],
+  ["Corviknight", "Pressure", "Rocky Helmet", ["Brave Bird", "U-turn", "Roost", "Defog"]],
+].map(([species, ability, item, moves]) => ({ species, ability, item, moves, nature: "Careful", evs: { hp: 252, atk: 0, def: 4, spa: 0, spd: 252, spe: 0 }, ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 } }));
+const bannedSampleTeam = legalSampleTeam.map((set, index) => index === 0
+  ? { ...set, species: "Arceus", ability: "Multitype", item: "Life Orb", moves: ["Judgment", "Recover", "Calm Mind", "Earth Power"] }
+  : { ...set });
+const originalArchiveFetch = globalThis.fetch;
+globalThis.fetch = async input => {
+  const url = String(input);
+  if (url.endsWith("/index.json")) return new Response(JSON.stringify({ gen9ou: true }), { status: 200 });
+  if (url.endsWith("/gen9ou.json")) return new Response(JSON.stringify([
+    { name: "Legal Gen 9 OU sample", author: "Test", data: legalSampleTeam },
+    { name: "Banned species sample", author: "Test", data: bannedSampleTeam },
+    { name: "Duplicate legal sample", author: "Test", data: legalSampleTeam },
+    { name: "Malformed sample", author: "Test", data: legalSampleTeam.slice(0, 5) },
+  ]), { status: 200 });
+  throw new Error("Unexpected archive URL: " + url);
+};
+try {
+  const diagnostics = await loadCompleteOpponentPool("gen9ou");
+  if (diagnostics.sourceCount !== 4 || diagnostics.opponents.length !== 1 || diagnostics.rejected !== 3) {
+    throw new Error("Published-team loader did not preserve the one legal unique sample and classify all three skipped entries.");
+  }
+  if (!diagnostics.skippedTeams.some(item => item.name === "Banned species sample" && item.category === "Illegal for format" && item.reasons.length)) {
+    throw new Error("Banned Gen 9 OU sample was not reported with its validator reason.");
+  }
+  if (!diagnostics.skippedTeams.some(item => item.category === "Duplicate")) {
+    throw new Error("Duplicate sample team was not reported.");
+  }
+  if (!diagnostics.skippedTeams.some(item => item.category === "Invalid structure")) {
+    throw new Error("Malformed sample team was not reported.");
+  }
+  console.log("Published-team diagnostics test passed: legal teams retained; banned, duplicate and malformed teams explained.");
+} finally {
+  globalThis.fetch = originalArchiveFetch;
 }
 
 const makeTeam = (species, move, ability) => Array.from({ length: 6 }, (_, index) => ({

@@ -23,11 +23,13 @@ export type PokemonDamageSummary = {
 };
 export type SideDamageSummary = { pokemon: PokemonDamageSummary[]; moveDamage: MoveDamageSummary[] };
 export type DamageSourceSummary = { source: string; damage: number; hits: number };
+export type StatusConditionSummary = { pokemon: string; condition: string; applications: number; cures: number };
 export type BattleAnalysis = {
   player: SideDamageSummary;
   opponent: SideDamageSummary;
   unattributedDamage: number;
   passiveDamage: { player: DamageSourceSummary[]; opponent: DamageSourceSummary[] };
+  statusConditions: { player: StatusConditionSummary[]; opponent: StatusConditionSummary[] };
 };
 
 export type BenchmarkResult = {
@@ -54,7 +56,16 @@ export type BenchmarkProgress = {
 type SampleTeam = { name?: string; author?: string; data?: Record<string, unknown>[] };
 
 function emptySide(): SideDamageSummary { return { pokemon: [], moveDamage: [] }; }
-function emptyAnalysis(): BattleAnalysis { return { player: emptySide(), opponent: emptySide(), unattributedDamage: 0, passiveDamage: { player: [], opponent: [] } }; }
+function emptyAnalysis(): BattleAnalysis { return { player: emptySide(), opponent: emptySide(), unattributedDamage: 0, passiveDamage: { player: [], opponent: [] }, statusConditions: { player: [], opponent: [] } }; }
+function addStatusCondition(analysis: BattleAnalysis, side: "player" | "opponent", pokemon: string, condition: string, cured = false) {
+  const names: Record<string, string> = { brn: "Burn", psn: "Poison", tox: "Bad poison", par: "Paralysis", slp: "Sleep", frz: "Freeze" };
+  const normalized = names[condition.toLowerCase()] || condition;
+  const entries = analysis.statusConditions[side];
+  let entry = entries.find(item => item.pokemon === pokemon && item.condition === normalized);
+  if (!entry) { entry = { pokemon, condition: normalized, applications: 0, cures: 0 }; entries.push(entry); }
+  if (cured) entry.cures++;
+  else entry.applications++;
+}
 function addPassiveDamage(analysis: BattleAnalysis, side: "player" | "opponent", source: string, damage: number) {
   const normalized = ({ psn: "Poison", tox: "Bad poison", brn: "Burn", par: "Paralysis", sandstorm: "Sandstorm", hail: "Hail", snow: "Snow" } as Record<string, string>)[source.toLowerCase()] || source;
   const entries = analysis.passiveDamage[side];
@@ -348,6 +359,11 @@ function mergeAnalysis(target: BattleAnalysis, source: BattleAnalysis) {
   mergeSide(target.opponent, source.opponent);
   target.unattributedDamage += source.unattributedDamage;
   for (const side of ["player", "opponent"] as const) {
+    for (const item of source.statusConditions?.[side] || []) {
+      const existing = target.statusConditions[side].find(entry => entry.pokemon === item.pokemon && entry.condition === item.condition);
+      if (existing) { existing.applications += item.applications; existing.cures += item.cures; }
+      else target.statusConditions[side].push({ ...item });
+    }
     for (const item of source.passiveDamage?.[side] || []) addPassiveDamage(target, side, item.source, item.damage);
     for (const item of source.passiveDamage?.[side] || []) {
       const merged = target.passiveDamage[side].find(entry => entry.source === item.source);
@@ -418,6 +434,16 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
             recentEvents: [...recentBattleEvents],
           });
           outcome = normalizeBenchmarkOutcome("tie");
+          continue;
+        }
+        if (tag === "-status" || tag === "-curestatus") {
+          const ident = parts[2];
+          const targetSide = ident?.slice(0, 2);
+          if (targetSide === "p1" || targetSide === "p2") {
+            const side = targetSide === "p1" ? "player" : "opponent";
+            const pokemon = namesByIdent.get(ident) || identName(ident);
+            addStatusCondition(analysis, side, pokemon, parts[3] || "Unknown", tag === "-curestatus");
+          }
           continue;
         }
         if (tag === "switch" || tag === "drag" || tag === "replace") {

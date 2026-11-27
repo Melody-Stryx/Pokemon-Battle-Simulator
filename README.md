@@ -1,5 +1,7 @@
 # Pokémon Battle Lab
 
+**[Launch the live Pokémon Battle Simulator](https://pokemon-battle-simulator.melodystryx.workers.dev)**
+
 An independent, responsive Pokémon team-building and battle-testing workspace built with React, TypeScript, Vite, and Pokémon Showdown's simulator.
 
 ## Current features
@@ -42,7 +44,6 @@ npm run preview
 
 GitHub Actions runs both the production build and battle-engine smoke test on pushes and pull requests.
 
-
 ## Benchmark coverage and limitations
 
 - PvP coverage is the full set of distinct complete teams published for the exact Showdown format in the `pkmn/smogon` sample-team archive. The archive index is checked before loading a format dataset.
@@ -50,7 +51,6 @@ GitHub Actions runs both the production build and battle-engine smoke test on pu
 - Replay logs and usage statistics are not silently converted into complete teams: they may omit unrevealed Pokémon or set details. Such partial evidence is not counted as a tested team.
 - PvE facility team pools are game-version-specific and are not yet connected to the exhaustive benchmark. Auto Teams for PvE must not claim exhaustive coverage until verified trainer and set pools for that exact game version are integrated.
 - 100 battles are run per published team. Both sides currently use random legal-choice AI; meaningful competitive win-rate estimates require the planned strategic, information-limited AI.
-
 
 ### Tactical battle AI
 

@@ -238,8 +238,8 @@ await runUntilEvent({
 
 await runUntilEvent({
   label: "Scald secondary effect can burn",
-  player: [makeSet("Magikarp", "Swift Swim", ["Splash"], 1)],
-  opponent: [makeSet("Vaporeon", "Water Absorb", ["Scald"], 100)],
+  player: [makeSet("Magikarp", "Swift Swim", ["Splash"], 100)],
+  opponent: [makeSet("Vaporeon", "Water Absorb", ["Scald"], 1)],
   choosePlayer: request => moveOne(request),
   chooseOpponent: request => moveOne(request),
   expected: line => line.startsWith("|-status|p1a: Magikarp|brn") && line.includes("Scald"),
@@ -247,8 +247,8 @@ await runUntilEvent({
 
 await runUntilEvent({
   label: "Shadow Ball secondary effect can lower Special Defense",
-  player: [makeSet("Magikarp", "Swift Swim", ["Splash"], 1)],
-  opponent: [makeSet("Gengar", "Cursed Body", ["Shadow Ball"], 100)],
+  player: [makeSet("Magikarp", "Swift Swim", ["Splash"], 100)],
+  opponent: [makeSet("Gengar", "Cursed Body", ["Shadow Ball"], 1)],
   choosePlayer: request => moveOne(request),
   chooseOpponent: request => moveOne(request),
   expected: line => line.startsWith("|-unboost|p1a: Magikarp|spd|1") && line.includes("Shadow Ball"),

@@ -62,6 +62,23 @@ export type BenchmarkProgress = {
 
 type SampleTeam = { name?: string; author?: string; data?: Record<string, unknown>[] };
 
+// Showdown team exports omit default-valued stats. A partial IV/EV object is
+// therefore an override, not a complete stat block: unspecified IVs are 31
+// and unspecified EVs are 0. TeamValidator only fills the entire object when
+// it is absent, so expand partial blocks before validating published samples.
+function normalizePublishedSampleSet(set: Record<string, unknown>): Record<string, unknown> {
+  const statKeys = ["hp", "atk", "def", "spa", "spd", "spe"] as const;
+  const suppliedIvs = set.ivs && typeof set.ivs === "object" && !Array.isArray(set.ivs)
+    ? set.ivs as Record<string, unknown> : {};
+  const suppliedEvs = set.evs && typeof set.evs === "object" && !Array.isArray(set.evs)
+    ? set.evs as Record<string, unknown> : {};
+  return {
+    ...set,
+    ivs: Object.fromEntries(statKeys.map(stat => [stat, suppliedIvs[stat] ?? 31])),
+    evs: Object.fromEntries(statKeys.map(stat => [stat, suppliedEvs[stat] ?? 0])),
+  };
+}
+
 function emptySide(): SideDamageSummary { return { pokemon: [], moveDamage: [] }; }
 function emptyAnalysis(): BattleAnalysis { return { player: emptySide(), opponent: emptySide(), unattributedDamage: 0, passiveDamage: { player: [], opponent: [] }, statusConditions: { player: [], opponent: [] } }; }
 function addStatusCondition(analysis: BattleAnalysis, side: "player" | "opponent", pokemon: string, condition: string, cured = false) {
@@ -118,7 +135,8 @@ export async function loadCompleteOpponentPool(format: string): Promise<{
       skippedTeams.push({ name, author: sample.author, category: "Invalid structure", reasons: [`Expected exactly 6 Pokémon sets; received ${Array.isArray(sample.data) ? sample.data.length : "no valid team data"}.`] });
       continue;
     }
-    const key = canonicalSet(sample.data);
+    const normalizedSets = sample.data.map(normalizePublishedSampleSet);
+    const key = canonicalSet(normalizedSets);
     const duplicateOf = seen.get(key);
     if (duplicateOf) {
       skippedTeams.push({ name, author: sample.author, category: "Duplicate", reasons: [`Identical team data was already included as "${duplicateOf}".`] });
@@ -126,7 +144,7 @@ export async function loadCompleteOpponentPool(format: string): Promise<{
     }
     seen.set(key, name);
     try {
-      const problems = validator.validateTeam(sample.data as any) || [];
+      const problems = validator.validateTeam(normalizedSets as any) || [];
       if (problems.length) {
         skippedTeams.push({ name, author: sample.author, category: "Illegal for format", reasons: problems });
         continue;
@@ -140,7 +158,7 @@ export async function loadCompleteOpponentPool(format: string): Promise<{
       });
       continue;
     }
-    opponents.push({ id: key, name, author: sample.author, sets: sample.data });
+    opponents.push({ id: key, name, author: sample.author, sets: normalizedSets });
   }
   return {
     opponents,

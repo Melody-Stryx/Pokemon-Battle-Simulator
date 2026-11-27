@@ -918,6 +918,16 @@ export default function App() {
                 <div><small>Opponent damage dealt</small><strong>{matchupRun.analysis.opponent.pokemon.reduce((sum, p) => sum + p.damageDealt, 0).toLocaleString()}</strong></div>
                 <div><small>Unattributed damage</small><strong>{matchupRun.analysis.unattributedDamage.toLocaleString()}</strong></div>
               </div>
+              <div className="damage-analysis-grid damage-moves-grid">
+                <div>
+                  <h4>Passive damage to your team</h4>
+                  <div className="damage-move-list">{(matchupRun.analysis.passiveDamage?.player || []).slice().sort((a,b) => b.damage-a.damage).map(item => <div key={item.source}><strong>{item.source}</strong><span>{item.damage.toLocaleString()} damage · {item.hits.toLocaleString()} damage events</span></div>)}{!(matchupRun.analysis.passiveDamage?.player || []).length && <p className="hint">No classified passive damage was recorded.</p>}</div>
+                </div>
+                <div>
+                  <h4>Passive damage to opponents</h4>
+                  <div className="damage-move-list">{(matchupRun.analysis.passiveDamage?.opponent || []).slice().sort((a,b) => b.damage-a.damage).map(item => <div key={item.source}><strong>{item.source}</strong><span>{item.damage.toLocaleString()} damage · {item.hits.toLocaleString()} damage events</span></div>)}{!(matchupRun.analysis.passiveDamage?.opponent || []).length && <p className="hint">No classified passive damage was recorded.</p>}</div>
+                </div>
+              </div>
               <div className="damage-analysis-grid">
                 <div>
                   <h4>{matchupRun.benchmarkMode === "Single Pokémon" ? "Selected Pokémon" : "Your Pokémon"}</h4>

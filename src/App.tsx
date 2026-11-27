@@ -178,6 +178,34 @@ function submitBattleChoiceFromController(controller: BattleController, choice: 
 }
 
 
+
+type SearchOption = { name: string; detail?: string };
+function SearchableField(props: { label: string; value: string; options: SearchOption[]; placeholder: string; onChange: (value: string) => void }) {
+  const [query, setQuery] = useState(props.value);
+  const [open, setOpen] = useState(false);
+  useEffect(() => setQuery(props.value), [props.value]);
+  const filtered = props.options.filter(option => option.name.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 9);
+  const choose = (option: SearchOption) => { setQuery(option.name); props.onChange(option.name); setOpen(false); };
+  return <label className="field search-field">
+    <span>{props.label}</span>
+    <div className="search-field-control">
+      <input value={query} placeholder={props.placeholder} autoComplete="off" aria-expanded={open} onFocus={() => setOpen(true)}
+        onChange={event => { setQuery(event.target.value); props.onChange(event.target.value); setOpen(true); }}
+        onBlur={() => window.setTimeout(() => setOpen(false), 140)}
+        onKeyDown={event => {
+          if (event.key === "Escape") setOpen(false);
+          if (event.key === "Enter" && open && filtered.length) { event.preventDefault(); choose(filtered[0]); }
+        }} />
+      {open && filtered.length > 0 && <div className="search-field-results" role="listbox">
+        {filtered.map(option => <button type="button" role="option" aria-selected={option.name === query} key={option.name}
+          onMouseDown={event => event.preventDefault()} onClick={() => choose(option)}>
+          <strong>{option.name}</strong>{option.detail && <small>{option.detail}</small>}
+        </button>)}
+      </div>}
+    </div>
+  </label>;
+}
+
 export default function App() {
   const [settings, setSettings] = useState<Settings>(readSettings);
   const [activePage, setActivePage] = useState<Page>("Overview");
@@ -412,6 +440,11 @@ export default function App() {
     }
   }, [activeTeam, settings.generation, settings.battleType, settings.tier]);
   const speciesAbilities = selectedSpecies ? Object.values(selectedSpecies.abilities).filter(Boolean) : [];
+  const speciesSearchOptions = speciesOptions.map(p => ({ name: p.name, detail: p.types.join(" / ") + " · BST " + Object.values(p.baseStats).reduce((sum, value) => sum + value, 0) }));
+  const moveSearchOptions = moveOptions.map(move => ({ name: move.name, detail: [move.type, move.category, move.basePower ? move.basePower + " BP" : "", (move as any).shortDesc || ""].filter(Boolean).join(" · ") }));
+  const abilitySearchOptions = abilityOptions.map(ability => ({ name: ability.name, detail: String((ability as any).shortDesc || (ability as any).desc || "") }));
+  const itemSearchOptions = itemOptions.map(item => ({ name: item.name, detail: String((item as any).shortDesc || (item as any).desc || "") }));
+
   const patchTeam = (teamId: string, updater: (team: Team) => Team) => setTeams(all => all.map(t => t.id === teamId ? { ...updater(t), updatedAt: new Date().toISOString() } : t));
   const createTeam = () => {
     const team: Team = { id: uid(), name: "New Team", slots: [], updatedAt: new Date().toISOString() };
@@ -835,6 +868,35 @@ export default function App() {
               {!activeTeam ? <div className="empty-state"><strong>Select or create a team</strong><p>Your team editor will appear here.</p></div> : <>
                 <div className="panel-heading team-title-row"><div><span className="eyebrow">TEAM EDITOR</span><input className="team-name-input" aria-label="Team name" value={activeTeam.name} onChange={e => renameTeam(e.target.value)} /></div><div className="team-actions"><button className="secondary-button" onClick={openTeamText}>Import / Export</button><button className="secondary-button" onClick={exportTeam}>Export JSON</button><button className="danger-button" onClick={deleteTeam}>Delete team</button></div></div>
                 {teamTextOpen && <div className="showdown-import-panel"><div className="editor-section-title">Pokémon Showdown text import / export <small>Paste a team or copy this export into Showdown.</small></div><textarea aria-label="Pokémon Showdown team text" value={teamText} onChange={e => { setTeamText(e.target.value); setTeamTextError(""); }} rows={12} spellCheck={false} placeholder="Pokémon Showdown team text…" /><div className="team-actions"><button className="primary-button" onClick={importShowdownText}>Import team</button><button className="secondary-button" onClick={copyShowdownText}>Copy export</button><button className="secondary-button" onClick={() => setTeamTextOpen(false)}>Close</button></div>{teamTextError && <p className="hint">{teamTextError}</p>}</div>}
+
+                <div className="showdown-set-overview">
+                  <div className="showdown-set-overview-heading"><div><span className="eyebrow">TEAM SETS</span><strong>{activeTeam.slots.length} / 6 Pokémon</strong></div><button type="button" className="primary-button" onClick={addPokemon} disabled={activeTeam.slots.length >= 6}>+ Add Pokémon</button></div>
+                  <div className="showdown-set-list">
+                    {Array.from({length:6}, (_, index) => activeTeam.slots[index]).map((slot, index) => {
+                      if (!slot) return <button type="button" key={"empty-set-" + index} className="showdown-set-card empty" onClick={addPokemon} disabled={activeTeam.slots.length >= 6}>
+                        <span className="showdown-set-number">{index + 1}</span><span><strong>Empty slot</strong><small>Add a Pokémon to this team</small></span><b>+</b>
+                      </button>;
+                      const build = activeBuild(slot);
+                      const species = generationDex.species.get(build.name);
+                      return <div key={slot.id} className={selectedSlot?.id === slot.id ? "showdown-set-card selected" : "showdown-set-card"}>
+                        <button type="button" className="showdown-set-main" onClick={() => setSelectedSlotId(slot.id)}>
+                          <span className="showdown-set-number">{index + 1}</span>
+                          <span className="showdown-set-copy"><strong>{build.nickname || build.name || "New Pokémon"}{build.nickname && build.name ? <small className="set-species-name">{build.name}</small> : null}</strong>
+                            <small>{[build.item, build.ability].filter(Boolean).join(" · ") || "No item or ability selected"}</small>
+                            <small className="set-moves">{build.moves.filter(Boolean).join(" / ") || "No moves selected"}</small>
+                          </span>
+                          {species.exists && <span className="set-type-tags">{species.types.map(type => <em key={type} className={"type-tag type-" + type.toLowerCase()}>{type}</em>)}</span>}
+                          <span className="set-edit-label">{selectedSlot?.id === slot.id ? "Editing" : "Edit"}</span>
+                        </button>
+                        <div className="showdown-set-tools">
+                          <button type="button" aria-label={"Move " + (build.name || "Pokémon") + " up"} disabled={index === 0} onClick={() => moveSlot(slot.id, -1)}>↑</button>
+                          <button type="button" aria-label={"Move " + (build.name || "Pokémon") + " down"} disabled={index === activeTeam.slots.length - 1} onClick={() => moveSlot(slot.id, 1)}>↓</button>
+                          <button type="button" aria-label={"Remove " + (build.name || "Pokémon")} onClick={() => removeSlot(slot.id)}>×</button>
+                        </div>
+                      </div>;
+                    })}
+                  </div>
+                </div>
                 {selectedSlot && selectedBuild ? <div className="pokemon-editor">
                   <div className="editor-heading"><div><span className="eyebrow">POKÉMON SET</span><h3>{selectedBuild.name || "New Pokémon"}</h3></div><div className="team-actions"><select aria-label="Active build" value={selectedBuild.id} onChange={e => patchTeam(activeTeam.id, t => ({...t, slots:t.slots.map(s => s.id === selectedSlot.id ? {...s, activeBuildId:e.target.value} : s)}))}>{selectedSlot.builds.map((b,i) => <option value={b.id} key={b.id}>{b.label || "Build "+(i+1)}</option>)}</select><button className="secondary-button" onClick={createBuildVariant}>+ Variant</button><button className="danger-button" disabled={selectedSlot.builds.length < 2} onClick={deleteSelectedBuild}>Delete build</button></div></div>
                   <div className={`legality-note legality-${legality.status.toLowerCase().replace(/[^a-z]+/g,"-")}`}><span className="status-dot status-muted" /> Team legality: <strong>{legality.status}</strong><span>{legality.messages.join(" · ")}</span></div>
@@ -843,23 +905,20 @@ export default function App() {
                     <div className="species-abilities"><small>Species abilities</small>{speciesAbilities.map(ability => <span key={ability}>{ability}</span>)}</div>
                   </div> : selectedBuild.name.trim() ? <div className="species-summary species-unmatched">No exact species match in Generation {settings.generation}. You can keep custom text for experimental sets.</div> : null}
                   <div className="pokemon-fields">
-                    <label className="field"><span>Pokémon species</span><input list="showdown-species" value={selectedBuild.name} placeholder="Search Pokémon…" onChange={e => { const name=e.target.value; const match=speciesOptions.find(p => p.name.toLowerCase() === name.toLowerCase()); patchBuild({name,gender:match?.gender === "N" || match?.gender === "M" || match?.gender === "F" ? match.gender : ""}); }} /></label>
+                    <SearchableField label="Pokémon species" value={selectedBuild.name} options={speciesSearchOptions} placeholder="Search species or type…" onChange={name => { const match=speciesOptions.find(p => p.name.toLowerCase() === name.toLowerCase()); patchBuild({name,gender:match?.gender === "N" || match?.gender === "M" || match?.gender === "F" ? match.gender : ""}); }} />
                     <label className="field"><span>Nickname</span><input value={selectedBuild.nickname} placeholder="Optional" onChange={e => patchBuild({nickname:e.target.value})} /></label>
                     <label className="field"><span>Level</span><input type="number" min="1" max="100" value={selectedBuild.level} onChange={e => patchBuild({level:Math.max(1,Math.min(100,Number(e.target.value)||1))})} /></label>
                     <label className="field"><span>Gender</span><select value={selectedSpecies?.gender === "N" ? "N" : selectedSpecies?.gender === "M" || selectedSpecies?.gender === "F" ? selectedSpecies.gender : selectedBuild.gender} disabled={selectedSpecies?.gender === "N" || selectedSpecies?.gender === "M" || selectedSpecies?.gender === "F"} onChange={e => patchBuild({gender:e.target.value})}><option value="">Auto / unspecified</option><option value="M">Male</option><option value="F">Female</option><option value="N">Genderless</option></select></label>
-                    <label className="field"><span>Ability</span><input list="showdown-abilities" value={selectedBuild.ability} placeholder="Search ability…" onChange={e => patchBuild({ability:e.target.value})} />{selectedBuild.ability.trim() && selectedSpecies && !speciesAbilities.some(ability => ability.toLowerCase().replace(/[^a-z0-9]/g,"") === selectedBuild.ability.toLowerCase().replace(/[^a-z0-9]/g,"")) && <small className="hint">This ability is not available to {selectedSpecies.name} in Generation {settings.generation}; it will not activate.</small>}</label>
+                    <div className="field-search-wrap"><SearchableField label="Ability" value={selectedBuild.ability} options={selectedSpecies ? speciesAbilities.map(name => { const ability = generationDex.abilities.get(name); return {name, detail:String((ability as any).shortDesc || (ability as any).desc || "")}; }) : abilitySearchOptions} placeholder="Search available abilities…" onChange={value => patchBuild({ability:value})} />{selectedBuild.ability.trim() && selectedSpecies && !speciesAbilities.some(ability => ability.toLowerCase().replace(/[^a-z0-9]/g,"") === selectedBuild.ability.toLowerCase().replace(/[^a-z0-9]/g,"")) && <small className="hint">Unavailable to {selectedSpecies.name} in Generation {settings.generation}; it will not activate.</small>}</div>
                     <label className="field"><span>Nature</span><select value={selectedBuild.nature} onChange={e => patchBuild({nature:e.target.value})}>{natures.map(n => <option key={n}>{n}</option>)}</select></label>
-                    <label className="field"><span>Held item</span><input list="showdown-items" value={selectedBuild.item} placeholder="Search item…" onChange={e => patchBuild({item:e.target.value})} /></label>
+                    <SearchableField label="Held item" value={selectedBuild.item} options={itemSearchOptions} placeholder="Search items…" onChange={value => patchBuild({item:value})} />
                     <label className="field"><span>Happiness</span><input type="number" min="0" max="255" value={selectedBuild.happiness} onChange={e => patchBuild({happiness:Math.max(0,Math.min(255,Number(e.target.value)||0))})} /></label>
                     <label className="field"><span>Shiny</span><select value={selectedBuild.shiny ? "yes" : "no"} onChange={e => patchBuild({shiny:e.target.value === "yes"})}><option value="no">No</option><option value="yes">Yes</option></select></label>
                     {settings.generation >= 9 && <label className="field"><span>Tera type</span><select value={selectedBuild.teraType} onChange={e => patchBuild({teraType:e.target.value})}><option value="">Default</option>{["Normal","Fire","Water","Electric","Grass","Ice","Fighting","Poison","Ground","Flying","Psychic","Bug","Rock","Ghost","Dragon","Dark","Steel","Fairy","Stellar"].map(type => <option key={type}>{type}</option>)}</select></label>}
-                    <datalist id="showdown-species">{speciesOptions.map(p => <option key={p.name} value={p.name} />)}</datalist>
-                    <datalist id="showdown-abilities">{(speciesAbilities.length ? speciesAbilities : abilityOptions.map(x => x.name)).map(name => <option key={name} value={name} />)}</datalist>
-                    <datalist id="showdown-items">{itemOptions.map(item => <option key={item.name} value={item.name} />)}</datalist>
-                    <datalist id="showdown-moves">{moveOptions.map(option => <option key={option.name} value={option.name} />)}</datalist>
+                    
                   </div>
                   {selectedSpecies && <div className="editor-section final-stats-section"><div className="editor-section-title">Final stats <small>Level {selectedBuild.level} · {selectedBuild.nature} · Calculated stats before in-battle modifiers</small></div><div className="base-stat-row">{statNames.map((label, index) => { const stat = (["hp","atk","def","spa","spd","spe"] as const)[index]; const baseValue = calculateFinalStat(selectedSpecies.baseStats[stat], selectedBuild.ivs[label], selectedBuild.evs[label], selectedBuild.level, stat, selectedBuild.nature); const value = baseValue; return <div key={stat}><small>{label}</small><strong>{value}</strong></div>; })}<div className="bst-total"><small>Total</small><strong>{statNames.reduce((sum, label, index) => { const stat = (["hp","atk","def","spa","spd","spe"] as const)[index]; const baseValue = calculateFinalStat(selectedSpecies.baseStats[stat], selectedBuild.ivs[label], selectedBuild.evs[label], selectedBuild.level, stat, selectedBuild.nature); return sum + baseValue; }, 0)}</strong></div></div>{["wise glasses", "muscle band"].includes(selectedBuild.item.toLowerCase()) && <p className="stat-total">Damage modifiers: {selectedBuild.item.toLowerCase() === "wise glasses" ? "Wise Glasses: special-move damage ×1.1." : "Muscle Band: physical-move damage ×1.1."} These boost move damage, not the displayed offensive stat.</p>}</div>}
-                  <div className="editor-section"><div className="editor-section-title">Moves <small>{moveOptions.length} moves in Gen {settings.generation} data</small></div><div className="move-grid">{selectedBuild.moves.map((move,i) => <label className="field" key={i}><span>Move {i+1}</span><input list="showdown-moves" value={move} placeholder="Search move…" onChange={e => { const moves = selectedBuild.moves.map((m,j) => j===i ? e.target.value : m); const hiddenPowerType = settings.generation >= 3 && settings.generation <= 7 ? hiddenPowerTypeFromMove(e.target.value) : undefined; patchBuild({moves, ...(hiddenPowerType ? {ivs:ivsForHiddenPowerType(hiddenPowerType, selectedBuild.ivs)} : {})}); }} /></label>)}</div></div>
+                  <div className="editor-section"><div className="editor-section-title">Moves <small>{moveOptions.length} moves in Gen {settings.generation} data</small></div><div className="move-grid">{selectedBuild.moves.map((move,i) => <SearchableField key={i} label={"Move " + (i+1)} value={move} options={moveSearchOptions} placeholder="Search moves or type…" onChange={value => { const moves = selectedBuild.moves.map((m,j) => j===i ? value : m); const hiddenPowerType = settings.generation >= 3 && settings.generation <= 7 ? hiddenPowerTypeFromMove(value) : undefined; patchBuild({moves, ...(hiddenPowerType ? {ivs:ivsForHiddenPowerType(hiddenPowerType, selectedBuild.ivs)} : {})}); }} />)}</div></div>
                   <div className="editor-section"><div className="editor-section-title">Effort values (EVs) <small>510 total maximum</small></div><div className="stat-grid">{statNames.map(stat => <label className="field" key={stat}><span>{stat}</span><div className="stat-input-pair"><input className="stat-range" aria-label={`${stat} EV slider`} type="range" min="0" max="252" step="1" value={selectedBuild.evs[stat]} onChange={e => patchBuild({evs:{...selectedBuild.evs,[stat]:Number(e.target.value)}})} /><input className="stat-number" aria-label={`${stat} EV`} type="number" min="0" max="252" value={selectedBuild.evs[stat]} onChange={e => patchBuild({evs:{...selectedBuild.evs,[stat]:Math.max(0,Math.min(252,Number(e.target.value)||0))}})} /></div></label>)}</div><p className="stat-total">Total EVs: {Object.values(selectedBuild.evs).reduce((a,b)=>a+b,0)} / 510</p></div>
                   <div className="editor-section"><div className="editor-section-title">Individual values (IVs) <small>Hidden Power helper available in Generations 3-7</small></div>{settings.generation >= 3 && settings.generation <= 7 && <label className="field hidden-power-field"><span>Hidden Power type · auto-set IVs</span><select value={hiddenPowerTypeFromIvs(selectedBuild.ivs)} onChange={e => patchBuild({ivs:ivsForHiddenPowerType(e.target.value, selectedBuild.ivs)})}>{hiddenPowerTypes.map(type => <option key={type} value={type}>{type}</option>)}</select><small>Chooses the closest IV combination that produces the selected type, preserving your current IVs where possible.</small></label>}<div className="stat-grid">{statNames.map(stat => <label className="field" key={stat}><span>{stat}</span><div className="stat-input-pair"><input className="stat-range" aria-label={`${stat} IV slider`} type="range" min="0" max="31" step="1" value={selectedBuild.ivs[stat]} onChange={e => patchBuild({ivs:{...selectedBuild.ivs,[stat]:Number(e.target.value)}})} /><input className="stat-number" aria-label={`${stat} IV`} type="number" min="0" max="31" value={selectedBuild.ivs[stat]} onChange={e => patchBuild({ivs:{...selectedBuild.ivs,[stat]:Math.max(0,Math.min(31,Number(e.target.value)||0))}})} /></div></label>)}</div></div>
                   <label className="field build-label-field"><span>Build label</span><input value={selectedBuild.label} placeholder="e.g. Choice Scarf, Defensive, Setup" onChange={e => patchBuild({label:e.target.value})} /></label>

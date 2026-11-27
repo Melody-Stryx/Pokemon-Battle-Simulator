@@ -135,7 +135,7 @@ export async function loadFacilityOpponentPool(generation: number, gameVersion: 
       const moves = Array.isArray(set.moves) ? set.moves.map(String) : [set.move1, set.move2, set.move3, set.move4].filter((move): move is string => typeof move === "string" && Boolean(move.trim()));
       const stats = (input?: Record<string, number>, fallback = 31) => input && Object.keys(input).length ? { hp: Number(input.hp ?? fallback), atk: Number(input.atk ?? fallback), def: Number(input.def ?? fallback), spa: Number(input.spa ?? fallback), spd: Number(input.spd ?? fallback), spe: Number(input.spe ?? fallback) } : undefined;
       return {
-        name: species, species, level: Number(set.level || trainer.level || 50),
+        name: species, species, ...(set.baseSpecies ? { baseSpecies: String(set.baseSpecies) } : {}), level: Number(set.level || trainer.level || 50),
         nature: String(set.nature || "Serious"), ability: String(set.ability || ""),
         item: String(set.item || ""), moves,
         ivs: { ...(stats(trainer.ivs) || { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 }), ...(set.ivs as Record<string, number> | undefined) },
@@ -429,8 +429,8 @@ function createFacilityTeam(pool: Record<string, unknown>[], teamSize = 3): Reco
   const species = new Set<string>();
   const items = new Set<string>();
   for (const set of shuffled) {
-    const speciesId = String(set.species || set.name || "").toLowerCase();
-    const itemId = String(set.item || "").toLowerCase();
+    const speciesId = String(set.baseSpecies || set.species || set.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const itemId = String(set.item || "").toLowerCase().replace(/[^a-z0-9]/g, "");
     if (species.has(speciesId) || (itemId && items.has(itemId))) continue;
     species.add(speciesId);
     if (itemId) items.add(itemId);

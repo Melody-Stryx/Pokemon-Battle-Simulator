@@ -109,6 +109,33 @@ await runUntilEvent({
 
 
 await runUntilEvent({
+  label: "Flash Fire blocks Fire damage and activates",
+  player: [makeSet("Typhlosion", "Blaze", ["Flamethrower"])],
+  opponent: [makeSet("Heatran", "Flash Fire", ["Splash"])],
+  choosePlayer: request => moveOne(request),
+  chooseOpponent: request => moveOne(request),
+  expected: line => line.startsWith("|-immune|p2a: Heatran") && line.includes("Flash Fire"),
+});
+
+await runUntilEvent({
+  label: "Water Absorb heals from Water damage",
+  player: [makeSet("Vaporeon", "Water Absorb", ["Surf"])],
+  opponent: [makeSet("Magikarp", "Swift Swim", ["Splash"])],
+  choosePlayer: request => moveOne(request),
+  chooseOpponent: request => moveOne(request),
+  expected: line => line.startsWith("|-heal|p1a: Vaporeon|") && line.includes("Water Absorb"),
+});
+
+await runUntilEvent({
+  label: "Rough Skin damages contact attackers",
+  player: [makeSet("Rattata", "Run Away", ["Tackle"])],
+  opponent: [makeSet("Garchomp", "Rough Skin", ["Splash"])],
+  choosePlayer: request => moveOne(request),
+  chooseOpponent: request => moveOne(request),
+  expected: line => line.startsWith("|-damage|p1a: Rattata|") && line.includes("Rough Skin"),
+});
+
+await runUntilEvent({
   label: "Levitate blocks Ground-type damage",
   format: "gen3customgame",
   player: [makeSet("Nidoking", "Poison Point", ["Earthquake"])],

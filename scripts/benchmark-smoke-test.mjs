@@ -205,11 +205,11 @@ console.log("Tactical AI mechanic-awareness tests passed: Levitate, hazard layer
 
 const doublesAIChoice = chooseTacticalChoice({
   side: { pokemon: [
-    { details: "Gardevoir, L100", condition: "251/251", active: true, stats: { atk: 150, spa: 300, spe: 100 }, moves: ["Psychic", "Moonblast"] },
+    { details: "Gardevoir, L100", condition: "251/251", active: true, stats: { atk: 150, spa: 300, spe: 100 }, moves: ["Moonblast", "Psychic"] },
     { details: "Garchomp, L100", condition: "357/357", active: true, stats: { atk: 350, spa: 100, spe: 333 }, moves: ["Ice Beam"] },
   ] },
   active: [
-    { moves: [{ move: "Psychic", target: "normal" }, { move: "Moonblast", target: "normal" }] },
+    { moves: [{ move: "Moonblast", target: "normal" }, { move: "Psychic", target: "normal" }] },
     { moves: [{ move: "Ice Beam", target: "normal" }] },
   ],
 }, ["|switch|p2a: Gengar|Gengar, L100|261/261", "|switch|p2b: Magikarp|Magikarp, L100|181/181"], "p1", 9);

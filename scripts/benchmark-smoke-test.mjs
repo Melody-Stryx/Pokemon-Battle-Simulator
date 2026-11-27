@@ -125,11 +125,11 @@ const luxrayRequest = {
   active: [{ moves: [{ move: "Double Kick" }, { move: "Spark" }, { move: "Crunch" }, { move: "Ice Fang" }] }],
 };
 const gen6Cases = [
-  ["Ferrothorn", "move 1"],
-  ["Landorus-Therian", "move 4"],
-  ["Slowbro", "move 2"],
-  ["Clefable", "move 2"],
-  ["Tyranitar", "move 1"],
+  ["Ferrothorn", "move 1 1"],
+  ["Landorus-Therian", "move 4 1"],
+  ["Slowbro", "move 2 1"],
+  ["Clefable", "move 2 1"],
+  ["Tyranitar", "move 1 1"],
 ];
 for (const [foe, expected] of gen6Cases) {
   const choice = chooseTacticalChoice(luxrayRequest, [`|switch|p2a: ${foe}| ${foe}, L100|100/100`.replace("| ", "|")], "p1", 6);

@@ -213,7 +213,7 @@ const doublesAIChoice = chooseTacticalChoice({
     { moves: [{ move: "Ice Beam", target: "normal" }] },
   ],
 }, ["|switch|p2a: Gengar|Gengar, L100|261/261", "|switch|p2b: Magikarp|Magikarp, L100|181/181"], "p1", 9);
-if (doublesAIChoice !== "move 2 1, move 1 1") throw new Error("Tactical choice scoring did not preserve active request order.");
+if (doublesAIChoice !== "move 2 1, move 1 1") throw new Error(`Tactical choice scoring did not preserve active request order: ${doublesAIChoice}`);
 
 const doublesReflectChoice = chooseTacticalChoice({
   side: { pokemon: [

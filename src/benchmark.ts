@@ -407,7 +407,7 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
           } else if (sourceMarker && !sourceMarker.startsWith("[from] move:")) {
             const sourceLabel = sourceMarker.slice("[from] ".length).replace(/^ability: /, "Ability: ").replace(/^item: /, "Item: ");
             addPassiveDamage(analysis, targetSide === "p1" ? "player" : "opponent", sourceLabel, damage);
-          } else if (!source) {
+          } else {
             analysis.unattributedDamage += damage;
           }
           continue;

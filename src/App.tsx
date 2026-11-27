@@ -279,68 +279,23 @@ export default function App() {
   useEffect(() => {
     if (!battleMusicUrl) return;
     let cancelled = false;
-    let active = new Audio(battleMusicUrl);
-    let standby = new Audio();
-    const crossfadeSeconds = 2.5;
-    let fading = false;
-    active.preload = "auto";
-    active.loop = false;
-    active.volume = 0.28;
-    standby.preload = "auto";
-    standby.volume = 0;
+    const audio = new Audio(battleMusicUrl);
+    audio.preload = "auto";
+    audio.loop = true;
+    audio.volume = 0.28;
     const beginPlayback = () => {
-      if (cancelled) return;
-      void active.play().catch(() => {});
+      if (!cancelled && audio.paused) void audio.play().catch(() => {});
     };
-    const onTimeUpdate = () => {
-      if (cancelled || fading || !Number.isFinite(active.duration) || active.duration <= 0) return;
-      if (active.duration - active.currentTime > crossfadeSeconds) return;
-      fading = true;
-      standby.src = battleMusicUrl;
-      standby.currentTime = 0;
-      void standby.play().then(() => {
-        if (cancelled) return;
-        const startedAt = performance.now();
-        const fade = () => {
-          if (cancelled) return;
-          const progress = Math.min(1, (performance.now() - startedAt) / (crossfadeSeconds * 1000));
-          active.volume = 0.28 * (1 - progress);
-          standby.volume = 0.28 * progress;
-          if (progress < 1) requestAnimationFrame(fade);
-          else {
-            active.pause();
-            active.currentTime = 0;
-            const previous = active;
-            active = standby;
-            standby = previous;
-            active.volume = 0.28;
-            standby.volume = 0;
-            fading = false;
-          }
-        };
-        requestAnimationFrame(fade);
-      }).catch(() => { fading = false; });
-    };
-    active.addEventListener("timeupdate", onTimeUpdate);
-    standby.addEventListener("timeupdate", onTimeUpdate);
     beginPlayback();
-    const resumeAfterGesture = () => {
-      if (!cancelled && active.paused) beginPlayback();
-    };
-    window.addEventListener("pointerdown", resumeAfterGesture);
-    window.addEventListener("keydown", resumeAfterGesture);
+    window.addEventListener("pointerdown", beginPlayback);
+    window.addEventListener("keydown", beginPlayback);
     return () => {
       cancelled = true;
-      active.removeEventListener("timeupdate", onTimeUpdate);
-      standby.removeEventListener("timeupdate", onTimeUpdate);
-      active.pause();
-      standby.pause();
-      active.removeAttribute("src");
-      standby.removeAttribute("src");
-      active.load();
-      standby.load();
-      window.removeEventListener("pointerdown", resumeAfterGesture);
-      window.removeEventListener("keydown", resumeAfterGesture);
+      window.removeEventListener("pointerdown", beginPlayback);
+      window.removeEventListener("keydown", beginPlayback);
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
     };
   }, [battleMusicTrack, battleMusicUrl]);
   useEffect(() => { localStorage.setItem("battle-lab-teams", JSON.stringify(teams)); }, [teams]);

@@ -543,7 +543,7 @@ function shuffledCopy<T>(items: T[]): T[] {
   return shuffled;
 }
 
-function createFacilityTeam(pool: Record<string, unknown>[], teamSize = 3): Record<string, unknown>[] {
+export function createFacilityTeam(pool: Record<string, unknown>[], teamSize = 3): Record<string, unknown>[] {
   const shuffled = shuffledCopy(pool);
   const selected: Record<string, unknown>[] = [];
   const species = new Set<string>();

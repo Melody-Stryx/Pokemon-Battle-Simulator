@@ -517,15 +517,16 @@ export default function App() {
     if (singleMode) {
       if (settings.battleType !== "PvP") { setBenchmarkError("1 vs Meta currently requires PvP and a published tier dataset."); return; }
       if (!selected?.build?.name.trim() || !selected.build.moves.some(move => move.trim())) { setBenchmarkError("Select a saved Pokémon build with at least one move."); return; }
-    } else if (!playerTeam || playerTeam.slots.length < (settings.battleType === "PvE" ? (settings.generation === 9 ? 6 : 3) : 1) || playerTeam.slots.length > 6 || !playerTeam.slots.every(slot => {
+    } else if (!playerTeam || playerTeam.slots.length < (settings.battleType === "PvE" ? (settings.generation === 9 ? 6 : settings.generation === 3 && settings.gameVersion === "FireRed / LeafGreen" ? 1 : 3) : 1) || playerTeam.slots.length > 6 || !playerTeam.slots.every(slot => {
       const build = activeBuild(slot); return Boolean(build?.name.trim() && build.moves.some(move => move.trim()));
-    })) { setBenchmarkError(settings.battleType === "PvE" ? (settings.generation === 9 ? "The Academy Ace Tournament requires a complete six-Pokémon team." : "Select a facility roster of 3 to 6 complete Pokémon. Three are selected for each battle.") : "Select a team of 1 to 6 complete Pokémon, each with at least one move."); return; }
+    })) { setBenchmarkError(settings.battleType === "PvE" ? (settings.generation === 9 ? "The Academy Ace Tournament requires a complete six-Pokémon team." : settings.generation === 3 && settings.gameVersion === "FireRed / LeafGreen" ? "Select at least one complete Pokémon for Trainer Tower." : "Select a facility roster of 3 to 6 complete Pokémon. Three are selected for each battle.") : "Select a team of 1 to 6 complete Pokémon, each with at least one move."); return; }
     setBenchmarkBusy(true); setBenchmarkError(""); setSimulationLegalityWarning(""); setBenchmarkProgress(null); setBenchmarkCoverage(null); benchmarkCancel.current = false;
     try {
       const tierFormat = battleFormat();
       const format = singleMode ? `gen${settings.generation}customgame` : tierFormat;
       const rawPlayerSets = singleMode ? [makeBattleSet(selected!.build, settings.generation)] : makeBattleSets(playerTeam!, settings.generation);
-      const playerSets = settings.battleType === "PvE" && settings.generation < 9
+      const isTrainerTower = settings.generation === 3 && settings.gameVersion === "FireRed / LeafGreen";
+      const playerSets = settings.battleType === "PvE" && settings.generation < 9 && !isTrainerTower
         ? rawPlayerSets.map(set => ({ ...set, level: Math.min(50, Number(set.level || 50)) }))
         : rawPlayerSets;
       if (!singleMode && settings.battleType === "PvP") {
@@ -572,7 +573,7 @@ export default function App() {
         benchmarkMode, ...coverage,
       };
       const result = await runExhaustiveBenchmark({
-        format, playerSets, opponents, repetitions: 100, playerSelectionSize: settings.battleType === "PvE" && settings.generation < 9 && !(settings.generation === 3 && settings.gameVersion === "FireRed / LeafGreen") ? 3 : undefined, shouldCancel: () => benchmarkCancel.current,
+        format, playerSets, opponents, repetitions: 100, playerSelectionSize: settings.battleType === "PvE" && settings.generation < 9 && !isTrainerTower ? 3 : undefined, shouldCancel: () => benchmarkCancel.current,
         onProgress: progress => { setBenchmarkProgress(progress); setMatchupRun({ ...meta, ...progress }); },
       });
       setBenchmarkProgress(result); setMatchupRun({ ...meta, ...result });

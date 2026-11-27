@@ -279,75 +279,66 @@ export default function App() {
   useEffect(() => {
     if (!battleMusicUrl) return;
     let cancelled = false;
-    let context: AudioContext | null = null;
-    let timer: number | undefined;
-    const sources = new Set<AudioBufferSourceNode>();
-    const gains = new Set<GainNode>();
+    let active = new Audio(battleMusicUrl);
+    let standby = new Audio();
     const crossfadeSeconds = 2.5;
-    let buffer: AudioBuffer | null = null;
-
-    const startLoop = () => {
-      if (cancelled || !context || !buffer) return;
-      const scheduleTrack = (startAt: number, crossfadeIn: boolean) => {
-        if (cancelled || !context || !buffer) return;
-        const source = context.createBufferSource();
-        const gain = context.createGain();
-        source.buffer = buffer;
-        source.connect(gain);
-        gain.connect(context.destination);
-        const fadeDuration = Math.min(crossfadeSeconds, buffer.duration / 4);
-        gain.gain.setValueAtTime(crossfadeIn ? 0 : 1, startAt);
-        if (crossfadeIn) gain.gain.linearRampToValueAtTime(1, startAt + fadeDuration);
-        gain.gain.setValueAtTime(1, startAt + buffer.duration - fadeDuration);
-        gain.gain.linearRampToValueAtTime(0, startAt + buffer.duration);
-        sources.add(source);
-        gains.add(gain);
-        source.onended = () => {
-          sources.delete(source);
-          gains.delete(gain);
-          source.disconnect();
-          gain.disconnect();
-        };
-        source.start(startAt);
-        const nextStart = startAt + buffer.duration - fadeDuration;
-        const delay = Math.max(0, (nextStart - fadeDuration - context.currentTime) * 1000);
-        timer = window.setTimeout(() => scheduleTrack(nextStart, true), delay);
-      };
-      scheduleTrack(context.currentTime + 0.05, false);
+    let fading = false;
+    active.preload = "auto";
+    active.loop = false;
+    active.volume = 0.28;
+    standby.preload = "auto";
+    standby.volume = 0;
+    const beginPlayback = () => {
+      if (cancelled) return;
+      void active.play().catch(() => {});
     };
-
-    const initialize = async () => {
-      try {
-        context = new AudioContext();
-        const response = await fetch(battleMusicUrl, { mode: "cors" });
-        if (!response.ok) throw new Error(`Music request failed: ${response.status}`);
-        const data = await response.arrayBuffer();
-        buffer = await context.decodeAudioData(data);
+    const onTimeUpdate = () => {
+      if (cancelled || fading || !Number.isFinite(active.duration) || active.duration <= 0) return;
+      if (active.duration - active.currentTime > crossfadeSeconds) return;
+      fading = true;
+      standby.src = battleMusicUrl;
+      standby.currentTime = 0;
+      void standby.play().then(() => {
         if (cancelled) return;
-        startLoop();
-        await context.resume().catch(() => {});
-      } catch (error) {
-        console.error("Background music could not be loaded for seamless playback.", error);
-      }
+        const startedAt = performance.now();
+        const fade = () => {
+          if (cancelled) return;
+          const progress = Math.min(1, (performance.now() - startedAt) / (crossfadeSeconds * 1000));
+          active.volume = 0.28 * (1 - progress);
+          standby.volume = 0.28 * progress;
+          if (progress < 1) requestAnimationFrame(fade);
+          else {
+            active.pause();
+            active.currentTime = 0;
+            const previous = active;
+            active = standby;
+            standby = previous;
+            active.volume = 0.28;
+            standby.volume = 0;
+            fading = false;
+          }
+        };
+        requestAnimationFrame(fade);
+      }).catch(() => { fading = false; });
     };
-    void initialize();
-
+    active.addEventListener("timeupdate", onTimeUpdate);
+    beginPlayback();
     const resumeAfterGesture = () => {
-      if (context?.state === "suspended") void context.resume().catch(() => {});
+      if (!cancelled && active.paused) beginPlayback();
     };
     window.addEventListener("pointerdown", resumeAfterGesture);
     window.addEventListener("keydown", resumeAfterGesture);
     return () => {
       cancelled = true;
-      if (timer !== undefined) window.clearTimeout(timer);
+      active.removeEventListener("timeupdate", onTimeUpdate);
+      active.pause();
+      standby.pause();
+      active.removeAttribute("src");
+      standby.removeAttribute("src");
+      active.load();
+      standby.load();
       window.removeEventListener("pointerdown", resumeAfterGesture);
       window.removeEventListener("keydown", resumeAfterGesture);
-      for (const source of sources) {
-        try { source.stop(); } catch {}
-        source.disconnect();
-      }
-      for (const gain of gains) gain.disconnect();
-      if (context && context.state !== "closed") void context.close();
     };
   }, [battleMusicTrack, battleMusicUrl]);
   useEffect(() => { localStorage.setItem("battle-lab-teams", JSON.stringify(teams)); }, [teams]);

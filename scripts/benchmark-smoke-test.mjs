@@ -31,6 +31,10 @@ try {
 const facilityPaths = {
   "3|Ruby / Sapphire|Battle Tower": "gen3-rs.json",
   "3|Emerald|Battle Frontier": "gen3.json",
+  "3|FireRed / LeafGreen|Trainer Tower - Single Mode": "gen3-frlg-trainer-tower.json",
+  "3|FireRed / LeafGreen|Trainer Tower - Double Mode": "gen3-frlg-trainer-tower.json",
+  "3|FireRed / LeafGreen|Trainer Tower - Knockout Mode": "gen3-frlg-trainer-tower.json",
+  "3|FireRed / LeafGreen|Trainer Tower - Mixed Mode": "gen3-frlg-trainer-tower.json",
   "4|Diamond / Pearl|Battle Tower": "gen4-dp.json",
   "4|Platinum|Battle Frontier": "gen4.json",
   "4|HeartGold / SoulSilver|Battle Frontier": "gen4.json",
@@ -57,6 +61,13 @@ try {
     if (!loaded.opponents.length || loaded.sourceCount < loaded.opponents.length) throw new Error("No usable facility trainers for " + key + " (" + filename + ").");
     const first = loaded.opponents[0];
     if (!first.sets.length || first.sets.some(set => !Array.isArray(set.moves) || !set.moves.length || !set.species)) throw new Error("Incomplete facility sets for " + key + ".");
+    if (Number(generation) === 3 && gameVersion === "FireRed / LeafGreen") {
+      if (!first.fixedTeam || !first.scaleLevelToPlayer) throw new Error("Trainer Tower teams must be fixed and scale to the player's highest level.");
+      if (facility.endsWith("Single Mode") && first.sets.length !== 2) throw new Error("Trainer Tower Single Mode must use its two selected Pokémon per floor.");
+      if (facility.endsWith("Double Mode") && (first.sets.length !== 2 || first.format !== "gen3doublescustomgame")) throw new Error("Trainer Tower Double Mode must use its two trainers in a doubles battle.");
+      if (facility.endsWith("Knockout Mode") && (first.sets.length !== 1 || loaded.opponents.length !== 24)) throw new Error("Trainer Tower Knockout Mode must retain all 24 one-Pokémon trainer battles.");
+      if (facility.endsWith("Mixed Mode") && !loaded.opponents.some(opponent => opponent.format === "gen3doublescustomgame")) throw new Error("Trainer Tower Mixed Mode must preserve its doubles floors.");
+    }
     if (Number(generation) === 9 && (!first.fixedTeam || first.sets.length !== 6)) throw new Error("Academy Ace Tournament must retain fixed six-Pokémon parties.");
     if (Number(generation) === 8 && gameVersion.startsWith("Brilliant") && (!first.fixedTeam || first.sets.length !== 3)) throw new Error("BDSP Master Class must retain fixed three-Pokémon parties.");
     console.log("Facility dataset loaded: " + key + " (" + loaded.opponents.length + "/" + loaded.sourceCount + ", " + loaded.rejected + " rejected).");

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Dex } from "@pkmn/dex";
 import { BattleStreams, TeamValidator, Teams } from "@pkmn/sim";
 import { TacticalPlayerAI, chooseTacticalChoice } from "./pve-ai";
-import { loadCompleteOpponentPool, loadFacilityOpponentPool, loadMetaPokemonPool, runExhaustiveBenchmark, type BenchmarkProgress, type BenchmarkOpponent } from "./benchmark";
+import { createFacilityTeam, loadCompleteOpponentPool, loadFacilityOpponentPool, loadMetaPokemonPool, runExhaustiveBenchmark, type BenchmarkProgress, type BenchmarkOpponent } from "./benchmark";
 
 declare const __BUILD_NUMBER__: string;
 type BattleType = "PvP" | "PvE";
@@ -606,28 +606,30 @@ export default function App() {
       submitBattleChoice(chooseAutomatically(request));
     }
   }, [settings.mode, manualRequest]);
-  const startBattle = () => {
+  const startBattle = async () => {
     const playerId = battlePlayerTeamId || activeTeam?.id || "";
     const opponentId = battleOpponentTeamId || teams.find(team => team.id !== playerId)?.id || "";
     const playerTeam = teams.find(t => t.id === playerId);
     const opponentTeam = teams.find(t => t.id === opponentId);
+    const useFacilityOpponent = settings.battleType === "PvE";
     const useAutoTeams = opponentSource === "Auto Teams";
     const currentPool = onlineOpponentPool.filter(team => team.format === battleFormat());
-    const selectedOnlineOpponent = useAutoTeams && settings.battleType === "PvP" && currentPool.length
+    const selectedOnlineOpponent = !useFacilityOpponent && useAutoTeams && currentPool.length
       ? currentPool[Math.floor(Math.random() * currentPool.length)] : null;
     const useOnlineOpponent = Boolean(selectedOnlineOpponent);
-    if (!playerTeam || (useAutoTeams && !useOnlineOpponent) || (!useAutoTeams && !opponentTeam)) {
-      setBattleError(useAutoTeams && settings.battleType === "PvE"
-        ? "The selected game's facility trainer pool is not connected yet. Choose Saved teams instead."
-        : useAutoTeams ? "Load the Auto Teams pool for this generation and tier first." : "Choose a saved opponent team.");
+    if (!playerTeam || (!useFacilityOpponent && useAutoTeams && !useOnlineOpponent) || (!useFacilityOpponent && !useAutoTeams && !opponentTeam)) {
+      setBattleError(useAutoTeams ? "Load the Auto Teams pool for this generation and tier first." : "Choose a saved player team.");
       return;
     }
-    if (playerTeam.slots.length < 1 || playerTeam.slots.length > 6 || (!useAutoTeams && (opponentTeam!.slots.length < 1 || opponentTeam!.slots.length > 6))) { setBattleError("Each team must contain between 1 and 6 Pokémon."); return; }
+    if (playerTeam.slots.length < 1 || playerTeam.slots.length > 6 || (!useFacilityOpponent && !useAutoOpponent && opponentTeam!.slots.length > 6)) {
+      setBattleError("Each team must contain between 1 and 6 Pokémon.");
+      return;
+    }
     const playerComplete = playerTeam.slots.length > 0 && playerTeam.slots.every(slot => {
       const build = activeBuild(slot);
       return Boolean(build.name.trim() && build.moves.some(move => move.trim()));
     });
-    const opponentComplete = useOnlineOpponent || (Boolean(opponentTeam?.slots.length) && opponentTeam?.slots.every(slot => {
+    const opponentComplete = useFacilityOpponent || useOnlineOpponent || (Boolean(opponentTeam?.slots.length) && opponentTeam?.slots.every(slot => {
       const build = activeBuild(slot);
       return Boolean(build.name.trim() && build.moves.some(move => move.trim()));
     }) === true);
@@ -647,6 +649,24 @@ export default function App() {
     setBattleLog([]);
     setManualRequest(null);
     try {
+      let facilityOpponent: BenchmarkOpponent | null = null;
+      if (useFacilityOpponent) {
+        const loaded = await loadFacilityOpponentPool(settings.generation, settings.gameVersion, settings.facility);
+        if (!loaded.opponents.length) throw new Error("No authentic trainer teams are available for this facility.");
+        facilityOpponent = loaded.opponents[Math.floor(Math.random() * loaded.opponents.length)];
+      }
+      const playerSets = makeBattleSets(playerTeam, settings.generation) as any[];
+      const isTrainerTower = settings.generation === 3 && settings.gameVersion === "FireRed / LeafGreen";
+      const battlePlayerSets = useFacilityOpponent && !isTrainerTower
+        ? createFacilityTeam(playerSets, Math.min(3, playerSets.length))
+        : playerSets;
+      const playerMaxLevel = Math.max(1, ...battlePlayerSets.map(set => Number(set.level) || 100));
+      const rawFacilitySets = facilityOpponent
+        ? facilityOpponent.teamPool?.length ? createFacilityTeam(facilityOpponent.teamPool[0]) : facilityOpponent.sets
+        : [];
+      const facilitySets = facilityOpponent?.scaleLevelToPlayer
+        ? rawFacilitySets.map(set => ({ ...set, level: playerMaxLevel }))
+        : rawFacilitySets;
       const streams = BattleStreams.getPlayerStreams(new BattleStreams.BattleStream());
       const controller: BattleController = { streams, stopped: false };
       battleController.current = controller;
@@ -695,11 +715,13 @@ export default function App() {
           if (!controller.stopped) setBattleError(error instanceof Error ? error.message : "Player input stream failed.");
         }
       })();
-      const formatid = battleFormat();
-      const p1spec = { name: playerTeam.name || "Player", team: Teams.pack(makeBattleSets(playerTeam, settings.generation) as any) };
-      const p2spec = useOnlineOpponent
-        ? { name: selectedOnlineOpponent!.name, team: Teams.pack(selectedOnlineOpponent!.sets as any) }
-        : { name: opponentTeam!.name || "Opponent", team: Teams.pack(makeBattleSets(opponentTeam!, settings.generation) as any) };
+      const formatid = facilityOpponent?.format || battleFormat();
+      const p1spec = { name: playerTeam.name || "Player", team: Teams.pack(battlePlayerSets as any) };
+      const p2spec = facilityOpponent
+        ? { name: facilityOpponent.name, team: Teams.pack(facilitySets as any) }
+        : useOnlineOpponent
+          ? { name: selectedOnlineOpponent!.name, team: Teams.pack(selectedOnlineOpponent!.sets as any) }
+          : { name: opponentTeam!.name || "Opponent", team: Teams.pack(makeBattleSets(opponentTeam!, settings.generation) as any) };
       void streams.omniscient.write(`>start ${JSON.stringify({ formatid })}
 >player p1 ${JSON.stringify(p1spec)}
 >player p2 ${JSON.stringify(p2spec)}`);

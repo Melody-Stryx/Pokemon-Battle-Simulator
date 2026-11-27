@@ -36,7 +36,7 @@ function getFoe(log: string[], ownSide: SideID, generationForAbilityInference: n
     const p = line.split("|");
     if (["switch", "drag", "replace"].includes(p[1]) && p[2]?.startsWith(foeSide)) {
       const foeSpecies = species(speciesName({ details: p[3], ident: p[2] }), generationForAbilityInference);
-      const abilityOptions = foeSpecies?.abilities ? [...new Set(Object.values(foeSpecies.abilities).filter(Boolean))] : [];
+      const abilityOptions: string[] = foeSpecies?.abilities ? [...new Set(Object.values(foeSpecies.abilities).map(value => String(value)).filter(Boolean))] : [];
       foe = {
         species: speciesName({ details: p[3], ident: p[2] }),
         hp: hpRatio({ condition: p[4] }),

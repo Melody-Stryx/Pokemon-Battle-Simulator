@@ -675,13 +675,13 @@ export default function App() {
       let skippedTeams: BenchmarkSkipDiagnostic[] = [];
       if (singleMode) {
         const dataset = await loadMetaPokemonPool(tierFormat);
-        opponents = dataset.opponents; sourceCount = dataset.sourceCount; rejected = dataset.rejected; skippedTeams = dataset.skippedTeams; sourceUrl = dataset.sourceUrl;
+        opponents = dataset.opponents; sourceCount = dataset.sourceCount; rejected = dataset.rejected; sourceUrl = dataset.sourceUrl;
       } else if (settings.battleType === "PvE") {
         const dataset = await loadFacilityOpponentPool(settings.generation, settings.gameVersion, settings.facility);
         opponents = dataset.opponents; sourceCount = dataset.sourceCount; rejected = dataset.rejected; sourceUrl = dataset.sourceUrl;
       } else if (opponentSource === "Auto Teams") {
         const dataset = await loadCompleteOpponentPool(format);
-        opponents = dataset.opponents; sourceCount = dataset.sourceCount; rejected = dataset.rejected; sourceUrl = dataset.sourceUrl;
+        opponents = dataset.opponents; sourceCount = dataset.sourceCount; rejected = dataset.rejected; skippedTeams = dataset.skippedTeams; sourceUrl = dataset.sourceUrl;
       } else {
         const otherTeams = teams.filter(team => team.id !== playerTeam!.id);
         sourceCount = otherTeams.length;

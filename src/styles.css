@@ -469,7 +469,9 @@ button.roadmap-row:hover { background: rgba(255,255,255,.025); }
   min-height:34px; padding:0 12px; border:1px solid #465363; border-radius:4px;
   color:#dce5f1; background:#252d38; font:600 10px 'DM Sans'; cursor:pointer;
 }
-.music-toggle.active { border-color:#718eaf; color:#fff; background:#35485e; }
+.music-select-wrap { display:inline-flex; align-items:center; }
+.music-toggle { min-width:132px; }
+.music-toggle:focus-visible { outline:2px solid #8eabc9; outline-offset:2px; }
 .google-login-button { color:#aeb6c3; background:#20242b; }
 .google-login-button:hover { border-color:#718eaf; color:#fff; }
 .account-error { margin:12px 0; padding:10px 12px; border:1px solid #8a4545; border-radius:4px; color:#ffb6b6; background:#3a2024; font-size:12px; }

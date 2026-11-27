@@ -6,6 +6,7 @@ export type BenchmarkOpponent = {
   name: string;
   author?: string;
   sets: Record<string, unknown>[];
+  teamPool?: Record<string, unknown>[][];
 };
 
 export type MoveDamageSummary = { move: string; damage: number; hits: number; uses: number };
@@ -92,6 +93,61 @@ export async function loadCompleteOpponentPool(format: string): Promise<{
     });
   }
   return { opponents, sourceCount: samples.length, rejected, sourceUrl: `${base}/${format}.json` };
+}
+
+type FacilityDataset = {
+  generation: number;
+  trainers: Array<{ name: string; trainerClass: string; pokemon: string[] }>;
+  pokemon: Array<Record<string, unknown> & { name: string; species: string }>;
+};
+
+export async function loadFacilityOpponentPool(generation: number, gameVersion: string, facility: string): Promise<{
+  opponents: BenchmarkOpponent[];
+  sourceCount: number;
+  rejected: number;
+  sourceUrl: string;
+}> {
+  const supported: Record<number, { version: string; facility: string; url: string }> = {
+    3: { version: "Emerald", facility: "Battle Frontier", url: "/data/facilities/gen3.json" },
+    4: { version: "HeartGold / SoulSilver", facility: "Battle Frontier", url: "/data/facilities/gen4.json" },
+    5: { version: "Black / White", facility: "Battle Subway", url: "/data/facilities/gen5.json" },
+  };
+  const source = supported[generation];
+  if (!source || source.version !== gameVersion || source.facility !== facility) {
+    throw new Error(`Authentic trainer data is not yet available for Generation ${generation} ${gameVersion} ${facility}. The simulator will not substitute saved teams or fabricate opponents.`);
+  }
+  const response = await fetch(source.url);
+  if (!response.ok) throw new Error(`Could not load the Generation ${generation} facility dataset (HTTP ${response.status}).`);
+  const dataset = await response.json() as FacilityDataset;
+  const setsByName = new Map(dataset.pokemon.map(set => [String(set.name).toLowerCase(), set]));
+  const opponents: BenchmarkOpponent[] = [];
+  let rejected = 0;
+  for (const trainer of dataset.trainers) {
+    const pool = trainer.pokemon.map(name => setsByName.get(name.toLowerCase())).filter((set): set is FacilityDataset["pokemon"][number] => Boolean(set));
+    if (pool.length < 3) { rejected++; continue; }
+    const teamPool: Record<string, unknown>[][] = [];
+    // Store the trainer's real selectable Pokémon pool. A fresh legal three-Pokémon
+    // roster is drawn for each battle, rather than treating the entire pool as a team.
+    const uniqueSpecies = new Set(pool.map(set => String(set.species).toLowerCase()));
+    if (uniqueSpecies.size < 3) { rejected++; continue; }
+    const converted = pool.map(set => ({
+      name: String(set.species),
+      species: String(set.species),
+      level: 50,
+      nature: String(set.nature || "Serious"),
+      item: String(set.item || ""),
+      moves: [set.move1, set.move2, set.move3, set.move4].filter(value => typeof value === "string" && value.trim()).map(String),
+      ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+      evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+    }));
+    opponents.push({
+      id: `facility-${generation}-${trainer.name}-${opponents.length}`,
+      name: `${trainer.trainerClass} ${trainer.name}`,
+      sets: converted.slice(0, 3),
+      teamPool: [converted],
+    });
+  }
+  return { opponents, sourceCount: dataset.trainers.length, rejected, sourceUrl: source.url };
 }
 
 export async function loadMetaPokemonPool(format: string): Promise<{
@@ -350,6 +406,24 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
   }
 }
 
+function createFacilityTeam(pool: Record<string, unknown>[]): Record<string, unknown>[] {
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  const selected: Record<string, unknown>[] = [];
+  const species = new Set<string>();
+  const items = new Set<string>();
+  for (const set of shuffled) {
+    const speciesId = String(set.species || set.name || "").toLowerCase();
+    const itemId = String(set.item || "").toLowerCase();
+    if (species.has(speciesId) || (itemId && items.has(itemId))) continue;
+    species.add(speciesId);
+    if (itemId) items.add(itemId);
+    selected.push(set);
+    if (selected.length === 3) break;
+  }
+  if (selected.length !== 3) throw new Error("Facility trainer pool could not produce a legal three-Pokémon roster.");
+  return selected;
+}
+
 export async function runExhaustiveBenchmark(args: {
   format: string;
   playerSets: Record<string, unknown>[];
@@ -366,7 +440,8 @@ export async function runExhaustiveBenchmark(args: {
     const result: BenchmarkResult = { opponentId: opponent.id, opponentName: opponent.name, wins: 0, losses: 0, ties: 0, games: 0, analysis: emptyAnalysis() };
     for (let repetition = 0; repetition < args.repetitions; repetition++) {
       if (args.shouldCancel()) return { completed, total, wins, losses, ties, currentOpponent: opponent.name, results, analysis };
-      const battle = await playOneBattle(args.format, args.playerSets, opponent.sets);
+      const battleTeam = opponent.teamPool?.length ? createFacilityTeam(opponent.teamPool[0]) : opponent.sets;
+      const battle = await playOneBattle(args.format, args.playerSets, battleTeam);
       const outcome = battle.outcome;
       result[outcome === "win" ? "wins" : outcome === "loss" ? "losses" : "ties"]++;
       result.games++;

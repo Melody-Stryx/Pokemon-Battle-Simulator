@@ -81,7 +81,11 @@ function readMatchupRun(): MatchupAnalysisRun | null {
   try { const value = localStorage.getItem("battle-lab-matchup-results"); return value ? JSON.parse(value) as MatchupAnalysisRun : null; }
   catch { return null; }
 }
-const defaultBattleMusicUrl = "https://nu.vgmtreasurechest.com/soundtracks/pokemon-heartgold-and-soulsilver/nyaijyqjri/15.%20Pok%C3%A9mon%20Center.mp3";
+const battleMusicTracks = [
+  { id: "off", name: "Music off", url: "" },
+  { id: "pokecenter", name: "PokéCenter", url: "https://nu.vgmtreasurechest.com/soundtracks/pokemon-heartgold-and-soulsilver/nyaijyqjri/15.%20Pok%C3%A9mon%20Center.mp3" },
+  { id: "accumula-town", name: "Accumula Town", url: "https://nu.vgmtreasurechest.com/soundtracks/pokemon-black-white-expanded-resequenced-2010/pafuxcmfpm/1-19.%20Accumula%20Town.mp3" },
+] as const;
 const statNames = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"];
 const hiddenPowerTypes = ["Fighting","Flying","Poison","Ground","Rock","Bug","Ghost","Steel","Fire","Water","Grass","Electric","Psychic","Ice","Dragon","Dark"];
 function hiddenPowerTypeFromMove(move: string) {
@@ -258,24 +262,28 @@ export default function App() {
   const [teamTextOpen, setTeamTextOpen] = useState(false);
   const [teamText, setTeamText] = useState("");
   const [teamTextError, setTeamTextError] = useState("");
-  const [battleMusicEnabled, setBattleMusicEnabled] = useState(() => localStorage.getItem("battle-lab-music-enabled") !== "false");
-  const battleMusicUrl = defaultBattleMusicUrl;
+  const [battleMusicTrack, setBattleMusicTrack] = useState(() => {
+    const saved = localStorage.getItem("battle-lab-music-track");
+    if (saved && battleMusicTracks.some(track => track.id === saved)) return saved;
+    return localStorage.getItem("battle-lab-music-enabled") === "false" ? "off" : "pokecenter";
+  });
+  const battleMusicUrl = battleMusicTracks.find(track => track.id === battleMusicTrack)?.url || "";
   const battleMusicRef = useRef<HTMLAudioElement | null>(null);
   const battleController = useRef<BattleController | null>(null);
   const battleModeRef = useRef(settings.mode);
   useEffect(() => { localStorage.setItem("battle-lab-settings", JSON.stringify(settings)); }, [settings]);
   useEffect(() => { battleModeRef.current = settings.mode; }, [settings.mode]);
-  useEffect(() => { localStorage.setItem("battle-lab-music-enabled", String(battleMusicEnabled)); }, [battleMusicEnabled]);
+  useEffect(() => { localStorage.setItem("battle-lab-music-track", battleMusicTrack); localStorage.setItem("battle-lab-music-enabled", String(battleMusicTrack !== "off")); }, [battleMusicTrack]);
   useEffect(() => {
     const audio = battleMusicRef.current;
     if (!audio) return;
+    if (!battleMusicUrl) { audio.pause(); audio.removeAttribute("src"); audio.load(); return; }
     audio.src = battleMusicUrl;
     audio.loop = true;
     audio.volume = 0.28;
-    if (battleMusicEnabled) void audio.play().catch(() => {});
-    else audio.pause();
+    void audio.play().catch(() => {});
     const resumeAfterGesture = () => {
-      if (battleMusicEnabled && audio.paused) void audio.play().catch(() => {});
+      if (battleMusicTrack !== "off" && audio.paused) void audio.play().catch(() => {});
     };
     window.addEventListener("pointerdown", resumeAfterGesture);
     window.addEventListener("keydown", resumeAfterGesture);
@@ -284,7 +292,7 @@ export default function App() {
       window.removeEventListener("keydown", resumeAfterGesture);
       audio.pause();
     };
-  }, [battleMusicEnabled, battleMusicUrl]);
+  }, [battleMusicTrack, battleMusicUrl]);
   useEffect(() => { localStorage.setItem("battle-lab-teams", JSON.stringify(teams)); }, [teams]);
   useEffect(() => {
     let mounted = true;
@@ -938,7 +946,7 @@ export default function App() {
         <div className="sidebar-note"><span className="status-dot" /><span>Local workspace</span></div>
       </aside>
       <section className="main-content">
-        <header className="topbar"><div><div className="eyebrow">POKÉMON TEAM TESTING</div><h1>{activePage}</h1></div><div className="topbar-actions"><button type="button" className={battleMusicEnabled ? "music-toggle active" : "music-toggle"} aria-pressed={battleMusicEnabled} onClick={() => setBattleMusicEnabled(enabled => !enabled)} title={battleMusicEnabled ? "Turn Pokémon Center music off" : "Turn Pokémon Center music on"}>{battleMusicEnabled ? "♫ Music on" : "♫ Music off"}</button><button type="button" className="google-login-button" onClick={async () => { setAuthError(""); if (user) { const { error } = await supabase.auth.signOut(); if (error) setAuthError(error.message); } else { const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin, queryParams: { prompt: "select_account" } } }); if (error) setAuthError(error.message); } }} title={user ? "Sign out of your account" : "Sign in with Google"}>{user ? "Sign out" : "Sign in with Google"}</button><div className="topbar-tag">BUILD <span>{__BUILD_NUMBER__}</span></div></div></header>
+        <header className="topbar"><div><div className="eyebrow">POKÉMON TEAM TESTING</div><h1>{activePage}</h1></div><div className="topbar-actions"><label className="music-select-wrap"><span className="sr-only">Background music</span><select className="music-toggle" aria-label="Background music" value={battleMusicTrack} onChange={event => setBattleMusicTrack(event.target.value)}>{battleMusicTracks.map(track => <option key={track.id} value={track.id}>{track.name}</option>)}</select></label><button type="button" className="google-login-button" onClick={async () => { setAuthError(""); if (user) { const { error } = await supabase.auth.signOut(); if (error) setAuthError(error.message); } else { const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin, queryParams: { prompt: "select_account" } } }); if (error) setAuthError(error.message); } }} title={user ? "Sign out of your account" : "Sign in with Google"}>{user ? "Sign out" : "Sign in with Google"}</button><div className="topbar-tag">BUILD <span>{__BUILD_NUMBER__}</span></div></div></header>
         {authError && <div className="account-error" role="alert">{authError}</div>}
         {activePage === "Overview" && <>
           <section className="intro"><div><div className="eyebrow">SIMULATION SETUP</div><h2>Configure your ruleset.</h2><p>Choose a generation and battle environment. Your settings are saved on this device.</p></div><div className="intro-symbol" aria-hidden="true">◈</div></section>

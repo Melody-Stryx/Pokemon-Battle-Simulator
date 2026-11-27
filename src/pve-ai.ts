@@ -216,22 +216,10 @@ export function chooseTacticalChoice(request: RequestView, log: string[], side: 
         continue;
       }
     }
-    const moveData = move(bestMove.option.move, generation) as any;
-    const moveTarget = String(moveData?.target || "");
-    const targetlessEffects = new Set([
-      "reflect", "lightscreen", "safeguard", "mist", "tailwind", "auroraveil", "luckychant",
-      "stealthrock", "spikes", "toxicspikes", "stickyweb", "trickroom", "gravity", "wonderroom", "magicroom",
-      "raindance", "sunnyday", "sandstorm", "hail", "snowscape", "electricterrain", "grassyterrain", "mistyterrain", "psychicterrain",
-      "wideguard", "quickguard", "craftyshield", "matblock",
-    ]);
-    const moveId = toID(String((bestMove.option as any).id || bestMove.option.move));
-    const isFieldOrSideCondition = Boolean(moveData?.sideCondition || moveData?.pseudoWeather || moveData?.weather || moveData?.terrain) || targetlessEffects.has(moveId);
-    if (moveId === "reflect") console.log("[TacticalPlayerAI] Reflect target debug", { moveTarget, sideCondition: moveData?.sideCondition, targetless: targetlessEffects.has(moveId), activeCount: request.active.length });
-    const needsExplicitTarget = request.active.length > 1 && !isFieldOrSideCondition && ["normal", "adjacentFoe", "any", "adjacentAlly", "adjacentAllyOrSelf"].includes(moveTarget);
-    const targetLocation = moveTarget === "adjacentAlly" || moveTarget === "adjacentAllyOrSelf" ? (i === 0 ? -2 : -1) : 1;
-    let choice = `move ${bestMove.slot}${needsExplicitTarget && moveId !== "reflect" ? ` ${targetLocation}` : ""}`;
-    if (needsExplicitTarget) console.log("[TacticalPlayerAI] explicit target", { move: bestMove.option.move, moveId, moveTarget, choice });
-    if (moveId === "reflect") console.log("[TacticalPlayerAI] Reflect choice", choice);
+    // Let the battle engine resolve the default legal target. The active request
+    // order can change after switches in doubles, so appending a positional target
+    // can accidentally target a different move slot and invalidate side-condition moves.
+    let choice = `move ${bestMove.slot}`;
     if (active.canMegaEvo) choice += " mega";
     else if (active.canDynamax && (hpRatio(own) < 0.65 || bestMove.score >= 100)) choice += " dynamax";
     else if (active.canTerastallize && foe && bestMove.score >= 95) choice += " terastallize";
@@ -250,7 +238,7 @@ export class TacticalPlayerAI extends RandomPlayerAI {
   override receiveRequest(request: any) {
     if (request.wait) return;
     const choice = chooseTacticalChoice(request as RequestView, this.log, this.side, this.generation);
-    console.log("[TacticalPlayerAI] request choice", this.side, request.active?.map((active: any) => active.moves?.map((move: any) => move.move)), choice);
+    console.log("[TacticalPlayerAI] request choice", this.side, choice);
     this.choose(choice);
   }
 }

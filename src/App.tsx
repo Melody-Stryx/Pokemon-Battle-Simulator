@@ -613,6 +613,8 @@ export default function App() {
     const playerTeam = teams.find(t => t.id === playerId);
     const opponentTeam = teams.find(t => t.id === opponentId);
     const useFacilityOpponent = settings.battleType === "PvE";
+    const isTrainerTower = settings.generation === 3 && settings.gameVersion === "FireRed / LeafGreen";
+    const minPlayerCount = useFacilityOpponent ? (settings.generation === 9 ? 6 : isTrainerTower ? 1 : 3) : 1;
     const useAutoTeams = opponentSource === "Auto Teams";
     const currentPool = onlineOpponentPool.filter(team => team.format === battleFormat());
     const selectedOnlineOpponent = !useFacilityOpponent && useAutoTeams && currentPool.length
@@ -622,8 +624,8 @@ export default function App() {
       setBattleError(useAutoTeams ? "Load the Auto Teams pool for this generation and tier first." : "Choose a saved player team.");
       return;
     }
-    if (playerTeam.slots.length < 1 || playerTeam.slots.length > 6 || (!useFacilityOpponent && !useAutoTeams && (opponentTeam!.slots.length < 1 || opponentTeam!.slots.length > 6))) {
-      setBattleError("Each team must contain between 1 and 6 Pokémon.");
+    if (playerTeam.slots.length < minPlayerCount || playerTeam.slots.length > 6 || (!useFacilityOpponent && !useAutoTeams && (opponentTeam!.slots.length < 1 || opponentTeam!.slots.length > 6))) {
+      setBattleError(useFacilityOpponent ? `This facility requires at least ${minPlayerCount} player Pokémon.` : "Each team must contain between 1 and 6 Pokémon.");
       return;
     }
     const playerComplete = playerTeam.slots.length > 0 && playerTeam.slots.every(slot => {
@@ -657,7 +659,6 @@ export default function App() {
         facilityOpponent = loaded.opponents[Math.floor(Math.random() * loaded.opponents.length)];
       }
       const playerSets = makeBattleSets(playerTeam, settings.generation) as any[];
-      const isTrainerTower = settings.generation === 3 && settings.gameVersion === "FireRed / LeafGreen";
       const battlePlayerSets = useFacilityOpponent && settings.generation < 9 && !isTrainerTower
         ? createFacilityTeam(playerSets, Math.min(3, playerSets.length))
         : playerSets;

@@ -322,6 +322,7 @@ export default function App() {
       }).catch(() => { fading = false; });
     };
     active.addEventListener("timeupdate", onTimeUpdate);
+    standby.addEventListener("timeupdate", onTimeUpdate);
     beginPlayback();
     const resumeAfterGesture = () => {
       if (!cancelled && active.paused) beginPlayback();
@@ -331,6 +332,7 @@ export default function App() {
     return () => {
       cancelled = true;
       active.removeEventListener("timeupdate", onTimeUpdate);
+      standby.removeEventListener("timeupdate", onTimeUpdate);
       active.pause();
       standby.pause();
       active.removeAttribute("src");

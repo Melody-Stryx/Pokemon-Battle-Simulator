@@ -635,3 +635,167 @@ button.roadmap-row:hover { background: rgba(255,255,255,.025); }
   .editor-heading { flex-direction:column; }
   .editor-heading .team-actions { width:100%; }
 }
+
+
+/* Showdown-inspired team set overview and focused searchable fields */
+.showdown-set-overview {
+  margin: 18px 0 20px;
+  padding: 15px 0 18px;
+  border-top: 1px solid #3a404a;
+  border-bottom: 1px solid #3a404a;
+}
+.showdown-set-overview-heading {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:11px;
+}
+.showdown-set-overview-heading > div { display:flex; align-items:baseline; gap:10px; }
+.showdown-set-overview-heading > div > strong { color:#b8c2d0; font:10px 'DM Mono'; }
+.showdown-set-list {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;
+}
+.showdown-set-card {
+  display:flex;
+  align-items:stretch;
+  min-width:0;
+  overflow:hidden;
+  border:1px solid #3b4654;
+  border-radius:5px;
+  background:#20262f;
+}
+.showdown-set-card.selected {
+  border-color:#83a9d7;
+  background:#293646;
+  box-shadow:inset 3px 0 #83a9d7;
+}
+.showdown-set-card.empty {
+  min-height:72px;
+  align-items:center;
+  padding:8px 11px;
+  border-style:dashed;
+  color:#aeb8c7;
+  text-align:left;
+}
+.showdown-set-card.empty:disabled { opacity:.45; cursor:default; }
+.showdown-set-card.empty > span:nth-child(2) { display:grid; gap:4px; }
+.showdown-set-card.empty small { color:var(--muted); font-size:9px; }
+.showdown-set-card.empty > b { margin-left:auto; font-size:19px; font-weight:400; }
+.showdown-set-main {
+  display:flex;
+  align-items:center;
+  gap:9px;
+  flex:1;
+  min-width:0;
+  padding:9px;
+  border:0;
+  color:inherit;
+  background:transparent;
+  text-align:left;
+  cursor:pointer;
+}
+.showdown-set-number {
+  display:grid;
+  place-items:center;
+  flex:0 0 25px;
+  width:25px;
+  height:25px;
+  border-radius:3px;
+  color:#dce7f4;
+  background:#414b59;
+  font:11px 'DM Mono';
+}
+.showdown-set-copy {
+  display:grid;
+  flex:1;
+  min-width:0;
+  gap:4px;
+}
+.showdown-set-copy strong {
+  display:flex;
+  align-items:baseline;
+  flex-wrap:wrap;
+  gap:6px;
+  color:#f0f3f8;
+  font-size:11px;
+}
+.showdown-set-copy small {
+  overflow:hidden;
+  color:#aeb8c7;
+  font-size:9px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.showdown-set-copy .set-species-name { color:#8190a3; }
+.showdown-set-copy .set-moves { color:#c6d3e2; }
+.set-type-tags { display:flex; flex-wrap:wrap; gap:3px; }
+.set-type-tags .type-tag { padding:3px 5px; font-size:8px; }
+.set-edit-label {
+  align-self:center;
+  color:#91b3dc;
+  font-size:9px;
+  white-space:nowrap;
+}
+.showdown-set-tools {
+  display:flex;
+  flex:0 0 25px;
+  flex-direction:column;
+  border-left:1px solid #3a4653;
+}
+.showdown-set-tools button {
+  flex:1;
+  min-height:20px;
+  padding:0;
+  border:0;
+  color:#aebbd0;
+  background:transparent;
+  font-size:10px;
+}
+.showdown-set-tools button:hover:not(:disabled) { color:white; background:#3a4656; }
+.showdown-set-tools button:disabled { opacity:.2; cursor:default; }
+.search-field-control { position:relative; }
+.search-field-control > input { width:100%; }
+.search-field-results {
+  position:absolute;
+  z-index:30;
+  top:calc(100% + 3px);
+  left:0;
+  right:0;
+  max-height:260px;
+  overflow-y:auto;
+  padding:4px;
+  border:1px solid #56677d;
+  border-radius:5px;
+  background:#171c24;
+  box-shadow:0 10px 24px #0008;
+}
+.search-field-results button {
+  display:grid;
+  width:100%;
+  gap:3px;
+  padding:8px 9px;
+  border:0;
+  border-radius:3px;
+  color:#e7edf5;
+  background:transparent;
+  text-align:left;
+  cursor:pointer;
+}
+.search-field-results button:hover,
+.search-field-results button[aria-selected="true"] { background:#34465d; }
+.search-field-results button strong { font-size:10px; }
+.search-field-results button small { color:#aebbd0; font-size:9px; line-height:1.35; }
+.field-search-wrap { min-width:0; }
+.field-search-wrap > .hint { display:block; margin-top:4px; }
+@media(max-width:850px) {
+  .showdown-set-list { grid-template-columns:minmax(0,1fr); }
+}
+@media(max-width:650px) {
+  .showdown-set-overview-heading { align-items:flex-start; flex-direction:column; }
+  .showdown-set-main { gap:7px; padding:8px 7px; }
+  .set-type-tags { display:none; }
+  .set-edit-label { font-size:8px; }
+}

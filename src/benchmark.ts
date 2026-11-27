@@ -483,16 +483,18 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
           const targetName = namesByIdent.get(target) || identName(target);
           const targetSummary = targetSide === "p1" ? analysis.player : analysis.opponent;
           addPokemonDamage(targetSummary, targetName, 0, damage);
+          const isPassiveSource = Boolean(sourceMarker && !sourceMarker.startsWith("[from] move:"));
+          if (isPassiveSource) {
+            let sourceLabel = sourceMarker!.slice("[from] ".length).replace(/^ability: /, "Ability: ").replace(/^item: /, "Item: ");
+            if (sourceLabel === "psn" && /\\btox\\b/.test(String(parts[3] || ""))) sourceLabel = "Bad poison";
+            addPassiveDamage(analysis, targetSide === "p1" ? "player" : "opponent", sourceLabel, damage);
+          }
           if (source && source.ident.slice(0, 2) !== targetSide) {
             const sourceName = namesByIdent.get(source.ident) || identName(source.ident);
             const sourceSummary = source.ident.slice(0, 2) === "p1" ? analysis.player : analysis.opponent;
             addPokemonDamage(sourceSummary, sourceName, damage, 0, moveName || undefined);
             if (moveName) addMoveDamage(sourceSummary, moveName, damage);
-          } else if (sourceMarker && !sourceMarker.startsWith("[from] move:")) {
-            let sourceLabel = sourceMarker.slice("[from] ".length).replace(/^ability: /, "Ability: ").replace(/^item: /, "Item: ");
-            if (sourceLabel === "psn" && /\\btox\\b/.test(String(parts[3] || ""))) sourceLabel = "Bad poison";
-            addPassiveDamage(analysis, targetSide === "p1" ? "player" : "opponent", sourceLabel, damage);
-          } else {
+          } else if (!isPassiveSource) {
             analysis.unattributedDamage += damage;
           }
           continue;

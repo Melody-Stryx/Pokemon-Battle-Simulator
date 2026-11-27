@@ -871,3 +871,24 @@ button.roadmap-row:hover { background: rgba(255,255,255,.025); }
   .team-room-header > .team-actions { width:100%; }
   .pokemon-fields,.move-grid { grid-template-columns:1fr; }
 }
+
+
+/* Team folders and full Dex filtering */
+.team-folder-tools { display:grid; gap:8px; margin:10px 0; }
+.team-folder-tools > label { display:grid; gap:4px; color:#aeb8c7; font-size:9px; }
+.team-folder-tools select,.team-library-row > select {
+  min-width:0; height:30px; padding:0 7px; border:1px solid #46505e; border-radius:3px;
+  color:#e8edf5; background:#171b21; font-size:10px;
+}
+.new-folder-control { display:flex; gap:5px; }
+.new-folder-control input { min-width:0; width:100%; height:30px; padding:0 8px; border:1px solid #46505e; border-radius:3px; color:#e8edf5; background:#171b21; font-size:10px; }
+.new-folder-control button { flex:0 0 auto; }
+.team-library-row { display:grid; grid-template-columns:minmax(0,1fr) 92px; gap:5px; align-items:center; }
+.team-library-row .team-list-item { display:flex; width:100%; min-width:0; align-items:center; justify-content:space-between; text-align:left; }
+.team-library-row > select { width:100%; font-size:9px; }
+.search-field-results { max-height:340px; }
+.search-filter-row { position:sticky; top:-4px; z-index:2; display:flex; flex-wrap:wrap; gap:5px; padding:5px; margin:-4px -4px 4px; border-bottom:1px solid #465363; background:#202833; }
+.search-filter-row > div { display:grid; flex:1 1 90px; min-width:0; gap:3px; color:#aebbd0; font-size:8px; }
+.search-filter-row select { width:100%; min-width:0; height:27px; padding:0 5px; border:1px solid #46505e; border-radius:3px; color:#e8edf5; background:#171b21; font-size:9px; }
+.search-no-results { padding:9px; margin:0; color:#aeb8c7; font-size:10px; }
+@media(max-width:480px) { .team-library-row { grid-template-columns:minmax(0,1fr) 82px; } .new-folder-control { flex-wrap:wrap; } }

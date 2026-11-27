@@ -16,13 +16,49 @@ const compiledBenchmark = ts.transpileModule(benchmarkSource, {
 const benchmarkModuleUrl = new URL("../src/.benchmark-smoke-runtime.mjs", import.meta.url);
 await writeFile(benchmarkModuleUrl, compiledBenchmark);
 let runExhaustiveBenchmark;
+let loadFacilityOpponentPool;
 let chooseTacticalChoice;
 try {
   ({ chooseTacticalChoice } = await import(aiModuleUrl.href));
-  ({ runExhaustiveBenchmark } = await import(benchmarkModuleUrl.href));
+  ({ runExhaustiveBenchmark, loadFacilityOpponentPool } = await import(benchmarkModuleUrl.href));
 } finally {
   await unlink(benchmarkModuleUrl);
   await unlink(aiModuleUrl);
+}
+
+
+const facilityPaths = {
+  "3|Ruby / Sapphire|Battle Tower": "gen3-rs.json",
+  "3|Emerald|Battle Frontier": "gen3.json",
+  "4|Diamond / Pearl|Battle Tower": "gen4-dp.json",
+  "4|HeartGold / SoulSilver|Battle Frontier": "gen4.json",
+  "5|Black / White|Battle Subway": "gen5.json",
+  "6|X / Y|Battle Maison": "gen6.json",
+  "7|Sun / Moon|Battle Tree": "gen7-sm.json",
+  "7|Ultra Sun / Ultra Moon|Battle Tree": "gen7-usum.json",
+  "8|Sword / Shield|Battle Tower": "gen8-swsh.json",
+  "8|Brilliant Diamond / Shining Pearl|Battle Tower": "gen8-bdsp.json",
+  "9|Scarlet / Violet|Academy Ace Tournament": "gen9.json",
+};
+const originalFetch = globalThis.fetch;
+globalThis.fetch = async input => {
+  const filename = String(input).split("/").pop();
+  const data = await readFile(new URL("../public/data/facilities/" + filename, import.meta.url), "utf8");
+  return new Response(data, { status: 200, headers: { "content-type": "application/json" } });
+};
+try {
+  for (const [key, filename] of Object.entries(facilityPaths)) {
+    const [generation, gameVersion, facility] = key.split("|");
+    const loaded = await loadFacilityOpponentPool(Number(generation), gameVersion, facility);
+    if (!loaded.opponents.length || loaded.sourceCount < loaded.opponents.length) throw new Error("No usable facility trainers for " + key + " (" + filename + ").");
+    const first = loaded.opponents[0];
+    if (!first.sets.length || first.sets.some(set => !Array.isArray(set.moves) || !set.moves.length || !set.species)) throw new Error("Incomplete facility sets for " + key + ".");
+    if (Number(generation) === 9 && (!first.fixedTeam || first.sets.length !== 6)) throw new Error("Academy Ace Tournament must retain fixed six-Pokémon parties.");
+    if (Number(generation) === 8 && gameVersion.startsWith("Brilliant") && (!first.fixedTeam || first.sets.length !== 3)) throw new Error("BDSP Master Class must retain fixed three-Pokémon parties.");
+    console.log("Facility dataset loaded: " + key + " (" + loaded.opponents.length + "/" + loaded.sourceCount + ", " + loaded.rejected + " rejected).");
+  }
+} finally {
+  globalThis.fetch = originalFetch;
 }
 
 const makeTeam = (species, move, ability) => Array.from({ length: 6 }, (_, index) => ({

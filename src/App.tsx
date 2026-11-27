@@ -12,7 +12,11 @@ type Page = "Overview" | "Team Builder" | "Legality analysis" | "Simulator" | "M
 const generations = Array.from({ length: 9 }, (_, i) => i + 1);
 const tiers = ["Anything Goes", "Ubers", "OU", "UU", "RU", "NU", "PU", "ZU", "Little Cup", "Battle Spot Singles", "VGC", "Custom"];
 const facilityOptionsByGame: Record<number, Record<string, string[]>> = {
-  3: { "Ruby / Sapphire": ["Battle Tower"], "Emerald": ["Battle Frontier"] },
+  3: {
+    "Ruby / Sapphire": ["Battle Tower"],
+    "Emerald": ["Battle Frontier"],
+    "FireRed / LeafGreen": ["Trainer Tower - Single Mode", "Trainer Tower - Double Mode", "Trainer Tower - Knockout Mode", "Trainer Tower - Mixed Mode"],
+  },
   4: { "Diamond / Pearl": ["Battle Tower"], "Platinum": ["Battle Frontier"], "HeartGold / SoulSilver": ["Battle Frontier"] },
   5: { "Black / White": ["Battle Subway"], "Black 2 / White 2": ["Battle Subway"] },
   6: { "X / Y": ["Battle Maison"], "Omega Ruby / Alpha Sapphire": ["Battle Maison"] },
@@ -568,7 +572,7 @@ export default function App() {
         benchmarkMode, ...coverage,
       };
       const result = await runExhaustiveBenchmark({
-        format, playerSets, opponents, repetitions: 100, playerSelectionSize: settings.battleType === "PvE" && settings.generation < 9 ? 3 : undefined, shouldCancel: () => benchmarkCancel.current,
+        format, playerSets, opponents, repetitions: 100, playerSelectionSize: settings.battleType === "PvE" && settings.generation < 9 && !(settings.generation === 3 && settings.gameVersion === "FireRed / LeafGreen") ? 3 : undefined, shouldCancel: () => benchmarkCancel.current,
         onProgress: progress => { setBenchmarkProgress(progress); setMatchupRun({ ...meta, ...progress }); },
       });
       setBenchmarkProgress(result); setMatchupRun({ ...meta, ...result });

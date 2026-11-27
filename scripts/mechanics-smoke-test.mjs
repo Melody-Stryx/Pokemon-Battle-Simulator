@@ -205,3 +205,23 @@ await runUntilEvent({
   },
   expected: line => line.startsWith("|-status|p2a: Rattata|psn"),
 });
+
+await runUntilEvent({
+  label: "Weak Armor lowers Defense and raises Speed after a physical hit",
+  format: "gen5customgame",
+  player: [makeSet("Rattata", "Run Away", ["Tackle"])],
+  opponent: [makeSet("Skarmory", "Weak Armor", ["Splash"])],
+  choosePlayer: request => moveOne(request),
+  chooseOpponent: request => moveOne(request),
+  expected: line => line.startsWith("|-boost|p2a: Skarmory|spe|2") || line.startsWith("|-unboost|p2a: Skarmory|def|1"),
+});
+
+await runUntilEvent({
+  label: "Poison Touch activates on a contact move",
+  format: "gen5customgame",
+  player: [makeSet("Toxicroak", "Poison Touch", ["Tackle"])],
+  opponent: [makeSet("Magikarp", "Swift Swim", ["Splash"])],
+  choosePlayer: request => moveOne(request),
+  chooseOpponent: request => moveOne(request),
+  expected: line => line.startsWith("|-status|p2a: Magikarp|psn") && line.includes("Poison Touch"),
+});

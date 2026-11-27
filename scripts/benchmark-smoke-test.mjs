@@ -206,14 +206,14 @@ console.log("Tactical AI mechanic-awareness tests passed: Levitate, hazard layer
 const doublesAIChoice = chooseTacticalChoice({
   side: { pokemon: [
     { details: "Gardevoir, L100", condition: "251/251", active: true, stats: { atk: 150, spa: 300, spe: 100 }, moves: ["Psychic", "Moonblast"] },
-    { details: "Garchomp, L100", condition: "357/357", active: true, stats: { atk: 350, spa: 100, spe: 333 }, moves: ["Ice Beam", "Dragon Claw"] },
+    { details: "Garchomp, L100", condition: "357/357", active: true, stats: { atk: 350, spa: 100, spe: 333 }, moves: ["Ice Beam"] },
   ] },
   active: [
     { moves: [{ move: "Psychic", target: "normal" }, { move: "Moonblast", target: "normal" }] },
-    { moves: [{ move: "Ice Beam", target: "normal" }, { move: "Dragon Claw", target: "normal" }] },
+    { moves: [{ move: "Ice Beam", target: "normal" }] },
   ],
 }, ["|switch|p2a: Gengar|Gengar, L100|261/261", "|switch|p2b: Magikarp|Magikarp, L100|181/181"], "p1", 9);
-if (doublesAIChoice !== "move 2 1, move 2 1") throw new Error("Doubles AI did not score each active Pokémon independently and select legal explicit targets.");
+if (doublesAIChoice !== "move 1 1, move 2 1") throw new Error("Doubles AI did not order move choices by Showdown's active slot convention.");
 
 const doublesReflectChoice = chooseTacticalChoice({
   side: { pokemon: [

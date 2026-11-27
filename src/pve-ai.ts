@@ -74,7 +74,7 @@ function moveScore(moveName: string, attackerName: string, defender: Foe, genera
         if (defender.status) return 0;
         const status = toID(String(data.status));
         const types = foeTypes(defender, generation);
-        if ((status === "psn" || status === "tox") && types.some(type => type === "Poison" || type === "Steel")) return 0;
+        if ((status === "psn" || status === "tox") && types.some((type: string) => type === "Poison" || type === "Steel")) return 0;
         if (status === "brn" && types.includes("Fire")) return 0;
         if (status === "par" && generation >= 6 && types.includes("Electric")) return 0;
         const abilityStatusImmunities: Record<string, string[]> = {

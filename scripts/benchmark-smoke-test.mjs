@@ -86,23 +86,32 @@ const makeTeam = (species, move, ability) => Array.from({ length: 6 }, (_, index
   ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
 }));
 
-const trainerTowerDoubles = await loadFacilityOpponentPool(3, "FireRed / LeafGreen", "Trainer Tower - Double Mode");
-const towerDoubleResult = await runExhaustiveBenchmark({
-  format: "gen3customgame",
-  playerSets: [
-    { ...makeTeam("Pikachu", "Thunderbolt", "Static")[0], level: 30 },
-    { ...makeTeam("Gengar", "Shadow Ball", "Levitate")[0], level: 30 },
-    { ...makeTeam("Snorlax", "Body Slam", "Thick Fat")[0], level: 30 },
-  ],
-  opponents: [trainerTowerDoubles.opponents[0]],
-  repetitions: 1,
-  shouldCancel: () => false,
-  onProgress: () => {},
-});
-if (towerDoubleResult.completed !== 1 || towerDoubleResult.results[0]?.games !== 1) {
-  throw new Error("Trainer Tower doubles opponent did not complete using its generation-specific battle format.");
+globalThis.fetch = async input => {
+  const filename = String(input).split("/").pop();
+  const data = await readFile(new URL("../public/data/facilities/" + filename, import.meta.url), "utf8");
+  return new Response(data, { status: 200, headers: { "content-type": "application/json" } });
+};
+try {
+  const trainerTowerDoubles = await loadFacilityOpponentPool(3, "FireRed / LeafGreen", "Trainer Tower - Double Mode");
+  const towerDoubleResult = await runExhaustiveBenchmark({
+    format: "gen3customgame",
+    playerSets: [
+      { ...makeTeam("Pikachu", "Thunderbolt", "Static")[0], level: 30 },
+      { ...makeTeam("Gengar", "Shadow Ball", "Levitate")[0], level: 30 },
+      { ...makeTeam("Snorlax", "Body Slam", "Thick Fat")[0], level: 30 },
+    ],
+    opponents: [trainerTowerDoubles.opponents[0]],
+    repetitions: 1,
+    shouldCancel: () => false,
+    onProgress: () => {},
+  });
+  if (towerDoubleResult.completed !== 1 || towerDoubleResult.results[0]?.games !== 1) {
+    throw new Error("Trainer Tower doubles opponent did not complete using its generation-specific battle format.");
+  }
+  console.log("Trainer Tower live battle smoke test passed: authentic doubles team and player-level scaling.");
+} finally {
+  globalThis.fetch = originalFetch;
 }
-console.log("Trainer Tower live battle smoke test passed: authentic doubles team and player-level scaling.");
 
 const tacticalMoveRequest = {
   side: { pokemon: [{ details: "Pikachu, L100", condition: "100/100", active: true, stats: { atk: 100, spa: 100, spe: 100 }, moves: ["Thunderbolt", "Ice Beam"] }] },

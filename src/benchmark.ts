@@ -133,13 +133,13 @@ export async function loadFacilityOpponentPool(generation: number, gameVersion: 
     const converted = rawSets.map(set => {
       const species = String(set.species || set.baseSpecies || set.name);
       const moves = Array.isArray(set.moves) ? set.moves.map(String) : [set.move1, set.move2, set.move3, set.move4].filter((move): move is string => typeof move === "string" && Boolean(move.trim()));
-      const stats = (input?: Record<string, number>) => input ? { hp: Number(input.hp ?? 31), atk: Number(input.atk ?? 31), def: Number(input.def ?? 31), spa: Number(input.spa ?? 31), spd: Number(input.spd ?? 31), spe: Number(input.spe ?? 31) } : undefined;
+      const stats = (input?: Record<string, number>, fallback = 31) => input && Object.keys(input).length ? { hp: Number(input.hp ?? fallback), atk: Number(input.atk ?? fallback), def: Number(input.def ?? fallback), spa: Number(input.spa ?? fallback), spd: Number(input.spd ?? fallback), spe: Number(input.spe ?? fallback) } : undefined;
       return {
         name: species, species, level: Number(set.level || trainer.level || 50),
         nature: String(set.nature || "Serious"), ability: String(set.ability || ""),
         item: String(set.item || ""), moves,
-        ivs: stats(set.ivs as Record<string, number> | undefined) || stats(trainer.ivs) || { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-        evs: stats(set.evs as Record<string, number> | undefined) || { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+        ivs: { ...(stats(trainer.ivs) || { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 }), ...(set.ivs as Record<string, number> | undefined) },
+        evs: stats(set.evs as Record<string, number> | undefined, 0) || { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
       } as Record<string, unknown>;
     }).filter(set => Array.isArray(set.moves) && (set.moves as string[]).length > 0);
     if (!converted.length) { rejected++; continue; }

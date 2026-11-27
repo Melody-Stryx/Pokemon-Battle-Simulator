@@ -229,13 +229,12 @@ export function chooseTacticalChoice(request: RequestView, log: string[], side: 
     const needsExplicitTarget = !isFieldOrSideCondition && ["normal", "adjacentFoe", "any", "adjacentAlly", "adjacentAllyOrSelf"].includes(moveTarget);
     const targetLocation = moveTarget === "adjacentAlly" || moveTarget === "adjacentAllyOrSelf" ? (i === 0 ? -2 : -1) : 1;
     let choice = `move ${bestMove.slot}${needsExplicitTarget ? ` ${targetLocation}` : ""}`;
-    if (request.active.length > 1) console.log("[TacticalPlayerAI] selected doubles move", JSON.stringify({ side, activeIndex: i, ownName, move: bestMove.option.move, slot: bestMove.slot, requestTarget: bestMove.option.target, dexTarget: moveData?.target, choice }));
     if (active.canMegaEvo) choice += " mega";
     else if (active.canDynamax && (hpRatio(own) < 0.65 || bestMove.score >= 100)) choice += " dynamax";
     else if (active.canTerastallize && foe && bestMove.score >= 95) choice += " terastallize";
     choices.push(choice);
   }
-  return (request.active.length > 1 ? choices.reverse() : choices).join(", ");
+  return choices.join(", ");
 }
 export class TacticalPlayerAI extends RandomPlayerAI {
   private readonly side: SideID;
@@ -247,21 +246,13 @@ export class TacticalPlayerAI extends RandomPlayerAI {
   }
   override receiveRequest(request: any) {
     if (request.wait) return;
-    const choice = chooseTacticalChoice(request as RequestView, this.log, this.side, this.generation);
+    // The base Showdown AI handles multi-active choice ordering and target routing.
+    // Keep the tactical scorer for singles until doubles slot mapping is fully verified.
     if (request.active?.length > 1) {
-      console.log("[TacticalPlayerAI] doubles request mapping", JSON.stringify({
-        side: this.side,
-        active: request.active.map((active: any, index: number) => ({
-          index,
-          moves: active.moves?.map((option: any) => ({ move: option.move, id: option.id, target: option.target })),
-        })),
-        activeRoster: request.side?.pokemon?.filter((pokemon: any) => pokemon.active).map((pokemon: any) => ({
-          ident: pokemon.ident, details: pokemon.details, moves: pokemon.moves,
-        })),
-        recentSwitches: this.log.filter((line: string) => line.startsWith("|switch|") || line.startsWith("|drag|")).slice(-4),
-        choice,
-      }));
+      super.receiveRequest(request);
+      return;
     }
+    const choice = chooseTacticalChoice(request as RequestView, this.log, this.side, this.generation);
     this.choose(choice);
   }
 }

@@ -213,7 +213,7 @@ const doublesAIChoice = chooseTacticalChoice({
     { moves: [{ move: "Ice Beam", target: "normal" }] },
   ],
 }, ["|switch|p2a: Gengar|Gengar, L100|261/261", "|switch|p2b: Magikarp|Magikarp, L100|181/181"], "p1", 9);
-if (!/^move \\d+ 1, move \\d+ 1$/.test(doublesAIChoice)) throw new Error(`Tactical AI did not provide two valid targeted moves: ${doublesAIChoice}`);
+if (!/^move \d+ 1, move \d+ 1$/.test(doublesAIChoice)) throw new Error(`Tactical AI did not provide two valid targeted moves: ${doublesAIChoice}`);
 
 const doublesReflectChoice = chooseTacticalChoice({
   side: { pokemon: [

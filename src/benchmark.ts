@@ -288,6 +288,7 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
     return nickname.toLowerCase() !== species.toLowerCase() ? `${nickname} (${species})` : species;
   };
   const latestMoveByTarget = new Map<string, { ident: string; name: string }>();
+  const recentBattleEvents: string[] = [];
   let outcome: "win" | "loss" | "tie" | null = null;
   const finished: Promise<{ outcome: "win" | "loss" | "tie"; analysis: BattleAnalysis }> = (async () => {
     for await (const chunk of streams.omniscient) {
@@ -295,6 +296,8 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
         if (!line.startsWith("|")) continue;
         const parts = line.split("|");
         const tag = parts[1];
+        recentBattleEvents.push(line);
+        if (recentBattleEvents.length > 40) recentBattleEvents.shift();
         if (tag === "error") {
           throw new Error(`Showdown rejected a benchmark battle: ${parts.slice(2).join("|")}`);
         }
@@ -302,7 +305,16 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
           outcome = parts[2]?.trim() === "Benchmark Player" ? "win" : "loss";
           continue;
         }
-        if (tag === "tie") { outcome = normalizeBenchmarkOutcome("tie"); continue; }
+        if (tag === "tie") {
+          console.warn("[Benchmark] Showdown tie counted as a player loss.", {
+            format,
+            player: playerSets.map(rosterLabel),
+            opponent: opponentSets.map(rosterLabel),
+            recentEvents: [...recentBattleEvents],
+          });
+          outcome = normalizeBenchmarkOutcome("tie");
+          continue;
+        }
         if (tag === "switch" || tag === "drag" || tag === "replace") {
           const ident = parts[2];
           const hp = parseCondition(parts[4] || "");

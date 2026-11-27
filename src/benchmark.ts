@@ -148,7 +148,9 @@ export async function loadCompleteOpponentPool(format: string): Promise<{
     }
     seen.set(key, name);
     try {
-      const problems = validator.validateTeam(normalizedSets as any) || [];
+      const problems = (validator.validateTeam(normalizedSets as any) || []).filter(problem =>
+        !/has exactly 0 EVs - did you forget to EV it\?/i.test(problem)
+      );
       if (problems.length) {
         skippedTeams.push({ name, author: sample.author, category: "Illegal for format", reasons: problems });
         continue;

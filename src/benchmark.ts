@@ -486,7 +486,7 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
           const isPassiveSource = Boolean(sourceMarker && !sourceMarker.startsWith("[from] move:"));
           if (isPassiveSource) {
             let sourceLabel = sourceMarker!.slice("[from] ".length).replace(/^ability: /, "Ability: ").replace(/^item: /, "Item: ");
-            if (sourceLabel === "psn" && /\\btox\\b/.test(String(parts[3] || ""))) sourceLabel = "Bad poison";
+            if (sourceLabel === "psn" && /\btox\b/.test(String(parts[3] || ""))) sourceLabel = "Bad poison";
             addPassiveDamage(analysis, targetSide === "p1" ? "player" : "opponent", sourceLabel, damage);
           }
           if (source && source.ident.slice(0, 2) !== targetSide) {

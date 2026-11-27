@@ -209,11 +209,11 @@ const doublesAIChoice = chooseTacticalChoice({
     { details: "Garchomp, L100", condition: "357/357", active: true, stats: { atk: 350, spa: 100, spe: 333 }, moves: ["Ice Beam", "Dragon Claw"] },
   ] },
   active: [
-    { moves: [{ move: "Psychic" }, { move: "Moonblast" }] },
-    { moves: [{ move: "Ice Beam" }, { move: "Dragon Claw" }] },
+    { moves: [{ move: "Psychic", target: "normal" }, { move: "Moonblast", target: "normal" }] },
+    { moves: [{ move: "Ice Beam", target: "normal" }, { move: "Dragon Claw", target: "normal" }] },
   ],
 }, ["|switch|p2a: Gengar|Gengar, L100|261/261", "|switch|p2b: Magikarp|Magikarp, L100|181/181"], "p1", 9);
-if (doublesAIChoice !== "move 2, move 2") throw new Error("Doubles AI did not score each active Pokémon with its own stats and STAB.");
+if (doublesAIChoice !== "move 2 1, move 2 1") throw new Error("Doubles AI did not score each active Pokémon independently and select explicit targets.");
 
 console.log("Tactical AI decision tests passed: super-effective move selection, doubles slot evaluation and matchup-aware switching.");
 

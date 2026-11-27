@@ -229,6 +229,7 @@ export function chooseTacticalChoice(request: RequestView, log: string[], side: 
     const needsExplicitTarget = request.active.length === 1 && !isFieldOrSideCondition && ["normal", "adjacentFoe", "any", "adjacentAlly", "adjacentAllyOrSelf"].includes(moveTarget);
     const targetLocation = moveTarget === "adjacentAlly" || moveTarget === "adjacentAllyOrSelf" ? (i === 0 ? -2 : -1) : 1;
     let choice = `move ${bestMove.slot}${needsExplicitTarget ? ` ${targetLocation}` : ""}`;
+    if (request.active.length > 1) console.log("[TacticalPlayerAI] selected doubles move", JSON.stringify({ side, activeIndex: i, ownName, move: bestMove.option.move, slot: bestMove.slot, requestTarget: bestMove.option.target, dexTarget: moveData?.target, choice }));
     if (active.canMegaEvo) choice += " mega";
     else if (active.canDynamax && (hpRatio(own) < 0.65 || bestMove.score >= 100)) choice += " dynamax";
     else if (active.canTerastallize && foe && bestMove.score >= 95) choice += " terastallize";
@@ -248,18 +249,18 @@ export class TacticalPlayerAI extends RandomPlayerAI {
     if (request.wait) return;
     const choice = chooseTacticalChoice(request as RequestView, this.log, this.side, this.generation);
     if (request.active?.length > 1) {
-      console.log("[TacticalPlayerAI] doubles request mapping", {
+      console.log("[TacticalPlayerAI] doubles request mapping", JSON.stringify({
         side: this.side,
         active: request.active.map((active: any, index: number) => ({
           index,
-          moves: active.moves?.map((option: any) => ({ move: option.move, target: option.target })),
+          moves: active.moves?.map((option: any) => ({ move: option.move, id: option.id, target: option.target })),
         })),
         activeRoster: request.side?.pokemon?.filter((pokemon: any) => pokemon.active).map((pokemon: any) => ({
           ident: pokemon.ident, details: pokemon.details, moves: pokemon.moves,
         })),
         recentSwitches: this.log.filter((line: string) => line.startsWith("|switch|") || line.startsWith("|drag|")).slice(-4),
         choice,
-      });
+      }));
     }
     this.choose(choice);
   }

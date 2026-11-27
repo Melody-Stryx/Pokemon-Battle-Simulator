@@ -21,7 +21,7 @@ const makeSet = (species, ability, moves) => ({
   ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
 });
 
-async function runUntilEvent({ player, opponent, choosePlayer, chooseOpponent, expected, label }) {
+async function runUntilEvent({ player, opponent, choosePlayer, chooseOpponent, expected, label, format = "gen9customgame" }) {
   const streams = BattleStreams.getPlayerStreams(new BattleStreams.BattleStream());
   const p1 = new ScriptedPlayer(streams.p1, choosePlayer);
   const p2 = new ScriptedPlayer(streams.p2, chooseOpponent);
@@ -52,7 +52,7 @@ async function runUntilEvent({ player, opponent, choosePlayer, chooseOpponent, e
 
   try {
     await streams.omniscient.write(
-      `>start ${JSON.stringify({ formatid: "gen9customgame" })}\n` +
+      `>start ${JSON.stringify({ formatid: format })}\n` +
       `>player p1 ${JSON.stringify({ name: "Mechanics Test Player", team: Teams.pack(player) })}\n` +
       `>player p2 ${JSON.stringify({ name: "Mechanics Test Opponent", team: Teams.pack(opponent) })}`
     );
@@ -103,4 +103,66 @@ await runUntilEvent({
     return "move 1";
   },
   expected: line => line.startsWith("|-damage|p2a: Pidgey|") && line.includes("[from] Stealth Rock"),
+});
+
+
+await runUntilEvent({
+  label: "Levitate blocks Ground-type damage",
+  format: "gen3customgame",
+  player: [makeSet("Nidoking", "Poison Point", ["Earthquake"])],
+  opponent: [makeSet("Gengar", "Levitate", ["Splash"])],
+  choosePlayer: request => moveOne(request),
+  chooseOpponent: request => moveOne(request),
+  expected: line => line.startsWith("|-immune|p2a: Gengar|") && line.includes("[from] ability: Levitate"),
+});
+
+await runUntilEvent({
+  label: "Burn residual damage",
+  player: [makeSet("Gengar", "Cursed Body", ["Will-O-Wisp"])],
+  opponent: [makeSet("Magikarp", "Swift Swim", ["Splash"])],
+  choosePlayer: request => moveOne(request),
+  chooseOpponent: request => moveOne(request),
+  expected: line => line.startsWith("|-damage|p2a: Magikarp|") && line.includes("[from] brn"),
+});
+
+let spikesMoveRequests = 0;
+await runUntilEvent({
+  label: "Spikes switch-in damage",
+  player: [makeSet("Skarmory", "Keen Eye", ["Spikes", "Roar"])],
+  opponent: [
+    makeSet("Magikarp", "Swift Swim", ["Splash"]),
+    makeSet("Rattata", "Run Away", ["Splash"]),
+  ],
+  choosePlayer: request => {
+    if (request.teamPreview) return preview(request.maxTeamSize || 1);
+    spikesMoveRequests++;
+    return spikesMoveRequests === 1 ? "move 1" : "move 2";
+  },
+  chooseOpponent: request => {
+    if (request.teamPreview) return preview(request.maxTeamSize || request.side?.pokemon.length || 2);
+    if (request.forceSwitch?.some(Boolean)) return "switch 2";
+    return "move 1";
+  },
+  expected: line => line.startsWith("|-damage|p2a: Rattata|") && line.includes("[from] Spikes"),
+});
+
+let toxicSpikesMoveRequests = 0;
+await runUntilEvent({
+  label: "Toxic Spikes inflicts poison on switch-in",
+  player: [makeSet("Skarmory", "Keen Eye", ["Toxic Spikes", "Roar"])],
+  opponent: [
+    makeSet("Magikarp", "Swift Swim", ["Splash"]),
+    makeSet("Rattata", "Run Away", ["Splash"]),
+  ],
+  choosePlayer: request => {
+    if (request.teamPreview) return preview(request.maxTeamSize || 1);
+    toxicSpikesMoveRequests++;
+    return toxicSpikesMoveRequests === 1 ? "move 1" : "move 2";
+  },
+  chooseOpponent: request => {
+    if (request.teamPreview) return preview(request.maxTeamSize || request.side?.pokemon.length || 2);
+    if (request.forceSwitch?.some(Boolean)) return "switch 2";
+    return "move 1";
+  },
+  expected: line => line.startsWith("|-status|p2a: Rattata|psn"),
 });

@@ -125,10 +125,15 @@ export async function loadFacilityOpponentPool(generation: number, gameVersion: 
   if (!response.ok) throw new Error("Could not load " + source.label + " dataset (HTTP " + response.status + ").");
   const dataset = await response.json() as FacilityDataset;
   const setsByName = new Map(dataset.pokemon.map(set => [String(set.name).toLowerCase(), set]));
+  const setsBySpeciesTier = new Map(dataset.pokemon.filter(set => set.tier !== undefined).map(set => [String(set.species).toLowerCase() + "-" + String(set.tier), set]));
   const opponents: BenchmarkOpponent[] = [];
   let rejected = 0;
   for (const trainer of dataset.trainers) {
-    const rawSets = trainer.pokemon.map(name => setsByName.get(name.toLowerCase())).filter((set): set is FacilityDataset["pokemon"][number] => Boolean(set));
+    const rawSets = trainer.pokemon.map(name => {
+      const key = name.toLowerCase();
+      if (setsByName.has(key)) return setsByName.get(key);
+      return setsBySpeciesTier.get(key);
+    }).filter((set): set is FacilityDataset["pokemon"][number] => Boolean(set));
     if (!rawSets.length) { rejected++; continue; }
     const converted = rawSets.map(set => {
       const species = String(set.species || set.baseSpecies || set.name);
@@ -147,9 +152,10 @@ export async function loadFacilityOpponentPool(generation: number, gameVersion: 
     const teamSize = Number(trainer.teamSize || (generation === 9 ? 6 : 3));
     if (fixedTeam && converted.length !== teamSize) { rejected++; continue; }
     if (!fixedTeam && new Set(converted.map(set => String(set.species).toLowerCase())).size < 3) { rejected++; continue; }
-    const displayName = trainer.displayName || [trainer.trainerClass, trainer.name].filter(Boolean).join(" ");
+    const trainerName = generation === 6 && gameVersion === "Omega Ruby / Alpha Sapphire" && trainer.orasName ? trainer.orasName : trainer.name;
+    const displayName = trainer.displayName || [trainer.trainerClass, trainerName].filter(Boolean).join(" ");
     opponents.push({
-      id: "facility-" + generation + "-" + gameVersion + "-" + trainer.name + "-" + opponents.length,
+      id: "facility-" + generation + "-" + gameVersion + "-" + trainerName + "-" + opponents.length,
       name: displayName || "Facility Trainer " + (opponents.length + 1),
       sets: fixedTeam ? converted : converted.slice(0, 3),
       ...(fixedTeam ? { fixedTeam: true } : { teamPool: [converted] }),

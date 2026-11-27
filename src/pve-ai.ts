@@ -27,18 +27,30 @@ function effectiveness(attackType: string, defendingTypes: string[], generation:
   }
   return result;
 }
-type Foe = { species: string; teraType?: string; hp: number } | null;
+type Foe = { species: string; teraType?: string; ability?: string; status?: string; sideConditions: Record<string, number>; hp: number } | null;
 function getFoe(log: string[], ownSide: SideID): Foe {
   const foeSide = ownSide === "p1" ? "p2" : "p1";
   let foe: Foe = null;
   for (const line of log) {
     const p = line.split("|");
     if (["switch", "drag", "replace"].includes(p[1]) && p[2]?.startsWith(foeSide)) {
-      foe = { species: speciesName({ details: p[3], ident: p[2] }), hp: hpRatio({ condition: p[4] }) };
+      foe = { species: speciesName({ details: p[3], ident: p[2] }), hp: hpRatio({ condition: p[4] }), sideConditions: {} };
     } else if (p[1] === "detailschange" && p[2]?.startsWith(foeSide) && foe) {
       foe.species = speciesName({ details: p[3] });
     } else if (p[1] === "-terastallize" && p[2]?.startsWith(foeSide) && foe) {
       foe.teraType = p[3];
+    } else if (p[1] === "-ability" && p[2]?.startsWith(foeSide) && foe) {
+      foe.ability = p[3];
+    } else if (p[1] === "-status" && p[2]?.startsWith(foeSide) && foe) {
+      foe.status = p[3];
+    } else if (p[1] === "-curestatus" && p[2]?.startsWith(foeSide) && foe) {
+      foe.status = undefined;
+    } else if (p[1] === "-sidestart" && p[2]?.startsWith(foeSide) && foe) {
+      const condition = toID((p[3] || "").replace(/^move: /, ""));
+      if (condition) foe.sideConditions[condition] = (foe.sideConditions[condition] || 0) + 1;
+    } else if (p[1] === "-sideend" && p[2]?.startsWith(foeSide) && foe) {
+      const condition = toID((p[3] || "").replace(/^move: /, ""));
+      delete foe.sideConditions[condition];
     } else if (p[1] === "faint" && p[2]?.startsWith(foeSide)) {
       foe = null;
     }
@@ -56,8 +68,18 @@ function moveScore(moveName: string, attackerName: string, defender: Foe, genera
     let score = 6;
     if (data.heal) score += 20 + (1 - ownHP) * 95;
     if (data.boosts) score += Object.values(data.boosts as Record<string, number>).reduce((sum, n) => sum + Math.max(0, n) * 18, 0);
-    if (data.status || data.volatileStatus) score += 27;
-    if (data.sideCondition || data.pseudoWeather) score += 25;
+    if (data.status || data.volatileStatus) {
+      if (data.status && defender?.status) return 0;
+      score += 27;
+    }
+    if (data.sideCondition) {
+      const condition = toID(String(data.sideCondition));
+      const layers = defender?.sideConditions[condition] || 0;
+      const maximum = condition === "spikes" ? 3 : condition === "toxicspikes" ? 2 : 1;
+      if (layers >= maximum) return 0;
+      score += 25 - layers * 5;
+    }
+    if (data.pseudoWeather) score += 25;
     if (data.forceSwitch || data.taunt || data.encore || data.disable) score += 24;
     if (data.weather || data.terrain) score += 15;
     if (data.self?.boosts) score += 14;
@@ -69,6 +91,16 @@ function moveScore(moveName: string, attackerName: string, defender: Foe, genera
   const types = foeTypes(defender, generation);
   const effectivenessMultiplier = types.length ? effectiveness(type, types, generation) : 1;
   if (!effectivenessMultiplier) return 0;
+  const abilityId = toID(defender?.ability || "");
+  const abilityImmunities: Record<string, string[]> = {
+    levitate: ["Ground"],
+    flashfire: ["Fire"],
+    waterabsorb: ["Water"], stormdrain: ["Water"], dryskin: ["Water"],
+    voltabsorb: ["Electric"], lightningrod: ["Electric"], motordrive: ["Electric"],
+    sapsipper: ["Grass"], wellbakedbody: ["Fire"], eartheater: ["Ground"],
+  };
+  if ((abilityImmunities[abilityId] || []).includes(type)) return 0;
+  if (abilityId === "wonderguard" && effectivenessMultiplier <= 1) return 0;
   const stab = attacker?.types?.includes(type) ? 1.5 : 1;
   const accuracy = typeof data.accuracy === "number" ? data.accuracy / 100 : 1;
   const physical = data.category === "Physical";
@@ -77,6 +109,9 @@ function moveScore(moveName: string, attackerName: string, defender: Foe, genera
   const statRatio = Math.max(0.65, Math.min(1.45, attackingStat / Math.max(1, defendingStat)));
   const hits = Array.isArray(data.multihit) ? (data.multihit[0] + data.multihit[1]) / 2 : (typeof data.multihit === "number" ? data.multihit : 1);
   let score = data.basePower * effectivenessMultiplier * stab * accuracy * statRatio * hits;
+  if ((abilityId === "thickfat" && (type === "Fire" || type === "Ice")) || (abilityId === "heatproof" && type === "Fire")) score *= 0.5;
+  if (abilityId === "dryskin" && type === "Fire") score *= 1.25;
+  if (abilityId === "fluffy" && type === "Fire") score *= 2;
   score += Math.max(0, data.priority || 0) * 8;
   if (data.drain) score *= 1.12;
   if (data.recoil) score *= 0.88;

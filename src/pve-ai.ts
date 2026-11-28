@@ -246,13 +246,31 @@ export class TacticalPlayerAI extends RandomPlayerAI {
   }
   override receiveRequest(request: any) {
     if (request.wait) return;
-    // The base Showdown AI handles multi-active choice ordering and target routing.
-    // Keep the tactical scorer for singles until doubles slot mapping is fully verified.
-    if (request.active?.length > 1) {
+    // Let Showdown's own AI handle requests the tactical scorer does not
+    // explicitly support, including doubles, incomplete requests and empty
+    // active slots. A "pass" is not a valid substitute for an actionable turn.
+    if (request.active?.length > 1 || (!request.teamPreview && !request.forceSwitch?.length && !request.active?.length)) {
       super.receiveRequest(request);
       return;
     }
-    const choice = chooseTacticalChoice(request as RequestView, this.log, this.side, this.generation);
-    this.choose(choice);
+    try {
+      const choice = chooseTacticalChoice(request as RequestView, this.log, this.side, this.generation);
+      const hasLegalMove = (request.active || []).some((active: any) =>
+        (active.moves || []).some((option: any) => !option.disabled)
+      );
+      const hasRequiredSwitch = (request.forceSwitch || []).some(Boolean);
+      // If tactical scoring cannot produce an action despite legal choices,
+      // defer to the simulator's battle-tested fallback rather than stalling.
+      if (!choice || (hasLegalMove && choice.split(",").every((part: string) => part.trim() === "pass")) ||
+          (hasRequiredSwitch && choice.split(",").every((part: string) => part.trim() === "pass"))) {
+        super.receiveRequest(request);
+        return;
+      }
+      this.choose(choice);
+    } catch {
+      // Scoring is advisory. It must never prevent the simulator from making
+      // a legal move when its standard AI can still resolve the request.
+      super.receiveRequest(request);
+    }
   }
 }

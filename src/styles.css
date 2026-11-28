@@ -964,3 +964,12 @@ button.roadmap-row:hover { background: rgba(255,255,255,.025); }
   .dex-entry { grid-template-columns:27px minmax(90px,1fr) auto; }
   .dex-entry-abilities,.dex-entry-stats { display:none; }
 }
+
+
+/* Contextual Showdown-style selectors */
+.search-field { min-width:0; }
+.search-field-control { position:relative; }
+.search-field-control > input { cursor:text; }
+.search-field-results { max-height:min(420px,65vh); overscroll-behavior:contain; }
+.search-field-results button[aria-selected="true"] { background:#34465d; outline:1px solid #617c9e; }
+.search-results-count { position:sticky; bottom:-4px; padding:6px 8px; border-top:1px solid #465363; color:#9eabbc; background:#171c24; font-size:9px; }

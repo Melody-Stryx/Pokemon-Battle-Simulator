@@ -197,24 +197,30 @@ const tacticalMoveRequest = {
   active: [{ moves: [{ move: "Thunderbolt", disabled: false }, { move: "Ice Beam", disabled: false }] }],
 };
 const tacticalMove = chooseTacticalChoice(tacticalMoveRequest, ["|switch|p2a: Garchomp|Garchomp, L100|100/100"], "p1", 9);
-if (tacticalMove !== "move 2 1") throw new Error(`Tactical AI failed to select the super-effective move: ${tacticalMove}`);
+if (tacticalMove !== "move 2") throw new Error(`Tactical AI failed to select the super-effective move: ${tacticalMove}`);
 
 const luxrayRequest = {
   side: { pokemon: [{ details: "Luxray, L100", condition: "364/364", active: true, stats: { atk: 372, spa: 176, spe: 176 }, moves: ["Double Kick", "Spark", "Crunch", "Ice Fang"] }] },
   active: [{ moves: [{ move: "Double Kick" }, { move: "Spark" }, { move: "Crunch" }, { move: "Ice Fang" }] }],
 };
 const gen6Cases = [
-  ["Ferrothorn", "move 1 1"],
-  ["Landorus-Therian", "move 4 1"],
-  ["Slowbro", "move 2 1"],
-  ["Clefable", "move 2 1"],
-  ["Tyranitar", "move 1 1"],
+  ["Ferrothorn", "move 1"],
+  ["Landorus-Therian", "move 4"],
+  ["Slowbro", "move 2"],
+  ["Clefable", "move 2"],
+  ["Tyranitar", "move 1"],
 ];
 for (const [foe, expected] of gen6Cases) {
   const choice = chooseTacticalChoice(luxrayRequest, [`|switch|p2a: ${foe}| ${foe}, L100|100/100`.replace("| ", "|")], "p1", 6);
   if (choice !== expected) throw new Error(`Gen 6 Luxray move selection against ${foe}: expected ${expected}, received ${choice}`);
 }
 console.log("Gen 6 move-selection tests passed: Double Kick is selected for Fighting weaknesses, Ice Fang for Landorus-T, Spark for Slowbro and Clefable.");
+const flyChoice = chooseTacticalChoice({
+  side: { pokemon: [{ details: "Charizard, L100", condition: "297/297", active: true, moves: ["Fly"] }] },
+  active: [{ moves: [{ move: "Fly", target: "normal", disabled: false }] }],
+}, ["|switch|p2a: Venusaur|Venusaur, L100|301/301"], "p2", 9);
+if (flyChoice !== "move 1") throw new Error(`Single-battle Fly choice included an invalid target index: ${flyChoice}`);
+
 const tacticalSwitchRequest = {
   side: { pokemon: [
     { details: "Charizard, L100", condition: "100/100", active: true, stats: { atk: 100, spa: 100, spe: 100 }, moves: ["Flamethrower"] },
@@ -234,7 +240,7 @@ const abilityAwareChoice = chooseTacticalChoice(
   "p1",
   9,
 );
-if (abilityAwareChoice !== "move 2 1") throw new Error("Tactical AI ignored the revealed Levitate ability and selected Earthquake.");
+if (abilityAwareChoice !== "move 2") throw new Error("Tactical AI ignored the revealed Levitate ability and selected Earthquake.");
 
 const inferredAbilityChoice = chooseTacticalChoice(
   {
@@ -245,7 +251,7 @@ const inferredAbilityChoice = chooseTacticalChoice(
   "p1",
   3,
 );
-if (inferredAbilityChoice !== "move 2 1") throw new Error("Tactical AI failed to infer Gengar's only Generation 3 ability, Levitate.");
+if (inferredAbilityChoice !== "move 2") throw new Error("Tactical AI failed to infer Gengar's only Generation 3 ability, Levitate.");
 
 const hazardAwareRequest = {
   side: { pokemon: [{ details: "Skarmory, L100", condition: "334/334", active: true, stats: { atk: 196, spa: 176, spe: 196 }, moves: ["Spikes", "Toxic Spikes"] }] },
@@ -270,7 +276,7 @@ const statusAwareChoice = chooseTacticalChoice(
   "p1",
   9,
 );
-if (statusAwareChoice !== "move 2 1") throw new Error("Tactical AI tried to inflict a second major status condition on an already-poisoned target.");
+if (statusAwareChoice !== "move 2") throw new Error("Tactical AI tried to inflict a second major status condition on an already-poisoned target.");
 
 const typeImmuneStatusChoice = chooseTacticalChoice(
   statusAwareRequest,
@@ -278,7 +284,7 @@ const typeImmuneStatusChoice = chooseTacticalChoice(
   "p1",
   9,
 );
-if (typeImmuneStatusChoice !== "move 2 1") throw new Error("Tactical AI selected Toxic against a Steel-type target.");
+if (typeImmuneStatusChoice !== "move 2") throw new Error("Tactical AI selected Toxic against a Steel-type target.");
 
 console.log("Tactical AI mechanic-awareness tests passed: Levitate, hazard layers, status duplication and type immunity.");
 

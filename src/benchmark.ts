@@ -462,12 +462,27 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
   const latestMoveByTarget = new Map<string, { ident: string; name: string }>();
   const recentBattleEvents: string[] = [];
   let outcome: "win" | "loss" | "tie" | null = null;
+  let lastTurn = 0;
+  let lastEvent = "Waiting for battle protocol output";
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  let rejectIdleTimeout: ((reason: Error) => void) | undefined;
+  const resetIdleTimeout = () => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      rejectIdleTimeout?.(new Error(
+        `No benchmark battle activity for 30 seconds (last turn: ${lastTurn || "not started"}; last event: ${lastEvent}).`
+      ));
+    }, 30000);
+  };
   const finished: Promise<{ outcome: "win" | "loss" | "tie"; analysis: BattleAnalysis }> = (async () => {
     for await (const chunk of streams.omniscient) {
+      resetIdleTimeout();
       for (const line of String(chunk).split("\n")) {
         if (!line.startsWith("|")) continue;
         const parts = line.split("|");
         const tag = parts[1];
+        lastEvent = line.slice(0, 180);
+        if (tag === "turn") lastTurn = Number(parts[2]) || lastTurn;
         recentBattleEvents.push(line);
         if (recentBattleEvents.length > 40) recentBattleEvents.shift();
         if (tag === "error") {
@@ -591,9 +606,9 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
     }
     throw new Error("Battle stream ended without a result.");
   })();
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error("A benchmark battle exceeded 30 seconds.")), 30000);
+    rejectIdleTimeout = reject;
+    resetIdleTimeout();
   });
   try {
     void streams.omniscient.write(

@@ -279,23 +279,84 @@ export default function App() {
   useEffect(() => {
     if (!battleMusicUrl) return;
     let cancelled = false;
-    const audio = new Audio(battleMusicUrl);
-    audio.preload = "auto";
-    audio.loop = true;
-    audio.volume = 0.28;
-    const beginPlayback = () => {
-      if (!cancelled && audio.paused) void audio.play().catch(() => {});
+    let activeIndex = 0;
+    let transitionStarted = false;
+    let animationFrame = 0;
+    const targetVolume = 0.28;
+    const players = [new Audio(battleMusicUrl), new Audio(battleMusicUrl)];
+    for (const audio of players) {
+      audio.preload = "auto";
+      audio.loop = false;
+      audio.volume = 0;
+    }
+    const start = () => {
+      if (cancelled) return;
+      const active = players[activeIndex];
+      if (active.paused) {
+        active.volume = targetVolume;
+        void active.play().catch(() => {});
+      }
     };
-    beginPlayback();
-    window.addEventListener("pointerdown", beginPlayback);
-    window.addEventListener("keydown", beginPlayback);
+    const crossfadeToBeginning = () => {
+      if (cancelled || transitionStarted) return;
+      const active = players[activeIndex];
+      const nextIndex = 1 - activeIndex;
+      const next = players[nextIndex];
+      if (!Number.isFinite(active.duration) || active.duration <= 12 || active.currentTime < active.duration - 8) return;
+      transitionStarted = true;
+      next.currentTime = 0;
+      next.volume = 0;
+      void next.play().then(() => {
+        const fadeStarted = performance.now();
+        const fade = (now: number) => {
+          if (cancelled) return;
+          const progress = Math.min(1, (now - fadeStarted) / 350);
+          active.volume = targetVolume * (1 - progress);
+          next.volume = targetVolume * progress;
+          if (progress < 1) {
+            animationFrame = requestAnimationFrame(fade);
+            return;
+          }
+          active.pause();
+          active.currentTime = 0;
+          active.volume = 0;
+          activeIndex = nextIndex;
+          transitionStarted = false;
+        };
+        animationFrame = requestAnimationFrame(fade);
+      }).catch(() => {
+        transitionStarted = false;
+      });
+    };
+    const monitor = () => {
+      if (cancelled) return;
+      crossfadeToBeginning();
+    };
+    const onEnded = (event: Event) => {
+      if (cancelled || event.currentTarget !== players[activeIndex]) return;
+      const active = players[activeIndex];
+      active.currentTime = 0;
+      void active.play().catch(() => {});
+    };
+    for (const audio of players) {
+      audio.addEventListener("timeupdate", monitor);
+      audio.addEventListener("ended", onEnded);
+    }
+    start();
+    window.addEventListener("pointerdown", start);
+    window.addEventListener("keydown", start);
     return () => {
       cancelled = true;
-      window.removeEventListener("pointerdown", beginPlayback);
-      window.removeEventListener("keydown", beginPlayback);
-      audio.pause();
-      audio.removeAttribute("src");
-      audio.load();
+      cancelAnimationFrame(animationFrame);
+      window.removeEventListener("pointerdown", start);
+      window.removeEventListener("keydown", start);
+      for (const audio of players) {
+        audio.removeEventListener("timeupdate", monitor);
+        audio.removeEventListener("ended", onEnded);
+        audio.pause();
+        audio.removeAttribute("src");
+        audio.load();
+      }
     };
   }, [battleMusicTrack, battleMusicUrl]);
   useEffect(() => { localStorage.setItem("battle-lab-teams", JSON.stringify(teams)); }, [teams]);

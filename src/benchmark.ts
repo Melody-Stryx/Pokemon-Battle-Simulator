@@ -655,8 +655,8 @@ export function createFacilityTeam(pool: Record<string, unknown>[], teamSize = 3
   return selected;
 }
 
-export function normalizeBenchmarkOutcome(outcome: "win" | "loss" | "tie"): "win" | "loss" | "tie" {
-  return outcome;
+export function normalizeBenchmarkOutcome(outcome: "win" | "loss" | "tie"): "win" | "loss" {
+  return outcome === "win" ? "win" : "loss";
 }
 
 export async function runExhaustiveBenchmark(args: {
@@ -686,11 +686,10 @@ export async function runExhaustiveBenchmark(args: {
         : rawBattleTeam;
       const battle = await playOneBattle(opponent.format || args.format, playerTeam, battleTeam);
       const outcome = normalizeBenchmarkOutcome(battle.outcome);
-      result[outcome === "win" ? "wins" : outcome === "loss" ? "losses" : "ties"]++;
+      result[outcome === "win" ? "wins" : "losses"]++;
       result.games++;
       if (outcome === "win") wins++;
-      else if (outcome === "loss") losses++;
-      else ties++;
+      else losses++;
       mergeAnalysis(result.analysis, battle.analysis);
       mergeAnalysis(analysis, battle.analysis);
       completed++;

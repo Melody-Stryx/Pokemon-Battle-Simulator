@@ -241,9 +241,6 @@ export default function App() {
   const [authError, setAuthError] = useState("");
   const [activeTeamId, setActiveTeamId] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState("");
-  const [dexSearch, setDexSearch] = useState("");
-  const [dexTypeFilter, setDexTypeFilter] = useState("All types");
-  const [dexSort, setDexSort] = useState("Name");
   const [teamSearch, setTeamSearch] = useState("");
   const [folderFilter, setFolderFilter] = useState("All teams");
   const [newFolderName, setNewFolderName] = useState("");
@@ -437,8 +434,6 @@ export default function App() {
   const abilityOptions = useMemo(() => generationDex.abilities.all().filter(a => a.exists && !a.isNonstandard).sort((a,b) => a.name.localeCompare(b.name)), [generationDex]);
   const itemOptions = useMemo(() => generationDex.items.all().filter(i => i.exists && !i.isNonstandard).sort((a,b) => a.name.localeCompare(b.name)), [generationDex]);
   const selectedSpecies = selectedBuild ? speciesOptions.find(p => p.name.toLowerCase() === selectedBuild.name.trim().toLowerCase()) : undefined;
-  const dexTypes = useMemo(() => ["All types", ...Array.from(new Set(speciesOptions.flatMap(p => p.types))).sort()], [speciesOptions]);
-  const filteredDexSpecies = useMemo(() => speciesOptions.filter(p => (!dexSearch.trim() || p.name.toLowerCase().includes(dexSearch.trim().toLowerCase()) || String(p.num).includes(dexSearch.trim())) && (dexTypeFilter === "All types" || p.types.includes(dexTypeFilter as (typeof p.types)[number]))).sort((a,b) => dexSort === "Number" ? a.num-b.num : a.name.localeCompare(b.name)).slice(0,160), [speciesOptions,dexSearch,dexTypeFilter,dexSort]);
   const legality = useMemo(() => {
     if (!activeTeam) return { status: "No team", messages: [] as string[] };
 

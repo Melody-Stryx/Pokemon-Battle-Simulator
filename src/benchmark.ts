@@ -655,8 +655,8 @@ export function createFacilityTeam(pool: Record<string, unknown>[], teamSize = 3
   return selected;
 }
 
-export function normalizeBenchmarkOutcome(outcome: "win" | "loss" | "tie"): "win" | "loss" {
-  return outcome === "win" ? "win" : "loss";
+export function normalizeBenchmarkOutcome(outcome: "win" | "loss" | "tie"): "win" | "loss" | "tie" {
+  return outcome;
 }
 
 export async function runExhaustiveBenchmark(args: {

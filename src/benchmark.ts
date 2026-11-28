@@ -437,8 +437,16 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
   const generation = Number(format.match(/^gen(\d+)/)?.[1] || 9);
   const p1 = new TacticalPlayerAI(streams.p1, "p1", generation);
   const p2 = new TacticalPlayerAI(streams.p2, "p2", generation);
-  void p1.start();
-  void p2.start();
+  const aiErrors: string[] = [];
+  let rejectAiFailure: ((reason: Error) => void) | undefined;
+  const aiFailure = new Promise<never>((_, reject) => { rejectAiFailure = reject; });
+  const reportAiFailure = (side: "p1" | "p2", error: unknown) => {
+    const message = error instanceof Error ? error.stack || error.message : String(error);
+    aiErrors.push(side + ": " + message);
+    rejectAiFailure?.(new Error("Benchmark AI crashed: " + side + ": " + message));
+  };
+  void p1.start().catch(error => reportAiFailure("p1", error));
+  void p2.start().catch(error => reportAiFailure("p2", error));
   const analysis = emptyAnalysis();
   const seedRoster = (side: SideDamageSummary, sets: Record<string, unknown>[]) => {
     for (const set of sets) {
@@ -470,7 +478,7 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
     if (timeoutId) clearTimeout(timeoutId);
     timeoutId = setTimeout(() => {
       rejectIdleTimeout?.(new Error(
-        `No benchmark battle activity for 30 seconds (last turn: ${lastTurn || "not started"}; last event: ${lastEvent}).`
+        `No benchmark battle activity for 30 seconds (last turn: ${lastTurn || "not started"}; last event: ${lastEvent}; recent events: ${recentBattleEvents.slice(-12).join(" || ") || "none"}; AI errors: ${aiErrors.join(" || ") || "none"}).`
       ));
     }, 30000);
   };
@@ -616,7 +624,7 @@ async function playOneBattle(format: string, playerSets: Record<string, unknown>
       `>player p1 ${JSON.stringify({ name: "Benchmark Player", team: Teams.pack(playerSets as any) })}\n` +
       `>player p2 ${JSON.stringify({ name: "Benchmark Opponent", team: Teams.pack(opponentSets as any) })}`
     );
-    const result = await Promise.race([finished, timeout]);
+    const result = await Promise.race([finished, timeout, aiFailure]);
     if (isolatedOneVsOne && result.outcome !== "tie") {
       const defeatedSide = result.outcome === "win" ? analysis.opponent : analysis.player;
       const defeatedSet = result.outcome === "win" ? opponentSets[0] : playerSets[0];

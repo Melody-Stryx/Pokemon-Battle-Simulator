@@ -226,8 +226,15 @@ export function chooseTacticalChoice(request: RequestView, log: string[], side: 
     ]);
     const moveId = toID(String((bestMove.option as any).id || bestMove.option.move));
     const isFieldOrSideCondition = Boolean(moveData?.sideCondition || moveData?.pseudoWeather || moveData?.weather || moveData?.terrain) || targetlessEffects.has(moveId);
-    const needsExplicitTarget = !isFieldOrSideCondition && ["normal", "adjacentFoe", "any", "adjacentAlly", "adjacentAllyOrSelf"].includes(moveTarget);
-    const targetLocation = moveTarget === "adjacentAlly" || moveTarget === "adjacentAllyOrSelf" ? (i === 0 ? -2 : -1) : 1;
+    // In singles, Showdown selects the only valid target automatically.
+    // Supplying a target index is invalid for many moves (including Fly).
+    // Keep explicit target routing only for multi-active requests, where
+    // individual target slots matter.
+    const needsExplicitTarget = request.active.length > 1 && !isFieldOrSideCondition &&
+      ["normal", "adjacentFoe", "any", "adjacentAlly", "adjacentAllyOrSelf"].includes(moveTarget);
+    const targetLocation = moveTarget === "adjacentAlly" || moveTarget === "adjacentAllyOrSelf"
+      ? (i === 0 ? -2 : -1)
+      : (side === "p1" ? 1 : -1);
     let choice = `move ${bestMove.slot}${needsExplicitTarget ? ` ${targetLocation}` : ""}`;
     if (active.canMegaEvo) choice += " mega";
     else if (active.canDynamax && (hpRatio(own) < 0.65 || bestMove.score >= 100)) choice += " dynamax";

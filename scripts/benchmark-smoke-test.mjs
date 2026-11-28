@@ -305,10 +305,10 @@ if (doublesReflectChoice !== "move 1, move 1") throw new Error("Doubles AI added
 
 console.log("Tactical AI decision tests passed: super-effective move selection, legal doubles choices, and matchup-aware switching.");
 
-if (normalizeBenchmarkOutcome("tie") !== "tie" || normalizeBenchmarkOutcome("loss") !== "loss" || normalizeBenchmarkOutcome("win") !== "win") {
-  throw new Error("Benchmark outcome normalization must preserve ties separately from wins and losses.");
+if (normalizeBenchmarkOutcome("tie") !== "loss" || normalizeBenchmarkOutcome("loss") !== "loss" || normalizeBenchmarkOutcome("win") !== "win") {
+  throw new Error("Benchmark outcomes must count ties as losses and preserve wins.");
 }
-console.log("Tie-scoring regression test passed: ties remain separate from player losses.");
+console.log("Tie-scoring regression test passed: ties count as losses.");
 
 const streams = BattleStreams.getPlayerStreams(new BattleStreams.BattleStream());
 const p1 = new RandomPlayerAI(streams.p1);

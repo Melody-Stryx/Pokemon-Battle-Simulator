@@ -193,30 +193,37 @@ function SearchableField(props: { label: string; value: string; options: SearchO
   const [query, setQuery] = useState(props.value);
   const [open, setOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
-  useEffect(() => setQuery(props.value), [props.value]);
+  const [activeIndex, setActiveIndex] = useState(0);
+  useEffect(() => { if (!open) setQuery(props.value); }, [props.value, open]);
   const filtered = props.options.filter(option => {
     const search = query.trim().toLowerCase();
     const matchesText = !search || [option.name, option.detail || "", ...(option.tags || [])].join(" ").toLowerCase().includes(search);
     const matchesFilters = (props.filters || []).every(group => !activeFilters[group.label] || (option.tags || []).includes(activeFilters[group.label]));
     return matchesText && matchesFilters;
-  }).slice(0, 30);
+  }).slice(0, 60);
+  useEffect(() => setActiveIndex(0), [query, activeFilters]);
   const choose = (option: SearchOption) => { setQuery(option.name); props.onChange(option.name); setOpen(false); };
   return <label className="field search-field">
     <span>{props.label}</span>
     <div className="search-field-control">
-      <input value={query} placeholder={props.placeholder} autoComplete="off" aria-expanded={open} onFocus={() => setOpen(true)}
-        onChange={event => { setQuery(event.target.value); props.onChange(event.target.value); setOpen(true); }}
-        onBlur={() => window.setTimeout(() => setOpen(false), 140)}
+      <input value={query} placeholder={props.placeholder} autoComplete="off" aria-expanded={open} aria-haspopup="listbox"
+        onFocus={() => { setQuery(""); setActiveIndex(0); setOpen(true); }}
+        onClick={() => { if (!open) { setQuery(""); setActiveIndex(0); setOpen(true); } }}
+        onChange={event => { setQuery(event.target.value); setActiveIndex(0); props.onChange(event.target.value); setOpen(true); }}
+        onBlur={() => window.setTimeout(() => { setOpen(false); setQuery(props.value); }, 140)}
         onKeyDown={event => {
-          if (event.key === "Escape") setOpen(false);
-          if (event.key === "Enter" && open && filtered.length) { event.preventDefault(); choose(filtered[0]); }
+          if (event.key === "Escape") { setOpen(false); setQuery(props.value); }
+          if (event.key === "ArrowDown" && open && filtered.length) { event.preventDefault(); setActiveIndex(index => Math.min(filtered.length - 1, index + 1)); }
+          if (event.key === "ArrowUp" && open && filtered.length) { event.preventDefault(); setActiveIndex(index => Math.max(0, index - 1)); }
+          if (event.key === "Enter" && open && filtered.length) { event.preventDefault(); choose(filtered[activeIndex] || filtered[0]); }
         }} />
-      {open && <div className="search-field-results" role="listbox">
+      {open && <div className="search-field-results" role="listbox" aria-label={props.label + " options"}>
         {props.filters && props.filters.length > 0 && <div className="search-filter-row">{props.filters.map(group => <div key={group.label}><span>{group.label}</span><select value={activeFilters[group.label] || ""} onChange={event => setActiveFilters(current => ({...current,[group.label]:event.target.value}))}><option value="">All</option>{group.values.map(value => <option key={value}>{value}</option>)}</select></div>)}</div>}
-        {filtered.length === 0 ? <p className="search-no-results">No matching entries</p> : filtered.map(option => <button type="button" role="option" aria-selected={option.name === query} key={option.name}
-          onMouseDown={event => event.preventDefault()} onClick={() => choose(option)}>
+        {filtered.length === 0 ? <p className="search-no-results">No matching entries</p> : filtered.map((option,index) => <button type="button" role="option" aria-selected={index === activeIndex} key={option.name}
+          onMouseEnter={() => setActiveIndex(index)} onMouseDown={event => event.preventDefault()} onClick={() => choose(option)}>
           <strong>{option.name}</strong>{option.detail && <small>{option.detail}</small>}
         </button>)}
+        {filtered.length > 0 && <div className="search-results-count">{filtered.length} shown · type to narrow results</div>}
       </div>}
     </div>
   </label>;
@@ -1114,11 +1121,6 @@ export default function App() {
             </section>
           </div>
 
-                <section className="showdown-dex-browser" aria-label="Pokédex browser">
-                  <div className="showdown-dex-heading"><div><span className="eyebrow">POKÉDEX</span><strong>Choose a Pokémon</strong><small>{filteredDexSpecies.length} results · Generation {settings.generation}</small></div><div className="showdown-dex-controls"><input aria-label="Search Pokédex" value={dexSearch} onChange={e=>setDexSearch(e.target.value)} placeholder="Search Pokémon or number…" /><select aria-label="Filter by type" value={dexTypeFilter} onChange={e=>setDexTypeFilter(e.target.value)}>{dexTypes.map(type=><option key={type}>{type}</option>)}</select><select aria-label="Sort Pokédex" value={dexSort} onChange={e=>setDexSort(e.target.value)}><option>Name</option><option>Number</option></select></div></div>
-                  <div className="showdown-dex-list">{filteredDexSpecies.map(species=><button type="button" key={species.name} className={selectedBuild?.name===species.name?"dex-entry selected": "dex-entry"} onClick={()=>{ if(selectedSlot) patchBuild({name:species.name,gender:species.gender==="N"||species.gender==="M"||species.gender==="F"?species.gender:""}); else addPokemon(); }}><span className="dex-entry-number">{String(species.num).padStart(3,"0")}</span><strong>{species.name}</strong><span className="type-tags">{species.types.map(type=><em key={type} className={"type-tag type-"+type.toLowerCase()}>{type}</em>)}</span><span className="dex-entry-abilities">{Object.values(species.abilities).filter(Boolean).join(" · ")}</span><span className="dex-entry-stats">{species.baseStats.hp}/{species.baseStats.atk}/{species.baseStats.def}/{species.baseStats.spa}/{species.baseStats.spd}/{species.baseStats.spe} · {Object.values(species.baseStats).reduce((a,b)=>a+b,0)}</span></button>)}</div>
-                  {filteredDexSpecies.length===0 && <p className="search-no-results">No Pokémon match those filters.</p>}
-                </section>
           <p className="hint team-storage-hint">{user ? `Signed in as ${user.email || "Google account"} · ${cloudSyncStatus === "loading" ? "Syncing…" : cloudSyncStatus === "error" ? "Sync error" : "Cloud sync active"}` : "Local storage is active. Sign in with Google to sync teams and folders across devices."}</p>
         </>}
         {activePage === "Legality analysis" && <>
